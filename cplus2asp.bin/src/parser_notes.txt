@@ -1,0 +1,35 @@
+Random notes about the parser:
+------------------------------
+CCalc doesn't seem to warn about duplicate variable declarations so long as the variable is still being bound to the same sort. (Is this true for other declarations too? What about if they aren't identical declarations?)
+
+constant_expr is supposed to be a positive, bare constant (used for things like "inertial loc(monkey).")
+"literals" are positive/negative constants with values ("c=v", "-c(v)" and the like)
+"atoms" are literals with time stamps ("t:c=v", etc.)
+
+Notes on sort declarations:
+---
+Apparently "a >> b*" is invalid in CCalc, it has to be expressed "a >> (b*)".  I see no reason for this, so the translator's parser also supports the bare version (i.e., it'll accept both).
+
+CCalc seems to be happy accepting sorts with capital letters as their initial character.  CCalc also seems to happily accept sort names with an initial underscore (in violation of the specs in Glimpse).
+
+Notes on object declarations:
+---
+CCalc only accepts extended integers (specifically, numeric math) in number range object declarations (e.g., "(1+1)..2 :: sort_a"), and single numeric objects need to be maxstep or bare integers.  However, the grammar in Glimpse suggests that CCalc should be able to handle extended integers as single values in an object declaration (e.g., "5*4 :: sort_a", which is an error in CCalc)
+In the interest of handling a wider variety of syntax, the translator's parser supports extended integer object declarations of this form.
+
+CCalc seems to only support math in the presence of numeric ranges when it comes to object declarations; just using numeric math to try and declare a single object name results in an error regardless of the operation, spacing, parentheses, etc.
+
+When an object has (sort) parameters, CCalc resolves the actual object names after all input files have been read, and appears to do a continual cycling object delcaration process until all objects have been fully enumerated.  This can lead to infinite loops if the objects of sort A use sort B as a paramter and vice-versa (i.e., any cyclic dependencies = infinite loops).  Could representing objects with parameters be handled like this to take the pressure off of the translator?
+sortName(obj(V_sort_param,V_other_sort_param)).
+
+Memory can leak from object declarations if the objects are in a list and at least one of them is malformed (e.g., "object1, 2badobj, _anOKObj :: some_sort"). Memory only leaks on bad input, normal object declarations are fine. Seems the lest painful way around that is to add some catching rules designed to capture common bad object names (numbers in front, too many nested parameters, etc.) that deallocate as gracefully as possible.
+
+Notes on causal laws:
+---
+Not acknowledging nested constants for now (e.g., "c(d)"), they'll just get translated like "c(d)" instead of unfolding them like they should.  This: "?[V]:(c(V) & d=V)" is not how to do it..
+
+I don't think the parser grammar allows for -(2+3) or similar (i.e., negative sign not immediately bound to a number).
+
+ParserElement should also store its yylloc so errors can be reported from the translate methods.
+
+Hack-ish solution to Boolean constant nonsense: Any time a bare Boolean constant is found in a rule, store it as "constant = true" (or "constant = false" if "-constant" is found).

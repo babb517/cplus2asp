@@ -1,0 +1,393 @@
+program:					 	 /*  empty  */
+							| statement_sequence
+							;
+statement_sequence:			  		statement
+							| statement_sequence statement
+							;
+statement:					  	constant_statement
+							| maxadditive_statement
+							| object_statement
+							| query_statement
+							| show_statement
+							| sort_statement
+							| variable_statement
+							| causal_law
+							| error T_PERIOD
+							;
+constant_statement:			  		T_COLON_DASH T_CONSTANTS constant_spec_outer_tuple T_PERIOD
+							;
+constant_spec_outer_tuple:	  			constant_spec_tuple
+							| T_PAREN_L constant_spec_tuple T_PAREN_R
+							;
+constant_spec_tuple:		  			constant_outer_spec
+							| constant_spec_outer_tuple T_SEMICOLON constant_outer_spec
+							;
+constant_outer_spec:		  			constant_spec
+							| T_PAREN_L constant_spec T_PAREN_R
+							;
+constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_binder
+							;
+constant_schema_outer_list:	  			constant_schema_list
+							| T_PAREN_L constant_schema_list T_PAREN_R
+							;
+constant_schema_list:		  			constant_outer_schema
+							| constant_schema_outer_list T_COMMA constant_outer_schema
+							;
+constant_outer_schema:		  			constant_schema
+							| T_PAREN_L constant_schema T_PAREN_R
+							;
+constant_schema:			  		T_IDENTIFIER
+							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
+							;
+constant_schema_nodecl:		  T_IDENTIFIER
+							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
+							;
+constant_outer_binder:		  constant_binder
+							| T_PAREN_L constant_binder T_PAREN_R
+							;
+constant_binder:			  		sort_identifier_with_ab
+							| sort_constant_name T_PAREN_L sort_identifier T_PAREN_R
+							| T_ATTRIBUTE T_OF constant_schema_nodecl
+							| T_ATTRIBUTE T_PAREN_L sort_identifier T_PAREN_R T_OF constant_schema_nodecl
+							| num_range
+maxadditive_statement:		  T_COLON_DASH T_MAXADDITIVE T_DBL_COLON extended_integer_outer_expression T_PERIOD
+							;
+object_statement:			  T_COLON_DASH T_OBJECTS object_spec_outer_tuple T_PERIOD
+							;
+object_spec_outer_tuple:	  object_spec_tuple
+							| T_PAREN_L object_spec_tuple T_PAREN_R
+							;
+object_spec_tuple:			  object_outer_spec
+							| object_spec_outer_tuple T_SEMICOLON object_spec_outer_tuple
+							;
+object_outer_spec:			  object_spec
+							| T_PAREN_L object_spec T_PAREN_R
+							;
+object_spec:				  object_outer_schema_list T_DBL_COLON sort_outer_identifier
+							;
+object_outer_schema_list:	  object_schema_list
+							| T_PAREN_L object_schema_list T_PAREN_R
+							;
+object_schema_list:			  object_outer_schema
+							| object_outer_schema_list T_COMMA object_outer_schema
+							;
+object_outer_schema:		  object_schema
+							| T_PAREN_L object_schema T_PAREN_R
+							;
+object_schema:				  T_IDENTIFIER
+							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
+							| extended_integer_outer_expression
+							| num_range
+							;
+show_statement:				  T_COLON_DASH T_SHOW error T_PERIOD
+							;
+sort_statement:				  T_COLON_DASH T_SORTS sort_spec_outer_tuple T_PERIOD
+							;
+sort_spec_outer_tuple:		  sort_spec_tuple
+							| T_PAREN_L sort_spec_tuple T_PAREN_R
+							;
+sort_spec_tuple:			  sort_spec
+							| sort_spec_outer_tuple T_SEMICOLON sort_spec_outer_tuple
+							;
+sort_spec:					  sort_identifier_no_range
+							| sort_identifier_no_range T_DBL_GTHAN sort_spec_outer_tuple
+							;
+sort_identifier_with_ab:	 sort_outer_identifier
+							| T_STATICAB
+							| T_DYNAMICAB
+							;
+sort_outer_identifier:		  			sort_identifier
+							| T_PAREN_L sort_identifier T_PAREN_R
+							;
+							| num_range
+							;
+sort_identifier_no_range:		  		sort_identifier_name
+							| sort_identifier_name T_STAR
+							| sort_identifier_name T_PLUS T_NONE
+							;
+sort_identifier_name:		  			T_IDENTIFIER
+							| sort_constant_name
+							;
+sort_constant_name:					T_ABACTION
+							| T_ACTION
+							| T_ADDITIVEACTION
+							| T_ADDITIVEFLUENT
+							| T_EXOGENOUSACTION
+							| T_INERTIALFLUENT
+							| T_RIGID
+							| T_SDFLUENT
+							| T_SIMPLEFLUENT
+							;
+variable_statement:			  T_COLON_DASH T_VARIABLES variable_spec_outer_tuple T_PERIOD
+							;
+variable_spec_outer_tuple:	  variable_spec_tuple
+							| T_PAREN_L variable_spec_tuple T_PAREN_R
+							;
+variable_spec_tuple:		  variable_outer_spec
+							| variable_outer_spec T_SEMICOLON variable_spec_outer_tuple
+							;
+variable_outer_spec:		  variable_spec
+							| T_PAREN_L variable_spec T_PAREN_R
+							;
+variable_spec:				  variable_outer_list T_DBL_COLON variable_binding
+							;
+variable_outer_list:		  variable_list
+							| T_PAREN_L variable_list T_PAREN_R
+							;
+variable_list:				  T_IDENTIFIER
+							| variable_list T_COMMA T_IDENTIFIER
+							;
+variable_binding:			  		sort_outer_identifier
+							| num_range
+							;
+cl_if_clause:	/* Empty */
+		| T_IF cl_body_formula
+		;
+cl_assuming_clause: /* Empty */
+		| T_ASSUMING cl_body_formula
+		;
+cl_after_clause: /* Empty */
+		| T_AFTER cl_body_formula
+		;
+cl_unless_clause: /* Empty */
+		| T_UNLESS constant_expr
+		;
+cl_when_clause:	/* Empty */
+		| T_WHEN cl_when_expr
+		;
+cl_following_clause: /* Empty */
+		| T_FOLLOWING cl_following_expr
+		;
+cl_where_clause: /* Empty */
+		| T_WHERE cl_where_expr
+		;
+causal_law:					  	causal_law_shortcut_forms T_PERIOD
+							| causal_law_basic_forms T_PERIOD
+							;
+causal_law_shortcut_forms:	  			cl_always_forms
+							| cl_constraint_forms
+							| cl_default_forms
+							| cl_exogenous_forms
+							| cl_inertial_forms
+							| cl_nonexecutable_forms
+							| cl_rigid_forms
+							| cl_possibly_caused_forms
+							| cl_may_cause_forms
+							| cl_causes_forms
+							| cl_noconcurrency_forms
+							| cl_increment_forms
+							| cl_trivial_forms
+							;
+cl_always_forms:					T_ALWAYS cl_body_formula cl_when_clause cl_where_clause
+							;
+cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+							| T_IMPOSSIBLE cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+							| T_NEVER cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+					;
+cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+							;
+cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_where_clause
+							;
+cl_inertial_forms:			  		T_INERTIAL constant_expr cl_where_clause
+							;
+cl_nonexecutable_forms:		  			T_NONEXECUTABLE cl_body_formula cl_if_clause cl_when_clause cl_where_clause
+							;
+cl_rigid_forms:				  		T_RIGID constant_expr cl_where_clause
+							;
+cl_possibly_caused_forms:	  			T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+							;
+cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clause cl_when_clause cl_where_clause
+							;
+cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_when_clause cl_where_clause
+							;
+cl_noconcurrency_forms:		  			T_NOCONCURRENCY
+							| T_STRONG_NOCONCURRENCY
+							;
+cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
+							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
+							;
+cl_trivial_forms:					cl_head_formula
+							;
+causal_law_basic_forms:		  T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+							;
+cl_head_formula:			  		literal_assign_conj
+							| T_TRUE
+							| T_FALSE
+							;
+cl_body_formula:			  		cl_body_formula_inner
+							| T_PAREN_L cl_body_formula_inner T_PAREN_R
+							;
+cl_body_formula_inner:		  cl_body_term
+							| NOT cl_body_formula %prec T_UMINUS
+							| cl_body_formula AND cl_body_formula
+							| cl_body_formula OR cl_body_formula
+							| cl_body_formula T_EQUIV cl_body_formula
+							| cl_body_formula T_IMPL cl_body_formula
+							;
+cl_body_term:				  cl_body_term_inner
+							| T_PAREN_L cl_body_term_inner T_PAREN_R
+							;
+cl_body_term_inner:			  extended_value_expression
+							| extended_value_expression EQUALS extended_value_expression
+							| extended_value_expression NOT_EQUALS extended_value_expression
+							| extended_value_expression COMPARISON extended_value_expression
+							| expr_big_expression
+							;
+cl_where_expr:				  cl_body_formula
+							;
+cl_when_expr:				  cl_body_formula_bool
+							;
+cl_following_expr:			  cl_body_formula_bool
+							;
+cl_body_formula_bool:			  cl_body_formula_bool_inner
+							| T_PAREN_L cl_body_formula_bool_inner T_PAREN_R
+							;
+cl_body_formula_bool_inner:	  cl_body_term_bool
+							| NOT cl_body_formula_bool %prec T_UMINUS
+							| cl_body_formula_bool AND cl_body_formula_bool
+							| cl_body_formula_bool OR cl_body_formula_bool
+							| cl_body_formula_bool T_EQUIV cl_body_formula_bool
+							| cl_body_formula_bool T_IMPL cl_body_formula_bool
+							;
+cl_body_term_bool:		 			cl_body_term_bool_inner
+							| T_PAREN_L cl_body_term_bool_inner T_PAREN_R
+							;
+cl_body_term_bool_inner:	  			constant_expr
+							| expr_big_expression_bool
+							;
+literal_assign_conj:		  			literal_assign_conj_inner
+							| T_PAREN_L literal_assign_conj_inner T_PAREN_R
+							;
+literal_assign_conj_inner:	  			literal_assign_expr
+							| literal_assign_conj AND literal_assign_conj
+							;
+literal_assign_expr:		  			constant_expr
+							| NOT constant_expr %prec T_UMINUS
+							| constant_expr T_EQ extended_value_expression
+							;						;
+expr_big_expression:		  			T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula T_BRACKET_R
+							;
+expr_big_expression_bool:	 			T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula_bool T_BRACKET_R
+							;
+expr_big_quantifiers:		  			expr_big_conj
+							| expr_big_disj
+							| expr_big_quantifiers expr_big_conj
+							| expr_big_quantifiers expr_big_disj
+							;
+expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
+							;
+expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
+							;
+query_statement:			  T_COLON_DASH T_QUERY query_expression_tuple T_PERIOD
+							;
+query_expression_tuple:		  query_expression
+							| query_expression_tuple T_SEMICOLON query_expression_tuple
+							;
+query_expression:			  T_LABEL T_DBL_COLON T_INTEGER
+							| T_MAXSTEP T_DBL_COLON T_INTEGER
+							| T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER
+							| query_body_formula
+							;
+query_body_formula:			  query_body_formula_inner
+							| T_PAREN_L query_body_formula T_PAREN_R
+							| extended_math_expr_inner T_COLON query_body_formula
+							;
+query_body_formula_inner:	  query_body_term
+							| NOT query_body_formula %prec T_UMINUS
+							| query_body_formula AND query_body_formula
+							| query_body_formula OR query_body_formula
+							| query_body_formula T_EQUIV query_body_formula
+							| query_body_formula T_IMPL query_body_formula
+							;
+query_body_term:			  query_body_term_inner
+							| T_PAREN_L query_body_term_inner T_PAREN_R
+							;
+query_body_term_inner:		  extended_value_expression
+							| extended_value_expression EQUALS extended_value_expression
+							| extended_value_expression NOT_EQUALS extended_value_expression
+							| extended_value_expression COMPARISON extended_value_expression
+							| expr_big_query_expression
+							;
+expr_big_query_expression:		  T_BRACKET_L expr_big_quantifiers T_PIPE query_body_formula T_BRACKET_R
+							;
+constant_expr:				  lua_indicator T_IDENTIFIER
+							| lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R
+							;
+lua_indicator:				/* empty */
+							| T_AT
+parameter_list:				  parameter_general
+							| parameter_list T_COMMA parameter_general
+							;
+parameter_general:			  extended_math_expression
+							;
+sort_identifier_list:		  sort_identifier
+							| sort_identifier_list T_COMMA sort_identifier
+							;
+extended_value_expression:	  T_TRUE
+							| T_FALSE
+							| T_NONE
+							| extended_math_expression
+							;
+extended_math_expression:	  extended_math_expr_inner
+							| T_PAREN_L extended_math_expr_inner T_PAREN_R
+							;
+extended_math_expr_inner:	  extended_math_term
+							| extended_math_expression T_PLUS extended_math_expression
+							| extended_math_expression T_DASH extended_math_expression
+							| extended_math_expression T_STAR extended_math_expression
+							| extended_math_expression T_INT_DIV extended_math_expression
+							| extended_math_expression T_MOD extended_math_expression
+							| T_ABS extended_math_expression
+							| T_ABS T_PAREN_L extended_math_expression T_PAREN_R
+							;
+extended_math_term:			  		extended_integer
+							| constant_expr
+							;
+num_range:					  	extended_integer_outer_expression T_DBL_PERIOD extended_integer_outer_expression
+							;
+extended_integer:			  T_INTEGER
+							| T_MAXADDITIVE
+							| T_MAXSTEP
+							| T_DASH extended_integer %prec T_UMINUS
+							;
+extended_integer_outer_expression: extended_integer_expression
+							| T_PAREN_L extended_integer_expression T_PAREN_R
+							;
+extended_integer_expression:  extended_integer
+							| extended_integer_outer_expression T_PLUS extended_integer_outer_expression
+							| extended_integer_outer_expression T_DASH extended_integer_outer_expression
+							| extended_integer_outer_expression T_STAR extended_integer_outer_expression
+							| extended_integer_outer_expression T_INT_DIV extended_integer_outer_expression
+							| extended_integer_outer_expression T_MOD extended_integer_outer_expression
+							;
+AND:						  T_AMP
+							| T_DBL_AMP
+							| T_COMMA
+							;
+OR:							  T_DBL_PLUS
+							;
+NOT:						  T_DASH %prec T_UMINUS
+							| T_NOT
+							;
+EQUALS:						  T_EQ
+							;
+NOT_EQUALS:					  T_NOT_EQ
+							| T_AT T_LTHAN
+							| T_AT T_GTHAN
+							;
+COMPARISON:					  T_DBL_EQ
+							| LESS_THAN
+							| GREATER_THAN
+							| LESS_THAN_EQ
+							| GREATER_THAN_EQ
+							;
+LESS_THAN:					  T_LTHAN
+							;
+GREATER_THAN:				  T_GTHAN
+							;
+LESS_THAN_EQ:				  T_EQ_LTHAN
+							| T_AT T_EQ_LTHAN
+							;
+GREATER_THAN_EQ:			  T_GTHAN_EQ
+							| T_AT T_GTHAN_EQ
+							;

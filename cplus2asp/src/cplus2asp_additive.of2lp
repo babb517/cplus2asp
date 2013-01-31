@@ -1,0 +1,96 @@
+%%% Standard, description-independent declarations to enable additive constants.
+
+%-------------------------------------------------------------
+#base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+% Numeric sorts designed for use with additive constants.
+sort(additiveInteger).
+#domain additiveInteger(V_additiveInteger).
+sort_object(additiveInteger,V_additiveInteger).
+
+sort(nnAdditiveInteger).
+#domain nnAdditiveInteger(V_nnAdditiveInteger).
+sort_object(nnAdditiveInteger,V_nnAdditiveInteger).
+
+% objects
+additiveInteger(-maxAdditive..maxAdditive).
+nnAdditiveInteger(0..maxAdditive).
+
+%------------------------------------------------------
+% New additive-based constants.
+
+sort(additiveFluent).
+#domain additiveFluent(V_additiveFluent).
+sort_object(additiveFluent,V_additiveFluent).
+
+sort(additiveAction).
+#domain additiveAction(V_additiveAction).
+sort_object(additiveAction,V_additiveAction).
+
+%---
+% subsort relations
+
+simpleFluent(V_additiveFluent).
+action(V_additiveAction).
+
+%-------------------------------------------------------
+% contribution constant declaration
+
+action(contribution(V_action,V_additiveFluent)) <-
+   constant_sort(V_action,boolean).
+
+constant_sort(contribution(V_action,V_additiveFluent),additiveInteger) <- 
+   constant_sort(V_action,boolean).
+
+action(contribution(V_action,V_additiveAction)) <-
+   constant_sort(V_action,boolean).
+
+constant_sort(contribution(V_action,V_additiveAction),additiveInteger) <- 
+   constant_sort(V_action,boolean).
+
+%%% Description-independent rules for additive constants.
+
+% By default, all contributions to additive constants are 0.
+
+%-------------------------------------------------------------
+#cumulative t. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+{occ(eql(contribution(V_action,V_additiveFluent),0),t-1)} <- 
+   constant_sort(V_action,boolean).
+
+{occ(eql(contribution(V_action,V_additiveAction),0),t-1)} <- 
+   constant_sort(V_action,boolean).
+
+% The value of an additive fluent at time+1 equals its value at time plus all contributions made during that time step.
+h(eql(V_additiveFluent,Value),t) <- 
+   h(eql(V_additiveFluent,Value_1),t-1) &
+   Value_2 = #sum[occ(eql(contribution(Action,V_additiveFluent),AdditiveInteger),t-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
+   Value = Value_1 + Value_2 & 
+   constant_sort(V_additiveFluent,V_sort) & 
+   sort_object(V_sort,Value) & 
+   sort_object(V_sort,Value_1).
+
+% The value of an additive action at any given time equals all contributions made during that time step.
+occ(eql(V_additiveAction,Value),t-1) <- 
+   Value = #sum[occ(eql(contribution(Action,V_additiveAction),AdditiveInteger),t-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
+   constant_sort(V_additiveAction,V_sort) & 
+   sort_object(V_sort,Value).
+
+%-------------------------------------------------------------
+#base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+% Hide additive integer delcarations and contributions from the answer sets.
+#hide sort(additiveInteger).
+#hide sort(nnAdditiveInteger).
+#hide additiveInteger/1.
+#hide nnAdditiveInteger/1.
+
+#hide action(contribution(_,_)).
+#hide constant_sort(contribution(_,_),_).
+#hide occ(eql(contribution(_,_),_),_).
+
+#hide sort(additiveFluent).
+#hide sort(additiveAction).

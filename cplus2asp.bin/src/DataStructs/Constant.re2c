@@ -1,0 +1,235 @@
+#include "Element.h"
+#include "Variable.h"
+#include "Sort.h"
+#include "utilities.h"
+
+#include "Constant.h"
+#include "Context.h"
+
+// Default constructor.
+Constant::Constant() : Element()
+{
+	elemType = ELEM_CONST;
+	constType = CONST_UNKNOWN;
+	domain = NULL;
+}
+
+// Full constructor.
+Constant::Constant(std::string _name, std::string _transName) : Element(_name, _transName)
+{
+	elemType = ELEM_CONST;
+	constType = CONST_UNKNOWN;
+	domain = NULL;
+}
+
+// Returns the full name (including parameters) of this object.
+std::string Constant::fullName()
+{
+	std::string tempStr = name;
+	if(!params.empty())
+	{
+		tempStr += "(";
+		tempStr += utils::elementVectorToFullNameString<Sort*>(params);
+		tempStr += ")";
+	}
+	return tempStr;
+}
+
+// Returns the full translated name (including parameters) of this object.
+std::string Constant::fullTransName()
+{
+	std::string tempStr = transName;
+	if(!params.empty())
+	{
+		tempStr += "(";
+		tempStr += utils::elementVectorToFullTransNameString<Sort*>(params);
+		tempStr += ")";
+	}
+	return tempStr;
+}
+
+// Standard toString function.
+std::string Constant::toString()
+{
+	// Start with the basic Element info, then add on Constant-specific stuff.
+	std::string tempStr = Element::toString();
+	tempStr += "\n  [Constant]";
+	tempStr += "\n  params = (";
+	if(!params.empty())
+	{
+		tempStr += utils::elementVectorToFullNameString<Sort*>(params, ", ", true);
+	}
+	tempStr += ")";
+	tempStr += "\n  domain = ";
+	// If we don't have a domain yet, just say NULL.
+	if(domain == NULL)
+	{
+		tempStr += "NULL";
+	}
+	else
+	{
+		tempStr += "\"";
+		tempStr += domain->fullName();
+		tempStr += "\"";
+	}
+	tempStr += "\n  constType = ";
+	// Print out the English version of the possible enum values of constType.
+	tempStr += Constant::constTypeToString(constType);
+	return tempStr;
+}
+
+// Generates a string representation of a Constant's type.
+std::string Constant::constTypeToString(enum ConstantType _constType)
+{
+	// Print out the English version of the possible enum values of constType.
+	switch (_constType)
+	{
+	case CONST_ACTION:
+		return "action";
+	case CONST_ABACTION:
+		return "abAction";
+	case CONST_ATTRIBUTE:
+		return "attribute";
+	case CONST_EXOGENOUSACTION:
+		return "exogenousAction";
+	case CONST_INERTIALFLUENT:
+		return "inertialFluent";
+	case CONST_RIGID:
+		return "rigid";
+	case CONST_SDFLUENT:
+		return "sdFluent";
+	case CONST_SIMPLEFLUENT:
+		return "simpleFluent";
+	case CONST_ADDITIVEACTION:
+		return "additiveAction";
+	case CONST_ADDITIVEFLUENT:
+		return "additiveFluent";
+	case CONST_STATICAB:
+		return "staticAbnormality";
+	case CONST_DYNAMICAB:
+		return "dynamicAbnormality";
+	default:
+		// Unknown or unrecognized constant type.
+		return "UNKNOWN";
+	}
+}
+
+enum Constant::ConstantType Constant::stringToConstType(char const* _constType) {
+	char const* marker;
+	
+	/*!re2c
+		re2c:define:YYCTYPE = "char";
+		re2c:define:YYCURSOR = _constType;
+		re2c:yyfill:enable = 0;
+		re2c:define:YYMARKER = marker;
+		re2c:indent:top = 1;
+
+		"action"				{ return CONST_ACTION; }
+		"abAction"				{ return CONST_ABACTION; }
+		"attribute"				{ return CONST_ATTRIBUTE; }
+		"exogenousAction"		{ return CONST_EXOGENOUSACTION; }
+		"inertialFluent"		{ return CONST_INERTIALFLUENT; }
+		"rigid"					{ return CONST_RIGID; }
+		"sdFluent"				{ return CONST_SDFLUENT; }
+		"simpleFluent"			{ return CONST_SIMPLEFLUENT; }
+		"additiveAction"		{ return CONST_ADDITIVEACTION; }
+		"additiveFluent"		{ return CONST_ADDITIVEFLUENT; }
+		"staticAbnormality"		{ return CONST_STATICAB; }
+		"dynamicAbnormality"	{ return CONST_DYNAMICAB; }
+		.						{ return CONST_UNKNOWN; }
+	*/
+}
+
+// Checks if the type is an action constant.
+bool Constant::isActionType(enum ConstantType _constType)
+{
+	switch (_constType)
+	{
+	case CONST_ACTION:
+	case CONST_ABACTION:
+	case CONST_ATTRIBUTE:
+	case CONST_EXOGENOUSACTION:
+	case CONST_ADDITIVEACTION:
+		return true;
+	default:
+		return false;
+	}
+}
+
+// Checks if the type is an abnormality constant.
+bool Constant::isAbnormalityType(enum ConstantType _constType)
+{
+	switch (_constType)
+	{
+	case CONST_STATICAB:
+	case CONST_DYNAMICAB:
+		return true;
+	default:
+		return false;
+	}
+}
+// Checks if the type is a fluent constant.
+bool Constant::isFluentType(enum ConstantType _constType)
+{
+	switch (_constType)
+	{
+	case CONST_INERTIALFLUENT:
+	case CONST_RIGID:
+	case CONST_SDFLUENT:
+	case CONST_SIMPLEFLUENT:
+	case CONST_ADDITIVEFLUENT:
+		return true;
+	default:
+		return false;
+	}
+}
+
+// Generates a prefix used to wrap the atom's name in.
+std::string Constant::translatePrefix(ConstantType constType)
+{
+	switch (constType) {
+	case CONST_ACTION:
+	case CONST_ABACTION:
+	case CONST_ATTRIBUTE:
+	case CONST_EXOGENOUSACTION:
+	case CONST_ADDITIVEACTION:
+		return "occ(eql(";
+	case CONST_STATICAB:
+		return "ab_h(";
+	case CONST_DYNAMICAB:
+		return "ab_occ(";
+	case CONST_INERTIALFLUENT:
+	case CONST_RIGID:
+	case CONST_SDFLUENT:
+	case CONST_SIMPLEFLUENT:
+	case CONST_ADDITIVEFLUENT:
+	default:
+		return "h(eql(";
+	}
+}
+
+// Generates a postfix used to wrap the atom's name in.
+std::string Constant::translatePostfix(ConstantType constType, Context const& context) {
+	std::stringstream out;
+	if (Constant::isAbnormalityType(constType)) {
+		return ", " + context.getTimestamp() + ")";
+	} else {
+		out << ", ";
+		// make sure we handle the case where the context is blind to this being an atom.
+		// Default the value to "true".
+		out << ((context.getValue() != "") ? context.getValue() : "true");
+		out << ")";
+		out << ((constType == Constant::CONST_RIGID) ? "" : ", " + context.getTimestamp());
+		out << ")";
+		return out.str();
+	}
+}
+
+
+// Destructor.
+Constant::~Constant()
+{
+	params.clear();
+	domain = NULL;
+}
+
