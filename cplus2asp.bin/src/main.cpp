@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	std::string outFile = ""; // If not black, specifies a file to send translated output to.
 	bool errorToOutput = false; // If true, will also output error messages wherever normal output is going.
 	bool staticTrans = false;	// If true, this will set the translator to output a static translation, rather than an incremental/dynamic one.
-	bool expressiveReturn;
+	bool expressiveReturn = false;	// If true, will enable flags in the return value to indicate what (if any) special constants were found.
 	std::string symbolTableFile = "";
 	char chrarrFullPath[PATH_MAX+1]; // Used to temporarily hold paths to input files.
 	char *chrptrPath = NULL; // Used to capture the results from realpath.

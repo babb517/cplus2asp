@@ -113,9 +113,11 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Query.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/ElementCounter.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Variable.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Element.h

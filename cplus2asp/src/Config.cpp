@@ -45,6 +45,7 @@ Config::Config() {
 	mConfigOpts[OPT_NUM_SOLN] = DEF_NUM_SOLN;
 	mConfigOpts[OPT_EXT_PORT] = UNDEFINED;
 	mConfigOpts[OPT_INT_PORT] = DEF_INTERNAL_PORT;
+	mConfigOpts[OPT_SQUELCH_SOLVER] = DEF_SQUELCH_SOLVER;
 
 
 	memset(mCustomConfig,0,OPT_LENGTH);
@@ -270,11 +271,11 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (Toolchain i = tool; i >= TC_BEGIN; i = (Toolchain)((int)i + 1)) {
+	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
 		// Only include files which haven't been included by a previous tool.
-		if (i != tool && run(i)) break;
+		if (i != (int)tool && run((Toolchain)i)) break;
 
-		for (InputList::const_iterator it = beginInput(tool); it != endInput(tool); it++) {
+		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
 			count++;
 		}
 	}
@@ -365,12 +366,6 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 	case TC_PREPROC:
 
-		// The preprocessor should include the standard files in addition to the 'normal' include files.
-		if (boolConfigOpt(OPT_INCL_STD))
-			out << " " << stdFile();
-		if (boolConfigOpt(OPT_INCL_ADDITIVE))
-			out << " " << additiveFile();
-
 		// The preprocessor should be directed to the temp output location if we
 		// are going to be sending it to the grounder (or solver).
 		if (run(TC_GROUNDER)|| run(TC_SOLVER))
@@ -386,6 +381,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// * Query information.
 		// * Minimum step information
 		// * Maximum step information.
+		// * Maximum additive information
 
 		// # solutions
 		out << " " << intConfigOpt(OPT_NUM_SOLN);
@@ -393,8 +389,9 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
 			if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+			if (curMaxStep != UNDEFINED) out << " -c maxstep=" << curMaxStep;
 			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 
 			for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 				out << " -c " << it->first << "=" << it->second;
@@ -404,9 +401,9 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// min/max step
 		if (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) {
 			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " --imin=" << intConfigOpt(OPT_MINSTEP);
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED){
-				if (intConfigOpt(OPT_MAXSTEP) > 0)
-					out << " --imax=" << intConfigOpt(OPT_MAXSTEP);
+			if (curMaxStep != UNDEFINED){
+				if (curMaxStep > 0)
+					out << " --imax=" << curMaxStep;
 				else
 					out << " --ibase";
 			}
@@ -418,6 +415,12 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (run(TC_POSTPROC) || mode() == MODE_REACTIVE)
 			out << " > \"" << intSoFile() << "\"";
 
+		// The solver should be prevented from throwing warnings if the user
+		// hasn't explicity asked for them.
+		if (boolConfigOpt(Config::OPT_SQUELCH_SOLVER)) {
+			out << " 2> /dev/null";
+		}
+
 		// If we're running in reactive mode and are set to run the reactive bridge then we should run the solver in the background
 		if (mode() == MODE_REACTIVE && run(TC_REACTIVE_BRIDGE)) out << " &";
 
@@ -426,8 +429,9 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 		// Include special constant definitions
 		if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+		if (curMaxStep != UNDEFINED) out << " -c maxstep=" << curMaxStep;
 		if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 
 		for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 			out << " -c " << it->first << "=" << it->second;
@@ -458,7 +462,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 // Sets the configuration to run up to (and including) the provided tool.
 bool Config::setRunTo(Toolchain tool) {
-	bool conflict;
+	bool conflict = 0;
 
 	for (int i = (int)TC_BEGIN; i < (int)tool+1; i++) {
 		conflict |= run((Toolchain)i, true);
@@ -471,7 +475,7 @@ bool Config::setRunTo(Toolchain tool) {
 
 // Sets the configuration to run from the provided tool.
 bool Config::setRunFrom(Toolchain tool) {
-	bool conflict;
+	bool conflict = 0;
 
 	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
@@ -484,7 +488,8 @@ bool Config::setRunFrom(Toolchain tool) {
 
 // Sets the configuration to run only the provided tool.
 bool Config::setOnlyRun(Toolchain tool) {
-	bool conflict;
+	bool conflict = 0;
+
 	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
@@ -564,11 +569,11 @@ std::string Config::compileInputCommand(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (int i = (int)tool; i >= (int)TC_BEGIN; i++) {
+	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
 		// Only include files which haven't been included by a previous tool.
 		if (i != (int)tool && run((Toolchain)i)) break;
 
-		for (InputList::const_iterator it = beginInput(tool); it != endInput(tool); it++) {
+		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
 			out << " " << *it;
 		}
 	}
@@ -606,6 +611,15 @@ std::string Config::compileInputCommand(Toolchain tool) const {
 		/* no break */
 
 	case TC_PREPROC:
+		// The preprocessor should include the standard files in addition to the 'normal' include files.
+		// Include the standard files if we're running the pre processor.
+		if (run(TC_PREPROC)) {
+			if (boolConfigOpt(OPT_INCL_STD))
+				out << " " << stdFile();
+			if (boolConfigOpt(OPT_INCL_ADDITIVE))
+				out << " " << additiveFile();
+		}
+
 		if (run(TC_TRANSLATOR)) {
 			out << " " << intTransFile();
 			break;

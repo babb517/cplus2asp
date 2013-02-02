@@ -260,10 +260,7 @@ ltsyyossErr.clear();
 #define PARSERULE_NOT_USED NULL
 
 /// Clears out, deallocates, and nullifies a list/vector/etc. pointer.
-#define deallocateList(lst) \
-lst->clear(); \
-delete lst; \
-lst = NULL;
+#define deallocateList(lst) if (lst) { lst->clear(); delete lst; lst = NULL; }
 
 /// Deallocates and nullifies a non-container pointer.
 #define deallocateItem(item) if (item) delete item; item = NULL;
@@ -579,6 +576,8 @@ bool handleIncrementLaw(
 
 /* Show declaration nonterminal types */
 %type <not_used> show_statement
+%type <parseElement> atomic_formula
+%type <v_parseElement> atomic_formula_list
 /// @todo finish Show decl nonterminal types.
 
 /* Sort declaration nonterminal types */
@@ -636,7 +635,15 @@ bool handleIncrementLaw(
 %%
 
 program:					 	 /*  empty  */		{ $$ = PARSERULE_NOT_USED; }
-							| statement_sequence		{ $$ = PARSERULE_NOT_USED; }
+							| statement_sequence		
+{ 
+		$$ = PARSERULE_NOT_USED; 
+
+		// Ensure that we append the footer
+		// after the program has finished translating
+		mainTrans.outputFooter();
+		
+}
 							;
 
 statement_sequence:			  		statement		{ $$ = PARSERULE_NOT_USED; }
@@ -1234,15 +1241,58 @@ object_schema:				  T_IDENTIFIER
 
 /* ***Show Declaration*** */
 
-show_statement:				  T_COLON_DASH T_SHOW error T_PERIOD
+show_statement:				  		T_COLON_DASH T_SHOW atomic_formula_list T_PERIOD
 {
+	if ($3) {
+		mainTrans.handleShowStmt(*$3);
+	} else {
+		YYERROR;
+	}
+	deallocateList($3);
 	$$ = PARSERULE_NOT_USED;
-
-	/* Not supported yet. */
-	ltsyystartCaution(ltsyylloc);
-	ltsyyossErr << "Show declarations are not currently supported.";
-	ltsyyreportCaution();
 }							;
+
+
+
+atomic_formula_list:					atomic_formula
+{
+	if ($1) {
+		$$ = new std::vector<ParseElement*>();
+		$$->push_back($1);
+	} else {
+		$$ = NULL;
+	}
+	 
+}		
+							| atomic_formula_list T_SEMICOLON atomic_formula
+{
+	if ($1) {
+		$$ = $1;
+		if ($3) $1->push_back($3);
+	} else if ($3) {
+		$$ = new std::vector<ParseElement*>();
+		$$->push_back($3);
+	} else {
+		$$ = NULL;
+	}
+}
+							;
+			
+atomic_formula:		  			constant_expr
+{
+	$$ = $1;
+}
+							| constant_expr T_EQ extended_value_expression
+{
+	SimpleBinaryOperator* tempPE = new SimpleBinaryOperator();
+	tempPE->opType = SimpleBinaryOperator::BOP_EQ;
+	tempPE->preOp = $1;
+	tempPE->postOp = $3;
+	$$ = tempPE;
+}
+							 ;
+
+
 
 
 
@@ -1250,7 +1300,7 @@ show_statement:				  T_COLON_DASH T_SHOW error T_PERIOD
 
 /* ***Sorts*** */
 
-sort_statement:				  T_COLON_DASH T_SORTS sort_spec_outer_tuple T_PERIOD
+sort_statement:				  		T_COLON_DASH T_SORTS sort_spec_outer_tuple T_PERIOD
 {
 	// Deallocate the main sort list of the statement.
 	if($3 != NULL)
@@ -3331,35 +3381,50 @@ Sort* processSort(std::string* sortIdent, std::list<Sort*>* subsorts)
 		}
 		else
 		{
-			// Try to create (or get) a default variable for the sort, connect the two if nothing goes wrong.
+			// Create for ourselves a new default variable.
+			// Note: We used to try to retrieve an already-defined variable, however this
+			//       may cause variable conflicts in some cases (as we're using a variable they're using).
+
 			std::string tempName = retVal->fullName();
 			std::string tempTransName = retVal->fullTransName();
 			std::string tempVarName = Translator::sortNameToVariable(tempName);
-			Variable* tempVar = mainTrans.getVariable(tempVarName);
-			if(tempVar == NULL)
-			{
-				std::string tempTransVarName = Translator::sortNameToVariable(tempTransName);
-				tempVar = new Variable(tempVarName, tempTransVarName);
-				if(mainTrans.addVariable(tempVar) != SymbolTable::ADDSYM_OK)
-				{
-					deallocateItem(tempVar);
-					ltsyystartParseError(ltsyylloc);
-					ltsyyossErr << "Could not create default variable \"" << tempVarName << "\" ";
-					ltsyyossErr << "for sort \"" << tempName << "\".";
-					ltsyyreportError();
-					retVal = NULL; // Won't affect the translator's storage of the (incomplete) sort.
-				}
-				else
-				{
-					tempVar->sortRef = retVal;
-				}
+
+			std::string tempTransVarName = Translator::sortNameToVariable(tempTransName);
+			Variable* tempVar = new Variable(tempVarName, tempTransVarName);
+
+
+			int stat, i = 0;
+
+			// Handle possible duplicates by appending a counter to the end of the variable.
+			while ((stat = mainTrans.addVariable(tempVar)) == SymbolTable::ADDSYM_DUP) {
+				i++;
+				tempVar->name = tempVarName + utils::to_string(i);
+				tempVar->transName = tempTransVarName + utils::to_string(i);
 			}
+
+
+			if( stat != SymbolTable::ADDSYM_OK )
+			{
+				// Something went very very wrong.
+				deallocateItem(tempVar);
+				ltsyystartParseError(ltsyylloc);
+				ltsyyossErr << "Could not create default variable \"" << tempVarName << "\" ";
+				ltsyyossErr << "for sort \"" << tempName << "\".";
+				ltsyyreportError();
+				retVal = NULL; // Won't affect the translator's storage of the (incomplete) sort.
+			}
+			else
+			{
+				tempVar->sortRef = retVal;
+			}
+
 			if(tempVar != NULL)
 			{
 				retVal->sortVar = tempVar;
 			}
 		}
 	}
+	
 	// Add subsorts to the sort's list.
 	if(retVal != NULL && subsorts != NULL)
 	{
@@ -3377,6 +3442,7 @@ Sort* processSort(std::string* sortIdent, std::list<Sort*>* subsorts)
 			}
 		}
 	}
+	
 	// If the sort is new and is a "something*" sort, make sure its child ("something")
 	// is declared too, and link them together.
 	if(!alreadyDeclared && sortIdent->length() > 0 && (*sortIdent)[sortIdent->length()-1] == '*')
@@ -3907,10 +3973,12 @@ bool handleIncrementLaw(
 					std::string contrib_str("contribution");
 					contrib->baseName = contrib_str;
 					// To avoid a weird translation, temporarily create object-like versions of causer and causee and use those instead.
-					ObjectLikeElement *tempCauser = createObjLikeFromConstLike((ConstantLikeElement*)causer);
-					ObjectLikeElement *tempCausee = createObjLikeFromConstLike((ConstantLikeElement*)causee);
-					contrib->params.push_back(tempCauser);
-					contrib->params.push_back(tempCausee);
+					// ObjectLikeElement *tempCauser = createObjLikeFromConstLike((ConstantLikeElement*)causer);
+					// ObjectLikeElement *tempCausee = createObjLikeFromConstLike((ConstantLikeElement*)causee);
+					// contrib->params.push_back(tempCauser);
+					// contrib->params.push_back(tempCausee);
+					contrib->params.push_back(causer);
+					contrib->params.push_back(causee);
 					constRef = mainTrans.getConstantLike(contrib_str,2);
 					contrib->constRef = constRef;
 					newCausee->preOp = contrib;
@@ -3921,10 +3989,10 @@ bool handleIncrementLaw(
 					deallocateTempBinaryOp(newCausee);
 					contrib->params.clear();
 					deallocateItem(contrib);
-					tempCauser->params.clear();
-					deallocateItem(tempCauser);
-					tempCausee->params.clear();
-					deallocateItem(tempCausee);
+					//tempCauser->params.clear();
+					//deallocateItem(tempCauser);
+					//tempCausee->params.clear();
+					//deallocateItem(tempCausee);
 				}
 				else
 				{

@@ -62,7 +62,10 @@ constant_sort(contribution(V_action,V_additiveAction),additiveInteger) <-
 % The value of an additive fluent at time+1 equals its value at time plus all contributions made during that time step.
 h(eql(V_additiveFluent,Value),V_astep) <- 
    h(eql(V_additiveFluent,Value_1),V_astep-1) &
-   Value_2 = #sum[occ(eql(contribution(Action,V_additiveFluent),AdditiveInteger),V_astep-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
+   Value_2 = #sum[
+	  occ(eql(contribution(Action,V_additiveFluent),AdditiveInteger),V_astep-1) 
+		  : action(Action)
+		  : additiveInteger(AdditiveInteger)=AdditiveInteger ] &
    Value = Value_1 + Value_2 & 
    constant_sort(V_additiveFluent,V_sort) & 
    sort_object(V_sort,Value) & 
@@ -70,7 +73,10 @@ h(eql(V_additiveFluent,Value),V_astep) <-
 
 % The value of an additive action at any given time equals all contributions made during that time step.
 occ(eql(V_additiveAction,Value),V_astep-1) <- 
-   Value = #sum[occ(eql(contribution(Action,V_additiveAction),AdditiveInteger),V_astep-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
+   Value = #sum[
+	  occ(eql(contribution(Action,V_additiveAction),AdditiveInteger),V_astep-1)
+		  : action(Action)
+		  : additiveInteger(AdditiveInteger)=AdditiveInteger ] &
    constant_sort(V_additiveAction,V_sort) & 
    sort_object(V_sort,Value).
 

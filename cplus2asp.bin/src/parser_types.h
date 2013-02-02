@@ -17,12 +17,9 @@
 #include "Context.h"
 #include "Sort.h"
 #include "Variable.h"
+#include "utilities.h"
 
 class Object;
-
-typedef std::list<std::string> ClauseList;						///< A list containing 0 or more clauses which should be conjoined to the body of a formula.
-typedef std::pair<std::string,Context::IPart> Statement;		///< A simple tuple representing a statement occuring within an specified part of incremental module.
-typedef std::list<Statement> StmtList;							///< A list containing 0 or more statements which should be added to the program and their corresponding IPARTs.
 
 
 /**
@@ -79,12 +76,11 @@ public:
 	/**
 	 * Method that generates a translated string representation of the element with 
 	 * preceeding @ if a symbol is understood as a lua function call.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
+	 * @param[out] out - The output stream to write to.
 	 * @param context -  The formula context to be used for translation.
-	 * @return A string containing the translated form of the element.
+	 * @return out.
 	 */
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context) = 0;
+	virtual std::ostream& translate(std::ostream& out, Context& context) = 0;
 
 	/**
 	 * This is true if the element (or any of its pre/postOp nodes) were
@@ -154,12 +150,10 @@ public:
 
 	/**
 	 * Special helper method used for translating query formulas.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
-	 * @return The translated element using the time stamp previously attached to the element.
+	 * @param out The output stream to write to.
+	 * @return out.
 	 */
-	inline std::string translateQuery(ClauseList& extraClauses, StmtList& extraStmts)
-		{ return translate(extraClauses, extraStmts, Context(Context::POS_QUERY, Context::VOLATILE, queryTimeStamp)); }
+	virtual std::ostream& translateQuery(std::ostream& out);
 
 	/**
 	 * Attaches a timestamp to a query formula which will be used during translation.
@@ -189,7 +183,7 @@ public:
 	 * Gets a new variable whose name is unique within the rule we're translating.
 	 * @return The name of the new variable.
 	 */
-	static inline std::string getNewVar() { return "X_Value_" + extraClauseCount++; }
+	static inline std::string getNewVar() { return std::string("X_Value_") + utils::to_string(extraClauseCount++); }
 
 	/**
 	 * Destructor. Empty.
@@ -234,7 +228,7 @@ public:
 	SimpleUnaryOperator();
 	
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -280,7 +274,7 @@ public:
 	
 
 	// inherted stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -307,16 +301,6 @@ protected:
 	 * @return A string corresponding to that operator.
 	 */
 	static std::string translateOpType(BinaryOperatorType op);
-
-	/**
-	 * A helper method which translates an arithmetic expression of the form F @ G, where @ is an arithmetic operator.
-	 * @param[out] out - The output stream to write the translation to.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
-	 * @param context - The translation context the expression occurs within.
-	 * @return out.
-	 */
-	std::ostream& translateArithExpr(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
 };
 
 /**
@@ -341,7 +325,7 @@ public:
 	
 
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -374,7 +358,7 @@ public:
 	BaseLikeElement(ParseElementType elemType = PELEM_BASELIKE);
 	
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -388,13 +372,12 @@ public:
 
 	/**
 	 * Internal helper to translate, creates a list of translated params.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
+	 * @param[out] out The stream to output to.
 	 * @param context The context used for translation.
 	 * @return A parentheses-surrounded, comma-separated list of translated
 	 * params, or a blank string if params is empty.
 	 */
-	virtual std::string translateParams(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translateParams(std::ostream& out, Context& context);
 	
 	/**
 	 * Destructor. Deallocates contents of params.
@@ -418,7 +401,7 @@ public:
 
 
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -455,32 +438,28 @@ protected:
 	 * @param context - The context to be used for translation.
 	 * @return A postfix to the atom's name.
 	 */
-	std::string translatePostfix(Context const& context)
+	inline std::string translatePostfix(Context& context)
 		{ return (this->constRef) ? Constant::translatePostfix(this->constRef->constType, context) : ""; }
 
 	/**
 	 * Helper translator method to handle translating the constant as an atom.
 	 * @param[out] out - The output stream to write the translation to.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsConstant(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translateAsConstant(std::ostream& out, Context& context);
 
 	/**
 	 * Helper translator method to handle translating the constant as a variable.
 	 * @param[out] out - The output stream to write the translation to.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsVariable(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context);
 
 };
 
@@ -500,7 +479,7 @@ public:
 	
 
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -538,7 +517,7 @@ public:
 	bool isConstantVariable();
 	
 	// inherited stuffs
-	virtual std::string translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translate(std::ostream& out, Context& context);
 	virtual bool hasActions();
 	virtual bool hasFluents();
 	virtual bool hasStaticAbnormalities();
@@ -566,26 +545,22 @@ protected:
 	/**
 	 * Helper translator method to handle translating the variable as an atom.
 	 * @param[out] out - The output stream to write the translation to.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsConstant(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translateAsConstant(std::ostream& out, Context& context);
 
 	/**
 	 * Helper translator method to handle translating the variable as a variable.
 	 * @param[out] out - The output stream to write the translation to.
-	 * @param[out] extraClauses - A list to append the extra clauses which should be conjoined to the formula.
-	 * @param[out] extraStmts - A list to append the extra statements which should be added to the program.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsVariable(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context);
+	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context);
 };
 
 #endif // PARSER_TYPES_H

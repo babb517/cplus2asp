@@ -12,24 +12,10 @@ Variable::Variable() : Element()
 }
 
 // Full constructor.
-Variable::Variable(std::string _name, std::string _transName) : Element(_name, _transName)
+Variable::Variable(std::string const& _name, std::string const& _transName) : Element(_name, _transName)
 {
 	elemType = ELEM_VAR;
 	sortRef = NULL;
-}
-
-// Generates the original full name of this element.
-std::string Variable::fullName()
-{
-	std::string tempStr = name;
-	return tempStr;
-}
-
-// Generates the translated full name of this element.
-std::string Variable::fullTransName()
-{
-	std::string tempStr = transName;
-	return tempStr;
 }
 
 // Standard toString function.

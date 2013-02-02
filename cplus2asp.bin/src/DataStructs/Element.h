@@ -44,7 +44,7 @@ public:
 	 * plus a parenthesized, comma-separated list of the full names of any 
 	 * parameters (if it has any).
 	 */
-	virtual std::string fullTransName(); 
+	virtual std::string fullTransName();
 
 	/**
 	 * Generates a human-readable string representation of this object.

@@ -15,7 +15,7 @@ Constant::Constant() : Element()
 }
 
 // Full constructor.
-Constant::Constant(std::string _name, std::string _transName) : Element(_name, _transName)
+Constant::Constant(std::string const& _name, std::string const& _transName) : Element(_name, _transName)
 {
 	elemType = ELEM_CONST;
 	constType = CONST_UNKNOWN;
@@ -214,13 +214,14 @@ std::string Constant::translatePostfix(ConstantType constType, Context const& co
 	if (Constant::isAbnormalityType(constType)) {
 		return ", " + context.getTimestamp() + ")";
 	} else {
-		out << ", ";
+		out << ", "
 		// make sure we handle the case where the context is blind to this being an atom.
 		// Default the value to "true".
-		out << ((context.getValue() != "") ? context.getValue() : "true");
-		out << ")";
-		out << ((constType == Constant::CONST_RIGID) ? "" : ", " + context.getTimestamp());
-		out << ")";
+			<< context.getValue()
+			<< ")"
+			<< ((constType == Constant::CONST_RIGID) ? "" : ", " + context.getTimestamp())
+			<< ")";
+
 		return out.str();
 	}
 }

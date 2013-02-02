@@ -24,15 +24,15 @@ public:
 	 * @param _name - The C+ name of the variable.
 	 * @param _transName - The ASP-compatible name of the variable.
 	 */
-	Variable(std::string _name, std::string _transName);
-	
+	Variable(std::string const& _name, std::string const& _transName);
+
 	/**
 	 * Generates the original full name of this element, including full parameter names (if any).
 	 * @return A string representation of this element's base name plus a
 	 * parenthesized, comma-separated list of the full names of any parameters
 	 * (if it has any).
 	 */
-	virtual std::string fullName();
+	inline virtual std::string fullName() { return name; }
 	
 	/**
 	 * Generates the translated full name of this element, including
@@ -41,7 +41,7 @@ public:
 	 * plus a parenthesized, comma-separated list of the full names of any 
 	 * parameters (if it has any).
 	 */
-	virtual std::string fullTransName(); 
+	inline virtual std::string fullTransName() { return transName; }
 	
 	/**
 	 * Generates a human-readable string representation of this object.

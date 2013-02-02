@@ -32,21 +32,24 @@ struct YYLTYPE;
 class Translator
 {
 private:
-	SymbolTable symbols; ///< Data structure to track what symbols have been declared.
-	std::list<Constant*> constants; ///< Holds declared constants & associated data.
-	std::list<Object*> objects; ///< Holds declared objects (to populate Sort objects' domains) & associated data.
-	std::list<Sort*> sorts; ///< Holds declared sorts & associated data.
-	std::list<Variable*> variables; ///< Holds declared variables & associated data.
-	std::list<Query*> queries; ///< Holds declared queries & associated data.
-	std::ostream* ostOutPtr; ///< Used to output translation results.
-	std::ostream* ostErrPtr; ///< Used to output error messages during translation.
-	std::ostream* ostNullPtr; ///< Used internally to suppress output or flag when an output stream has not been set.
-	std::fstream fNull; ///< Used internally to open a null file handle (for use with ostNull).
-	std::ostringstream ossErr; ///< String stream used to generate & hold error messages before output.
-	bool blnStaticTrans; ///< True if we should output a static translation instead of a dynamic one.
+	SymbolTable symbols; 							///< Data structure to track what symbols have been declared.
+	std::list<Constant*> constants; 				///< Holds declared constants & associated data.
+	std::list<Object*> objects; 					///< Holds declared objects (to populate Sort objects' domains) & associated data.
+	std::list<Sort*> sorts; 						///< Holds declared sorts & associated data.
+	std::list<Variable*> variables; 				///< Holds declared variables & associated data.
+	std::list<Query*> queries; 						///< Holds declared queries & associated data.
+	StmtList mFooterStmts;							///< Contains a list of statements that should be added at the end of the translation file. These must be added manually by calling appendFooter() after translating.
+	std::ostream* ostOutPtr; 						///< Used to output translation results.
+	std::ostream* ostErrPtr; 						///< Used to output error messages during translation.
+	std::ostream* ostNullPtr; 						///< Used internally to suppress output or flag when an output stream has not been set.
+	std::fstream fNull; 							///< Used internally to open a null file handle (for use with ostNull).
+	std::ostringstream ossErr; 						///< String stream used to generate & hold error messages before output.
+	bool blnStaticTrans; 							///< True if we should output a static translation instead of a dynamic one.
 
-	bool blnFoundAbnormalities; ///< True if the translator has encountered static or dynamic abnormality constants.
-	bool blnFoundAdditive;		///< True if the translator has encountered additive constants.
+	bool blnFoundAbnormalities; 	///< True if the translator has encountered static or dynamic abnormality constants.
+	bool blnFoundAdditive;			///< True if the translator has encountered additive constants.
+	bool blnEncounteredShowStmt;	///< True if the translator has encountered at least one show statement.
+
 
 	Context::IPart mCurrentPart; ///< The current incremental part that the translation is using.
 
@@ -386,6 +389,20 @@ public:
 		ParseElement* whereBody
 		);
 	
+
+	/**
+	 * Handles a ':- show' statement, adding the appropriate #show statements to the program.
+	 * @param atomicFormulas The list of atomic formulas which were included in the show statement.
+	 */
+	void handleShowStmt(std::vector<ParseElement*> atomicFormulas);
+
+
+	/**
+	 * Appends any statements that have been witheld for the footer to the translated program.
+	 */
+	inline void outputFooter() { outputStmts(mFooterStmts); }
+
+
 	/* Translator-specific methods for general setup etc. */
 	
 	/**
@@ -491,7 +508,17 @@ public:
 	 * @param initConj - Whether to output an initial conjunction symbol before the clauses.
 	 * @return The output stream.
 	 */
-	static std::ostream& outputClauses(std::ostream& out, ClauseList const& clauses, bool initConj);
+	static std::ostream& outputClauses(std::ostream& out, ClauseList const& clauses, bool initConj = false);
+
+	/**
+	 * helper method to translate a sub expression, capturing all of its clauses and variables in the meanwhile.
+	 * @param out - The stream to output to.
+	 * @param expr - The expression to translate.
+	 * @param context - The current translation context.
+	 * @param upwardMobileClauses - Whether we should migrate clauses to the parent context if no quantification was needed.
+	 * @return The output stream.
+	 */
+	static std::ostream& bindAndTranslate(std::ostream& out, ParseElement* expr, Context& context, bool upwardMobileClauses);
 
 
 	/**
@@ -507,6 +534,13 @@ public:
 	 * @param stmts - The statements to print.
 	 */
 	void outputStmts(StmtList const& stmts);
+
+
+	/**
+	 * Appends the provided statement to the program's footer buffer, resulting them in being included in the footer in the future.
+	 * @param stmts - The statements to be added to the footer. Will be emptied by the operation.
+	 */
+	void addToFooter(StmtList& stmts) { mFooterStmts.splice(mFooterStmts.end(), stmts); }
 
 	/**
 	 * Instructs the translator to output its symbol table to the specified location.

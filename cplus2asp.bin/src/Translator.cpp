@@ -196,9 +196,9 @@ std::string Translator::translateVariableDeclToString(Variable* transVar)
 std::string Translator::numRangeToSortName(std::string& min, std::string& max)
 {
 	std::string tempStr = NUMRANGE_TO_SORT_PREFIX;
-	tempStr += "_";
+	tempStr += Context::ANON_STR;
 	tempStr += Translator::sanitizeString(min);
-	tempStr += "_";
+	tempStr += Context::ANON_STR;
 	tempStr += Translator::sanitizeString(max);
 	return tempStr;
 }
@@ -252,7 +252,6 @@ Translator::Translator()
 	tempQuery = new Query();
 	// Set up default internal sorts & their objects.
 	Sort* newSort = NULL;
-	Object* newObj = NULL;
 	std::list<Sort*> internalSortList; // Used when some kind of parameter list is required.
 	std::string tempName;
 	// Create the boolean* (and, by extension, the boolean) domains.
@@ -260,26 +259,26 @@ Translator::Translator()
 	tempName = "boolean";
 	newSort = this->getSort(tempName);
 	// Create "true" and "false" members of the boolean sort.
-	newObj = this->createInternalObject("true", internalSortList, newSort);
-	newObj = this->createInternalObject("false", internalSortList, newSort);
+	this->createInternalObject("true", internalSortList, newSort);
+	this->createInternalObject("false", internalSortList, newSort);
 	// Create astep, the action time sort.
 	newSort = this->createInternalSort("astep", internalSortList);
 	// Attach "0..maxstep-1" range to astep.
-	newObj = this->createInternalNumRange("0..maxstep-1", "0", "maxstep-1", newSort);
+	this->createInternalNumRange("0..maxstep-1", "0", "maxstep-1", newSort);
 	// Create step, the fluent time sort (supersort of astep).
 	internalSortList.push_back(newSort);
 	newSort = this->createInternalSort("step", internalSortList);
 	internalSortList.clear();
 	// Add "maxstep" object to step's domain.
-	newObj = this->createInternalObject("maxstep", internalSortList, newSort);
+	this->createInternalObject("maxstep", internalSortList, newSort);
 	// Create additiveInteger, the integer sort for additive constants.
 	newSort = this->createInternalSort("additiveInteger", internalSortList);
 	// Attach "-maxAdditive..maxAdditive" range to additiveInteger.
-	newObj = this->createInternalNumRange("-maxAdditive..maxAdditive", "-maxAdditive", "maxAdditive", newSort);
+	this->createInternalNumRange("-maxAdditive..maxAdditive", "-maxAdditive", "maxAdditive", newSort);
 	// Create nnAdditiveInteger, the positive integer sort for additive constants.
 	newSort = this->createInternalSort("nnAdditiveInteger", internalSortList);
 	// Attach "0..maxAdditive" range to nnAdditiveInteger.
-	newObj = this->createInternalNumRange("0..maxAdditive", "0", "maxAdditive", newSort);
+	this->createInternalNumRange("0..maxAdditive", "0", "maxAdditive", newSort);
 	// Set up internal constant sorts.
 	internalSortList.clear();
 	std::list<Sort*> subsortList;
@@ -670,7 +669,7 @@ void Translator::translateConstantDecl(Constant* transConst)
 				// seen this sort before.
 				if(eCount.countsBack() > 0)
 				{
-					paramVarNames.back() += "_";
+					paramVarNames.back() += Context::ANON_STR;
 					paramVarNames.back() += utils::to_string(eCount.countsBack());
 					needDynamicParams = true;
 				}
@@ -777,7 +776,7 @@ void Translator::translateConstantDecl(Constant* transConst)
 						// seen this sort before.
 						if(aCount.countsBack() > 0)
 						{
-							aParamVarNames.back() += "_";
+							aParamVarNames.back() += Context::ANON_STR;
 							aParamVarNames.back() += utils::to_string(aCount.countsBack());
 							aNeedDynamicParams = true;
 						}
@@ -893,7 +892,7 @@ void Translator::translateObjectDecl(Object* transObj, Sort* sortObj)
 					// seen this sort before.
 					if(eCount.countsBack() > 0)
 					{
-						paramVarNames.back() += "_";
+						paramVarNames.back() += Context::ANON_STR;
 						paramVarNames.back() += utils::to_string(eCount.countsBack());
 						needDynamicParams = true;
 					}
@@ -1059,7 +1058,6 @@ void Translator::translateQuery(Query* transQuery)
 
 			// set up everything for our use
 			ossOutputBuffer.str("");
-			localClauses.clear();
 
 			// Transform 'maxstep' to the appropriate timestamp
 			if (!blnStaticTrans) {
@@ -1072,10 +1070,8 @@ void Translator::translateQuery(Query* transQuery)
 				if (isDynamic) (*lIter)->setQueryTimeStamp(tmpQueryTimeStamp);
 			}
 
-			ossOutputBuffer << "false <- query_label(" << transQuery->label << ") & not (" << (*lIter)->translateQuery(localClauses, stmts);
-
-			// handle extra clauses
-			outputClauses(ossOutputBuffer, localClauses, true);
+			ossOutputBuffer << "false <- query_label(" << transQuery->label << ") & not (";
+			(*lIter)->translateQuery(ossOutputBuffer);
 
 			// end the statement.
 			ossOutputBuffer << ").";
@@ -1111,7 +1107,7 @@ void Translator::translateCausalLaw(
 
 	std::ostringstream ossOutputBuffer; // Holds translated output so things can be easily added on before or after the normal output.
 
-	std::string* baseTimeStamp;	// The timestamp used to index this rule with.
+	std::string baseTimeStamp;	// The timestamp used to index this rule with.
 
 	// lists used to capture additional clauses and statments.
 	StmtList stmts;
@@ -1192,7 +1188,7 @@ void Translator::translateCausalLaw(
 			&& !followingBody)
 	{
 		type = RULE_STATIC;
-		baseTimeStamp = &staticTimeStamp;
+		baseTimeStamp = staticTimeStamp;
 	}
 	// fluent dynamic laws...
 	else if (head->hasFluents() && !head->hasActions()
@@ -1201,14 +1197,14 @@ void Translator::translateCausalLaw(
 			&& (!whenBody || !whenBody->hasDynamicAbnormalities()))
 	{
 		type = RULE_FLUENTDYNAMIC;
-		baseTimeStamp = &dynamicTimeStamp;
+		baseTimeStamp = dynamicTimeStamp;
 	}
 	// action dynamic laws...
 	else if (head->hasActions() && !head->hasFluents()
 			&& !afterBody && !followingBody)
 	{
 		type = RULE_ACTIONDYNAMIC;
-		baseTimeStamp = &dynamicTimeStamp;
+		baseTimeStamp = dynamicTimeStamp + "-1";
 	}
 	// Malformed laws...
 	else
@@ -1254,7 +1250,7 @@ void Translator::translateCausalLaw(
 			stmts,
 			Context::CUMULATIVE,
 			needsNotNot,
-			*baseTimeStamp,
+			baseTimeStamp,
 			head,
 			ifBody,
 			assumingBody,
@@ -1288,9 +1284,11 @@ std::ostream& Translator::makeCausalTranslation(
 	ParseElement* whereBody
 	)
 {
-
 	ClauseList localClauses;
+	Context localContext;
 	bool bodyContent = false; 		// true if the law's body has any content to-date.
+
+	std::string actionTimeStamp = baseTimeStamp + "-1";
 
 	// Translate!
 	ParseElement::extraClauseCount = 0; // Reset the extra clause counter.
@@ -1298,8 +1296,8 @@ std::ostream& Translator::makeCausalTranslation(
 	// The head
 	/// @todo If head and ifBody are: not NULL, both const-like or both UOP_NOT(const-like), make a choice rule out of head and translate that.
 
-	output << head->translate(localClauses, extraStmts, Context(Context::POS_HEAD, ipart, baseTimeStamp));
-
+	localContext = Context(Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true);
+	bindAndTranslate(output, head, localContext, true);
 
 	// The body, if there is one.
 	if(ifBody
@@ -1321,15 +1319,15 @@ std::ostream& Translator::makeCausalTranslation(
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			if(needsNotNot) {
 				output << "not not (";
-				output << ifBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp, true, true));
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false);
+				bindAndTranslate(output, ifBody, localContext, false);
+				output << ")";
 			}
 			else {
-				output << ifBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp));
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+				ifBody->translate(output, localContext);
 			}
 
-			// Finish the "not not (...)" wrapper if it got started.
-			if(needsNotNot)
-				output << ")";
 		}
 
 		// "assuming" part of body, if there is one.
@@ -1340,7 +1338,8 @@ std::ostream& Translator::makeCausalTranslation(
 			else bodyContent = true;
 
 			// Translate the "assuming" body exactly as the if body, except that it doesn't have "not not" in front.
-			output << assumingBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp, true, true));
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, false, false);
+			assumingBody->translate(output, localContext);
 		}
 
 		// "after" part of body, if there is one.
@@ -1353,17 +1352,15 @@ std::ostream& Translator::makeCausalTranslation(
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			if(needsNotNot) {
 				output << "not not (";
-				output << afterBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp+"-1", true, true));
+				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false);
+				bindAndTranslate(output, afterBody, localContext, false);
+				output << ")";
 			}
 			else {
-				output << afterBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp+"-1"));
+				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false);
+				afterBody->translate(output, localContext);
 			}
 
-
-
-			// Finish the "not not (...)" wrapper if it got started.
-			if(needsNotNot)
-				output << ")";
 		}
 		
 		// "when" part of the body, if there is one.
@@ -1372,8 +1369,8 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-
-			output << whenBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp));
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+			whenBody->translate(output, localContext);
 		}
 
 		// "following" part of the body, if there is one
@@ -1383,8 +1380,8 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-
-			output << followingBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp+"-1"));
+			localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false);
+			followingBody->translate(output, localContext);
 		}
 
 		// "where" part of body, if there is one.
@@ -1393,8 +1390,8 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-
-			output << whereBody->translate(localClauses, extraStmts, Context(Context::POS_BODY, ipart, baseTimeStamp));
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+			whereBody->translate(output, localContext);
 		}
 		
 		// handle extra clauses
@@ -1576,6 +1573,67 @@ void Translator::translateCausalLaw(
 		delete unlessConstLike;
 	}
 }
+
+// Handles a ':- show' declaration, adding the corresponding #show statements to the translation footer.
+void Translator::handleShowStmt(std::vector<ParseElement*> atomicFormulas) {
+	StmtList stmts;
+	Context localContext;
+	std::ostringstream tmp;
+
+	// By default, user defined atoms are shown in the answer set.
+	// The presence of a show statement overrides this and makes them all
+	// default to hidden.
+	if (!blnEncounteredShowStmt) {
+		blnEncounteredShowStmt = true;
+		stmts.push_back(Statement("#hide.", Context::BASE));
+	}
+
+
+	// Iterate through each element and add the appropriate show statements.
+	for (std::vector<ParseElement*>::const_iterator it = atomicFormulas.begin(); it != atomicFormulas.end(); it++) {
+
+		// Sanity check: Non-null parse elements.
+		if (!(*it)) continue;
+
+		if ((*it)->getType() == ParseElement::PELEM_CONSTLIKE) {
+			// It's a bare constant. Take this to be a shortcut for 'c=v' where V is a variable ranging of the constant's domain
+			ConstantLikeElement* constlike = ((ConstantLikeElement*)(*it));
+			if (constlike->constRef
+					&& constlike->constRef->domain
+					&& constlike->constRef->domain->sortVar)
+			{
+				std::string tmpname = constlike->constRef->domain->sortVar->fullTransName();
+				localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR, tmpname);
+				tmp << "#show ";
+				(*it)->translate(tmp, localContext);
+				tmp << ".";
+
+				stmts.push_back(Statement(tmp.str(), Context::BASE));
+
+			} else {
+				// This appears to be missing one or more references...
+				// Just try a normal translation and hope for the best.
+				localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR);
+				tmp << "#show ";
+				(*it)->translate(tmp, localContext);
+				tmp << ".";
+				stmts.push_back(Statement(tmp.str(), Context::BASE));
+			}
+			tmp.str("");
+		} else {
+			// It's must be 'c=v'. We can translate this without any further ado
+			localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR);
+			tmp << "#show ";
+			(*it)->translate(tmp, localContext);
+			tmp << ".";
+			stmts.push_back(Statement(tmp.str(), Context::BASE));
+		}
+	}
+
+	// Add the statements to the footer.
+	addToFooter(stmts);
+}
+
 
 /* Class instance methods for general setup, etc. */
 
@@ -1859,6 +1917,49 @@ std::ostream& Translator::outputClauses(std::ostream& out, ClauseList const& cla
 	}
 	return out;
 }
+
+// helper to output a translated expression with a bound context.
+std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr, Context& context, bool upwardMobileClauses) {
+
+	if (!expr) return out;
+
+	ClauseList localClauses, localVariables;
+	Context localContext = context.mkBindClauses(&localClauses).mkBindVars(&localVariables);
+	std::ostringstream tmp;
+
+	expr->translate(tmp, localContext);
+
+	// Existential quantification (if needed).
+	if (!localVariables.empty()) {
+		out << "?[";
+
+		for (std::list<std::string>::const_iterator it = localVariables.begin(); it != localVariables.end(); ) {
+				out << *it;
+				if (++it != localVariables.end()) out << ", ";
+		}
+		out << "]:";
+	}
+
+	if (!localVariables.empty()
+			|| (upwardMobileClauses && !localClauses.empty()))
+	{
+		out << "(";
+	}
+
+	out << tmp.str();
+
+	if (!localVariables.empty()
+			|| (upwardMobileClauses && !localClauses.empty()))
+	{
+		Translator::outputClauses(out, localClauses, true);
+		out << ")";
+	} else {
+		context.transferExtraClauses(localClauses);
+	}
+
+	return out;
+}
+
 
 // Destructor. Deallocates all memory associated with the list attributes.
 Translator::~Translator()

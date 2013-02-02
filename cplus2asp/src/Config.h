@@ -29,6 +29,8 @@
 #define DEF_DISCARD_INT						true								///< Whether to discard intermediate files by default.
 #define DEF_DISCARD_F2LP					true								///< Whether to discard intermediate F2LP files by default.
 #define DEF_SUPPRESS_INTERACTION			false								///< Whether to suppress user interaction by default.
+#define DEF_SQUELCH_SOLVER					true								///< Whether we should suppress warnings from the solver by default.
+
 
 #define DEF_NUM_SOLN						1									///< Default # of solutions to find.
 #define DEF_INTERNAL_PORT					35981								///< Default port # to use to communicate w/ oClingo.
@@ -130,18 +132,20 @@ public:
 		OPT_DISCARD_INTERMEDIATE = 0x02,		///< Whether we should discard all intermediate files when we're done.
 		OPT_DISCARD_F2LP = 0x03,				///< Whether we should discard all F2LP intermediate files when we're done.
 		OPT_SUPPRESS_INTERACTION = 0x04,		///< Whether we should operate in silent mode.
+		OPT_SQUELCH_SOLVER = 0x05,				///< Whether we should silence the solver's warnings
+
 
 		// integer
-		OPT_MINSTEP = 0x05,						///< The currently configured minimum step, or UNDEFINED.
-		OPT_MAXSTEP = 0x06,						///< The currently configured maximum step, or UNDEFINED.
-		OPT_QUERY = 0x07,						///< The currently configured query, or UNDEFINED.
-		OPT_MAXADDITIVE = 0x08,					///< The currently configured maximum additive, or UNDEFINED.
-		OPT_NUM_SOLN = 0x09,					///< The currently configured # of solutions to find.
-		OPT_EXT_PORT = 0x0A,					///< The port that we should make available for the user.
-		OPT_INT_PORT = 0x0B,					///< The port which we should use internally to communicate with oClingo.
+		OPT_MINSTEP = 0x06,						///< The currently configured minimum step, or UNDEFINED.
+		OPT_MAXSTEP = 0x07,						///< The currently configured maximum step, or UNDEFINED.
+		OPT_QUERY = 0x08,						///< The currently configured query, or UNDEFINED.
+		OPT_MAXADDITIVE = 0x09,					///< The currently configured maximum additive, or UNDEFINED.
+		OPT_NUM_SOLN = 0x0A,					///< The currently configured # of solutions to find.
+		OPT_EXT_PORT = 0x0B,					///< The port that we should make available for the user.
+		OPT_INT_PORT = 0x0C,					///< The port which we should use internally to communicate with oClingo.
 
-		OPT_LENGTH = 0x0C,						///< Dummy constant to provide the number configuration options.
-		OPT_END = 0x0C							///< Dummy constant to mark the end of the configuration list.
+		OPT_LENGTH = 0x0D,						///< Dummy constant to provide the number configuration options.
+		OPT_END = 0x0D							///< Dummy constant to mark the end of the configuration list.
 	};
 
 	/// A flag-type used to specify multiple modes simultaneously

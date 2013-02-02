@@ -131,7 +131,9 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 
 %%
 "/*"				{
-						tempStr = "";
+						// For the sake of everyone's sanity, we convert block comments
+						// into line comments.
+						tempStr = "% ";
 						tempLoc.first_line = flexerLineNum;
 						tempLoc.first_column = flexerCharPos - 2;
 						BEGIN(BLK_SCOMMENT);
@@ -161,7 +163,7 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 \n					{	// Handle newlines in block comments.
 						flexerLineNum++;
 						flexerCharPos = 1;
-						tempStr += "\n";
+						tempStr += "\n% ";
 					}
 }
 <LINE_COMMENT>{

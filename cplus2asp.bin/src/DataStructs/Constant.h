@@ -34,7 +34,7 @@ public:
 	 * @param _name - The C+ name of this object.
 	 * @param _transName - The ASP-compatible name of this object.
 	 */
-	Constant(std::string _name, std::string _transName);
+	Constant(std::string const& _name, std::string const& _transName);
 	
 	/**
 	 * Generates the original full name of this element, including full parameter names (if any).

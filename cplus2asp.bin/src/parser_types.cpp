@@ -47,6 +47,21 @@ ParseElement::~ParseElement()
 	// Intentionally empty.
 }
 
+// Translates a query
+std::ostream& ParseElement::translateQuery(std::ostream& out) {
+	// We want to bind the variables and clauses
+	Context localContext =
+		Context(
+			Context::POS_QUERY,
+			Context::BASE,
+			queryTimeStamp,
+			NULL,
+			NULL
+	);
+
+	return Translator::bindAndTranslate(out, this, localContext, false);
+}
+
 /* SimpleUnaryOperator methods. */
 
 // Constructor.
@@ -57,17 +72,16 @@ SimpleUnaryOperator::SimpleUnaryOperator() : ParseElement(PELEM_UOP)
 }
 
 // Translator method.
-std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context)
 {
-	std::ostringstream ossStrMaker;
-	ClauseList localClauses;
+	Context localContext;
 
-	ossStrMaker << translateBeforeParen();
+	out << translateBeforeParen();
 
 	// Sanity check: is the argument to the operator not NULL?
 	if(!postOp) {
 		// TODO: Throw warning
-		return "";
+		return out;
 	}
 
 	// Then, perform different translations based on what the operator is.
@@ -87,15 +101,20 @@ std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& e
 						<< "\" without specifying which value is being negated. Try something like \""
 						<< postOp->fullName() << "=some_value\".";
 				ltsyyreportError();
-				return "";
+				return out;
 			}
 
 			// output the constant with value false
-			ossStrMaker << postOp->translate(extraClauses, extraStmts, context.mkValue("false"));
+			localContext = context.mkValue(Context::FALSE_STR);
+			postOp->translate(out, localContext);
+
+
 		} else if(postOp->getType() == PELEM_VARLIKE && ((VariableLikeElement*)postOp)->isConstantVariable()) {
+
 			// This variable actually stands for a constant of some kind, treat this as "not constant".
 			// Throw up a warning, as using "-V" with V being a constant is not guaranteed to work.
 			VariableLikeElement* varPostOp = (VariableLikeElement*)postOp;
+
 			ltsyystartWarning();
 			ltsyyossErr << "Using negation on variable \""
 					<< varPostOp->fullName()
@@ -103,23 +122,32 @@ std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& e
 					<< varPostOp->varRef->sortRef->fullName()
 					<< "\" is not a good idea, and is almost guaranteed to not work as expected unless you know exactly what you're doing.";
 			ltsyyreportWarning();
-			ossStrMaker << varPostOp->translate(extraClauses, extraStmts, context.mkValue("false"));
+
+			localContext = context.mkValue(Context::FALSE_STR);
+			varPostOp->translate(out, localContext);
+
 		} else {
 
 			// Just a normal negation.
 
-
 			// Sanity check, make sure that we're not in the head of a rule before capturing clauses../
 			// Make sure we capture the clauses locally...
 			if (context.getPos() != Context::POS_HEAD) {
-				ossStrMaker << translateOpType(opType)
-						<< "(" << postOp->translate(localClauses, extraStmts, context.mkNegated());
-				Translator::outputClauses(ossStrMaker, localClauses, true);
-				ossStrMaker << ")";
+
+				out << translateOpType(opType) + "(";
+				Translator::bindAndTranslate(out, postOp, context, false);
+				out << ")";
+
 			} else {
-				// crap, we are. Just pass em up.
-				ossStrMaker << translateOpType(opType)
-						<< "(" << postOp->translate(extraClauses, extraStmts, context.mkNegated()) << ")";
+
+				// crap, we are. Just pass em up and hope for the best.
+				// TODO
+
+				localContext = context.mkNegated();
+				out << translateOpType(opType) << "(";
+				postOp->translate(out, localContext);
+				out << ")";
+
 			}
 		}
 		break;
@@ -128,7 +156,9 @@ std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& e
 	case UOP_NEGATIVE: // Numeric negative.
 	case UOP_ABS: 	// Absolute value.
 
-		ossStrMaker << translateOpType(opType) << postOp->translate(extraClauses, extraStmts, context.mkPos(Context::POS_ARITHEXPR));
+		localContext = context.mkPos(Context::POS_ARITHEXPR);
+		out << translateOpType(opType);
+		postOp->translate(out, localContext);
 		break;
 
 	case UOP_EXOGENOUS: // Exogenous declaration.
@@ -138,8 +168,10 @@ std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& e
 		// All three "operators" do the same thing, it's just a matter of what name to use.
 		if(postOp->getType() == PELEM_CONSTLIKE)
 		{
-			ossStrMaker << translateOpType(opType)
-				<< "(" << postOp->translate(extraClauses, extraStmts, context.mkPos(Context::POS_INTERNAL)) << ")";
+			localContext = context.mkPos(Context::POS_INTERNAL);
+			out << translateOpType(opType) << "(";
+			postOp->translate(out, localContext);
+			out << ")";
 		}
 		else
 		{
@@ -150,13 +182,13 @@ std::string SimpleUnaryOperator::translate(ClauseList& extraClauses, StmtList& e
 		break;
 	default:
 		// Unknown operator, just do a blind translation.
-		ossStrMaker << translateOpType(opType);
-		ossStrMaker << postOp->translate(extraClauses, extraStmts, context);
+		out << translateOpType(opType);
+		postOp->translate(out, context);
 		break;
 	}
 
-	ossStrMaker << translateAfterParen();
-	return ossStrMaker.str();
+	out << translateAfterParen();
+	return out;
 }
 
 // Returns true if this or any pre/postOp elements are action constants.
@@ -332,40 +364,68 @@ SimpleBinaryOperator::SimpleBinaryOperator() : ParseElement(PELEM_BOP)
 
 
 // Translator method.
-std::string SimpleBinaryOperator::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& context)
 {
-	std::ostringstream retVal;
-	ClauseList localClauses;
+	Context localContext;
+	std::ostringstream tmp;
 
-	retVal << translateBeforeParen();
+	out << translateBeforeParen();
 
 	if (!preOp && !postOp) {
 		// TODO: Throw error
-		return "";
+		return out;
 	} else if(!preOp) {
 		// If just preOp is NULL, pretend there's just postOp and translate it.
-		retVal << postOp->translate(extraClauses, extraStmts, context);
+		postOp->translate(out, context);
 	} else if(!postOp) {
 		// If just postOp is NULL, pretend there's just preOp and translate it.
-		retVal << preOp->translate(extraClauses, extraStmts, context);
+		preOp->translate(out, context);
 	}
 	else
 	{ 	// Then, perform different translations based on what the operator is.
 		// Lack of breaks is intentional.
 		switch(opType) {
+		case BOP_EQ:
+
+			if (preOp->getType() == PELEM_CONSTLIKE && !postOp->hasConstants()) {
+
+				// special case, direct assignment to a constant...
+				// just translate the constant with the appropriate value.
+				localContext = context.mkPos(Context::POS_TERM);
+				postOp->translate(tmp, localContext);
+				std::string tmpstr = tmp.str();
+				localContext = context.mkValue(tmpstr);
+				preOp->translate(out, localContext);
+				break;
+			}
+			/* no break */
+
 		case BOP_PLUS:
 		case BOP_MINUS:
 		case BOP_TIMES:
 		case BOP_DIVIDE:
 		case BOP_MOD:
-		case BOP_EQ:
 		case BOP_NEQ:
 		case BOP_LTHAN:
 		case BOP_GTHAN:
 		case BOP_LTHAN_EQ:
 		case BOP_GTHAN_EQ:
 			// arithmetic expressions...
-			translateArithExpr(retVal,extraClauses, extraStmts, context);
+			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM) {
+				// Already inside an arithmetic expression.
+				// pass all the variables up to the highest arith-expr level.
+				preOp->translate(out, context);
+				out << translateOpType(opType);
+				postOp->translate(out, context);
+
+			} else {
+
+				// Entering an arithmetic expression
+				// Bind all of the local variables as we may need existential quantifiers.
+				localContext = localContext = context.mkPos(Context::POS_ARITHEXPR);
+				Translator::bindAndTranslate(out, this, localContext, true);
+
+			}
 			break;
 
 		default:
@@ -374,110 +434,27 @@ std::string SimpleBinaryOperator::translate(ClauseList& extraClauses, StmtList& 
 			// otherwise we'll just pass the clauses upward.
 
 			if (opType != BOP_AND && context.getPos() != Context::POS_HEAD) {
-				std::string tmp;
 
-				// preOp
-				tmp = preOp->translate(localClauses, extraStmts, context);
-				if (localClauses.size() > 0) {
-					retVal << "(" << tmp;
-					Translator::outputClauses(retVal,localClauses,true);
-					retVal << ")";
-					localClauses.clear();
-				} else {
-					retVal << tmp;
-				}
+				// preop
+				Translator::bindAndTranslate(out, preOp, context, false);
 
 				// operand
-				retVal << translateOpType(opType);
+				out << translateOpType(opType);
 
 				// postOp
-				tmp = postOp->translate(localClauses, extraStmts, context);
-				if (localClauses.size() > 0) {
-					retVal << "(" << tmp;
-					Translator::outputClauses(retVal,localClauses,true);
-					retVal << ")";
-				} else {
-					retVal << tmp;
-				}
+				Translator::bindAndTranslate(out, postOp, context, false);
 
 			} else {
-				// not conjunction, just pass the clauses upward.
-				retVal << preOp->translate(extraClauses, extraStmts, context)
-						<< translateOpType(opType)
-						<< postOp->translate(extraClauses, extraStmts, context);
+				// conjunction (hopefully), just pass the clauses upward.
+				preOp->translate(out, context);
+				out << translateOpType(opType);
+				postOp->translate(out, context);
 			}
 			break;
 		}
 	}
 
-	retVal << translateAfterParen();
-	return retVal.str();
-}
-
-// Internal helper to translate method, translates preOp @ postOp, where @ is an arithmetic expression.
-std::ostream& SimpleBinaryOperator::translateArithExpr(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context) {
-	ClauseList localClauses;
-
-	if (opType == BOP_EQ
-			&& preOp->getType() == PELEM_CONSTLIKE
-			&& ( !postOp->hasConstants())) {
-
-		// special case, direct assignment to a constant...
-		// just translate the constant with the appropriate value.
-		out <<
-				preOp->translate(extraClauses, extraStmts,
-						context.mkValue(postOp->translate(extraClauses, extraStmts, context.mkPos(Context::POS_TERM))));
-
-	} else if ((opType == BOP_DBL_EQ || opType == BOP_EQ)
-			&& (( preOp->getType() == PELEM_CONSTLIKE && !postOp->hasConstants())
-					|| (postOp->getType() == PELEM_CONSTLIKE && !preOp->hasConstants()))) {
-
-		// not a direct assignment.
-		// one value is involved.
-		// here we use only one variable.
-
-		std::string var = getNewVar();
-		Context tmpContext = context.mkValue(var);
-
-		// translate the operation
-		out << "?[" << var << "]:("
-				<< preOp->translate(localClauses, extraStmts, tmpContext)
-				<< translateOpType(opType)
-				<< postOp->translate(localClauses, extraStmts, tmpContext);
-
-		// append the extra clauses
-		Translator::outputClauses(out, localClauses, true);
-
-		out << ")";
-
-	} else if (preOp->getType() == PELEM_CONSTLIKE || postOp->getType() == PELEM_CONSTLIKE) {
-		// not a direct assignment.
-		// multiple values involved
-		// this (p=q) is expessed as ?[X_p,X_q](X_p=X_q & p(X_p) & q(X_q)).
-
-		std::string varPre = getNewVar();
-		std::string varPost = getNewVar();
-
-		// translate the operation
-		out << "?[" << varPre << ", " << varPost << "]:("
-				<< preOp->translate(localClauses, extraStmts, context.mkValue(varPre))
-				<< translateOpType(opType)
-				<< postOp->translate(localClauses, extraStmts, context.mkValue(varPost));
-
-		// append the extra clauses
-		Translator::outputClauses(out, localClauses, true);
-
-		out << ")";
-
-	} else {
-		// direct comparison of variables or objects
-		// translate as X @ Y
-		out
-			<< preOp->translate(extraClauses, extraStmts, context.mkPos(Context::POS_ARITHEXPR))
-			<< translateOpType(opType)
-			<< postOp->translate(extraClauses, extraStmts, context.mkPos(Context::POS_ARITHEXPR));
-	}
-
+	out << translateAfterParen();
 	return out;
 }
 
@@ -607,7 +584,7 @@ std::string SimpleBinaryOperator::translateOpType(BinaryOperatorType op) {
 		opStr = " -> ";
 		break;
 	case BOP_EQ:
-		opStr = " = ";
+		opStr = " == ";
 		break;
 	case BOP_NEQ:
 		opStr = " != ";
@@ -644,20 +621,13 @@ BigQuantifiers::BigQuantifiers() : ParseElement(PELEM_QUANT)
 }
 
 // Translator method.
-std::string BigQuantifiers::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context)
 {
-	std::ostringstream ret;
 
-	// we want to capture all clauses within the quantifiers...
-	// these correspond to the clauses created from translating the body (position 0) and the N variables (positions 1..N).
-	ClauseList* localClauses = new ClauseList[quants.size()+1];
-
-	int pos = 0;
-
-
-	Context tmpContext = context.mkPos(Context::POS_TERM);
-
-	ret << translateBeforeParen();
+	// The local context is used for variable list.
+	// They _shouldn't_ be declaring free variables and clauses.
+	Context localContext = context.mkPos(Context::POS_TERM).mkBindVars(NULL).mkBindClauses(NULL);
+	out << translateBeforeParen();
 
 	// First, create a wrapping quantifier statement for each quantifier.
 	std::list<std::pair<enum QuantifierType, ParseElement*>* >::iterator lIter;
@@ -669,20 +639,20 @@ std::string BigQuantifiers::translate(ClauseList& extraClauses, StmtList& extraS
 		switch((*lIter)->first)
 		{
 		case QUANT_CONJ:
-			ret << "![";
+			out << "![";
 			if((*lIter)->second)
-				ret << (*lIter)->second->translate(localClauses[pos], extraStmts, tmpContext);
-			ret << "]:(";
+				(*lIter)->second->translate(out, localContext);
+			out << "]:(";
 			break;
 		case QUANT_DISJ:
-			ret << "?[";
+			out << "?[";
 			if((*lIter)->second)
-				ret << (*lIter)->second->translate(localClauses[pos], extraStmts, tmpContext);
-			ret << "]:(";
+				(*lIter)->second->translate(out, localContext);
+			out << "]:(";
 			break;
 		default:
 			// Unknown, just open a parenthesis.
-			ret << "(";
+			out << "(";
 			break;
 		}
 		// Instead of having a bunch of linked lists lying around, we'll just push on a marker string for every nested quantifier.
@@ -690,23 +660,17 @@ std::string BigQuantifiers::translate(ClauseList& extraClauses, StmtList& extraS
 
 	// Next, translate whatever subformula was in the big quantifiers.
 	if(postOp)
-		ret << postOp->translate(localClauses[0], extraStmts, context);
+		Translator::bindAndTranslate(out, postOp, context, false);
 
-	// account for extra clauses
-	Translator::outputClauses(ret, localClauses[0], true);
-
-	// Finally, close the quantifier statements' open parentheses and handle the local clauses...
-	for(size_t i = quants.size(); i > 0; i--) {
-		Translator::outputClauses(ret,localClauses[i], true);
-		ret << ")";
+	// Nested parens
+	for(lIter = quants.begin(); lIter != quants.end(); ++lIter)
+	{
+		out << ")";
 	}
 
-	ret << translateAfterParen();
+	out << translateAfterParen();
 
-	// deallocate the memory we used.
-	delete[] localClauses;
-
-	return ret.str();
+	return out;
 }
 
 // Returns true if this or any pre/postOp elements are action constants.
@@ -833,38 +797,38 @@ BaseLikeElement::BaseLikeElement(ParseElementType elemType) : ParseElement(elemT
 }
 
 // Translator method.
-std::string BaseLikeElement::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& BaseLikeElement::translate(std::ostream& out, Context& context)
 {
-	std::string retVal = "";
-	retVal += translateBeforeParen();
-	retVal += Translator::sanitizeObjectName(baseName);
-	retVal += this->translateParams(extraClauses, extraStmts, context);
-	retVal += translateAfterParen();
-	return retVal;
+
+	out << translateBeforeParen()
+		<< Translator::sanitizeObjectName(baseName);
+	this->translateParams(out, context);
+	out << translateAfterParen();
+	return out;
 }
 
 // Translator helper method for params.
-std::string BaseLikeElement::translateParams(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context)
 {
-	std::string retVal = "";
-	Context newContext = context.mkPos(Context::POS_TERM);
+	Context localContext = context.mkPos(Context::POS_TERM);
+
 	if(!params.empty())
 	{
-		retVal += "(";
+		out <<  "(";
 		for(std::vector<ParseElement*>::iterator vIter = params.begin(); vIter != params.end(); ++vIter)
 		{	
 			if(vIter != params.begin())
 			{
-				retVal += ",";
+				out << ",";
 			}
 			if(*vIter)
 			{
-				retVal += (*vIter)->translate(extraClauses, extraStmts, newContext);
+				(*vIter)->translate(out, localContext);
 			}
 		}
-		retVal += ")";
+		out << ")";
 	}
-	return retVal;
+	return out;
 }
 
 // Returns true if this or any pre/postOp elements are action constants.
@@ -967,69 +931,73 @@ ConstantLikeElement::ConstantLikeElement() : BaseLikeElement(PELEM_CONSTLIKE)
 }
 
 // Translator method.
-std::string ConstantLikeElement::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context)
 {
-	std::ostringstream ret;
 	// This tries it's best to output a wrapped atom (i.e. h(eql(<name>(<args>),<value>),<timestep>)).
 	// If, for one reason or another, the constant's type isn't available, it'll wing it producing a bare atom <name>(<args>).
 	switch (context.getPos()) {
 	case Context::POS_INTERNAL:
-			// Used for internal sorts and whatnot, just return the bare name.
-			return (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName))
-				+ translateParams(extraClauses, extraStmts, context);
-			break;
+		// Used for internal sorts and whatnot, just return the bare name.
+		out << (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName));
+		translateParams(out, context);
+		break;
 	case Context::POS_HEAD:
 	case Context::POS_BODY:
 	case Context::POS_QUERY:
-		translateAsConstant(ret, extraClauses, extraStmts, context);
+		translateAsConstant(out, context);
 		break;
 	case Context::POS_TERM:
 	case Context::POS_ARITHEXPR:
-		translateAsVariable(ret, extraClauses, extraStmts, context);
+		translateAsVariable(out, context);
 		break;
 	}
 
-	return ret.str();
+	return out;
 }
 
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context) {
+std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, Context& context) {
 	// We are in a logical formula, translate it as an atom
 	out <<	translateBeforeParen()
 				<< translatePrefix()
-				<< (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName))
-				<< translateParams(extraClauses, extraStmts, context)
-				<< translatePostfix(context)
+				<< (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName));
+	translateParams(out, context);
+	out << translatePostfix(context)
 				<< translateAfterParen();
 	return out;
 }
 
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context) {
+std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context) {
+	Context localContext;
+	std::ostringstream tmp;
 	// We are in a term or arithmetic expression, translate it as a temporary variable.
 	if (constRef && !Constant::isAbnormalityType(constRef->constType))
 	{
 		// The variable that holds the intermediate value.
-		std::string var = "X_Value_" + utils::to_string(++ParseElement::extraClauseCount);
+		std::string var = getNewVar();
 
 		// add the appropriate extra clause
-		extraClauses.push_back(translate(extraClauses, extraStmts, context.mkValue(var)));
+		localContext = context.mkPos(Context::POS_BODY).mkValue(var);
+		translate(tmp, localContext);
+		context.addExtraClause(tmp.str());
 
-		// TODO: Should this encompass equivalence / equality?
 		if (context.getPos() == Context::POS_ARITHEXPR
 				&& constRef->domain
 				&& constRef->domain->fullName().find("*") != std::string::npos)
 		{
 			// ensure that the value isn't 'none'.
-			extraClauses.push_back(var + " != none");
+			context.addExtraClause(var + " != none");
 		}
 
 		// return the variable name
 		out << translateBeforeParen() + var + translateAfterParen();
+
 	} else if (!constRef) {
 		ltsyystartParseError();
 		ltsyyossErr << "An error occurred while translating the constant " + this->fullName() + ". The constant doesn't appear to be properly declared.";
 		ltsyyreportError();
+
 	} else {
 		// This should never happen, as the syntax to trigger this is prohibited in the parser.
 		ltsyystartParseError();
@@ -1120,31 +1088,30 @@ ObjectLikeElement::ObjectLikeElement() : BaseLikeElement(PELEM_OBJLIKE)
 }
 
 // Translator method.
-std::string ObjectLikeElement::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context)
 {
-	std::string retVal = "";
-	retVal += translateBeforeParen();
+	out << translateBeforeParen();
 
 	if(objRef)
 	{	// Use the canonical translated object name if it's available.
-		if(objRef->isLua) retVal += "#spatom{@";//need to make f2lp pass this through to ASP
-		retVal += objRef->transName;
+		if(objRef->isLua) out << "#spatom{@";//need to make f2lp pass this through to ASP
+		out << objRef->transName;
 		if(objRef->isLua) {
 				if (context.getPos() != Context::POS_ARITHEXPR
 						&& context.getPos() != Context::POS_TERM)
-					retVal += " == 1";
-				retVal += "}";
+					out << " == 1";
+				out << "}";
 		}
 	}
 	else
 	{	// Otherwise, just wing it with this instance's base name.
-		retVal += Translator::sanitizeObjectName(baseName);
+		out << Translator::sanitizeObjectName(baseName);
 	}
 
-	retVal += this->translateParams(extraClauses, extraStmts, context);
+	translateParams(out, context);
 
-	retVal += translateAfterParen();
-	return retVal;
+	out << translateAfterParen();
+	return out;
 }
 
 // Returns true if this or any pre/postOp elements are action constants.
@@ -1221,9 +1188,8 @@ bool VariableLikeElement::isConstantVariable()
 }
 
 // Translator method. Ignores parameters, as variables shouldn't have any.
-std::string VariableLikeElement::translate(ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context)
 {
-	std::ostringstream ret;
 
 	switch (context.getPos()) {
 
@@ -1231,21 +1197,21 @@ std::string VariableLikeElement::translate(ClauseList& extraClauses, StmtList& e
 	case Context::POS_BODY:
 	case Context::POS_QUERY:
 		// This occurs within the scope of a formula, we need to translate it as a constant.
-		translateAsConstant(ret, extraClauses, extraStmts, context);
+		translateAsConstant(out, context);
 		break;
 
 	case Context::POS_TERM:
 	case Context::POS_ARITHEXPR:
 	case Context::POS_INTERNAL:
 		// Occurs as a term or within an arithmetic expression, translate as a variable.
-		translateAsVariable(ret, extraClauses, extraStmts, context);
+		translateAsVariable(out, context);
 		break;
 	}
 
-	return ret.str();
+	return out;
 }
 
-std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context) {
+std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, Context& context) {
 	out << translateBeforeParen();
 	if(varRef) {
 		// Use the canonical translated variable name if it's available.
@@ -1260,7 +1226,7 @@ std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, Clause
 }
 
 // Translates the variable as though it were a constant.
-std::ostream& VariableLikeElement::translateAsConstant(std::ostream& out, ClauseList& extraClauses, StmtList& extraStmts, Context const& context)
+std::ostream& VariableLikeElement::translateAsConstant(std::ostream& out, Context& context)
 {
 	out << translateBeforeParen();
 

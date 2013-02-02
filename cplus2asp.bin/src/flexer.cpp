@@ -1196,7 +1196,7 @@ case 1:
 YY_RULE_SETUP
 #line 133 "flexer.l"
 {
-						tempStr = "";
+						tempStr = "% ";
 						tempLoc.first_line = flexerLineNum;
 						tempLoc.first_column = flexerCharPos - 2;
 						BEGIN(BLK_SCOMMENT);
@@ -1247,7 +1247,7 @@ YY_RULE_SETUP
 {	// Handle newlines in block comments.
 						flexerLineNum++;
 						flexerCharPos = 1;
-						tempStr += "\n";
+						tempStr += "\n% ";
 					}
 	YY_BREAK
 

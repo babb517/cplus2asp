@@ -2,12 +2,16 @@
 #define CONTEXT_H
 
 #include <string>
+#include <list>
 
 /**
  * @file Context.h
  * @brief A data structure used to track the context a formula is found within.
  * @details Tracks the context a formula is found within during translation.
  */
+
+
+typedef std::list<std::string> ClauseList;						///< A list containing 0 or more clauses which should be conjoined to the body of a formula.
 
 class Context
 {
@@ -18,45 +22,72 @@ public:
 	/// The incremental module that a statement is associated with.
 	enum IPart { BASE, CUMULATIVE, VOLATILE, NONE };
 
+
+	static std::string const TRUE_STR;		///< Concrete default string to instantiate 'true' default values.
+	static std::string const FALSE_STR;		///< Concrete default string to instantiate 'false' default values.
+	static std::string const EMPTY_STR;		///< Concrete default string to instantiate empty timestamps.
+	static std::string const ANON_STR;		///< Concrete default string to instantiate anonymous values / timestamps.
 private:
 	Position mPos;				///< The location which the expression occurs within the program.
 	IPart mPart;				///< The incremental module we are currently working in.
 	bool mNeg; 					///< Whether this expression occurs in the scope of one or more negations.
 	bool mPositive;				///< Whether this expression occurs in the scope of an _even_ number of negations.
-	std::string const& mVal;	///< The value that the expression should take (where applicable).
-	std::string const& mTime;	///< The timestamp to be applied to the expression (where applicable).
+	std::string const* mVal;	///< The value that the expression should take (where applicable).
+	std::string const* mTime;	///< The timestamp to be applied to the expression (where applicable).
 
+	ClauseList* mFreeVars;		///< A pointer to a list to add free variables to (or null if they should be ignored).
+	ClauseList* mExtraClauses;	///< A pointer to a list to add extra clauses to (or null if they should be ignored).
 
-	static std::string const EMPTY_STR;		///< Concrete empty string used to instantiate empty references.
 
 public:
+
+	/**
+	 * Default Constructor
+	 */
+	inline Context()
+		: mPos(POS_BODY), mPart(BASE), mNeg(false), mPositive(false), mVal(&TRUE_STR), mTime(&EMPTY_STR),
+		  mFreeVars(NULL), mExtraClauses(NULL)
+		{ /* Intentionally Left Blank */ }
 
 	/**
 	 * Basic constructor used for the context for an expression.
 	 * @param pos - The position that the formula is located in.
 	 * @param ipart - The incremental module the statement is associated with.
+	 * @param timestamp - The timestamp that this context is set within.
+	 * @param extraClauses - A pointer to a list that extra clauses should be added to (or NULL to ignore them).
+	 * @param freeVars - A pointer to a list that free variables should be added to (or NULL to ignore them).
 	 * @param negated - Whether this formula occurs in the scope of one or more negations.
 	 * @param positive - Whether this formula occurs in the scope of an _even_ number of negations.
 	 */
-	inline Context(Position pos, IPart ipart, std::string const& timestamp, bool negated = false, bool positive = true)
-		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(EMPTY_STR), mTime(timestamp)
+	inline Context(Position pos, IPart ipart, std::string const& timestamp,
+			ClauseList* extraClauses = NULL, ClauseList* freeVars = NULL, bool negated = false, bool positive = true)
+		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&TRUE_STR), mTime(&timestamp),
+		mFreeVars(freeVars), mExtraClauses(extraClauses)
 		{ /* Intentionally Left Blank */}
 
 	/**
-	 * Basic constructor used for the context for an atom.
+	 * Basic constructor used for the context for an expression.
 	 * @param pos - The position that the formula is located in.
 	 * @param ipart - The incremental module the statement is associated with.
-	 * @param value - The value which the atom should take.
+	 * @param timestamp - The timestamp that this context is set within.
+	 * @param val - The value that an atomic formula within this context should take.
+	 * @param extraClauses - A pointer to a list that extra clauses should be added to (or NULL to ignore them).
+	 * @param freeVars - A pointer to a list that free variables should be added to (or NULL to ignore them).
 	 * @param negated - Whether this formula occurs in the scope of one or more negations.
 	 * @param positive - Whether this formula occurs in the scope of an _even_ number of negations.
 	 */
-	inline Context(Position pos, IPart ipart, std::string const& timestamp, std::string const& value, bool negated = false, bool positive = true)
-		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(value), mTime(timestamp)
+	inline Context(Position pos, IPart ipart, std::string const& timestamp, std::string const& val,
+			ClauseList* extraClauses = NULL, ClauseList* freeVars = NULL, bool negated = false, bool positive = true)
+		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&val), mTime(&timestamp),
+		mFreeVars(freeVars), mExtraClauses(extraClauses)
 		{ /* Intentionally Left Blank */}
-
 
 	/// Basic destructor. Does nothing.
 	inline virtual ~Context() { /* Intentionally Left Blank */ }
+
+
+	/// Copy Constructor
+	inline Context(Context const& other) { copy(other); }
 
 	/// Determines whether the formula occurs in the head of a rule.
 	inline Position getPos() const { return mPos; }
@@ -68,32 +99,88 @@ public:
 	inline bool getPositive() const { return mPositive; }
 
 	/// Determines the timestamp which should be applied to the formula
-	inline std::string const& getTimestamp() const { return mTime; }
+	inline std::string const& getTimestamp() const { return *mTime; }
 
 	/// Determines the value which the formula should be set equal to.
-	inline std::string const& getValue() const { return mVal; }
+	inline std::string const& getValue() const { return *mVal; }
+
+	/**
+	 * Adds a free variable to the list which is binding the context.
+	 * @param var The variable to add
+	 * @return True if the variable was added, false if nobody has bound the variables in the context.
+	 */
+	inline bool addFreeVariable(std::string const& var)	{ if (mFreeVars) mFreeVars->push_back(var); return (bool)mFreeVars; }
+
+	/**
+	 * Adds an extra clause to the list which is binding the context.
+	 * @param clause The extra clause to add.
+	 * @return True if the clause was added, false if nobody has bound the extra clauses in the context.
+	 */
+	inline bool addExtraClause(std::string const& clause)	{ if (mExtraClauses) mExtraClauses->push_back(clause); return (bool)mExtraClauses; }
+
+	/**
+	 * Efficiency method used transfer variables from a list to the binding variable list without copying.
+	 * @param freeVars The list of variables to transfer from. Will be emptied.
+	 * @return True if there was a bound list to receive the elements. False otherwise.
+	 */
+	inline bool transferFreeVariables(ClauseList& freeVars) {
+		if (mFreeVars) { mFreeVars->splice(mFreeVars->end(), freeVars); }
+		else freeVars.clear();
+		return (bool)mFreeVars;
+	}
+
+	/**
+	 * Efficiency method used transfer clauses from a list to the binding clause list without copying.
+	 * @param extraClauses The list of clauses to transfer from. Will be emptied.
+	 * @return True if there was a bound list to receive the elements. False otherwise.
+	 */
+	inline bool transferExtraClauses(ClauseList& extraClauses) {
+		if (mExtraClauses) { mExtraClauses->splice(mExtraClauses->end(), extraClauses); }
+		else extraClauses.clear();
+		return (bool)mExtraClauses;
+	}
+
+
 
 	/// Convenience method for constructing a new context corresponding
 	/// to a formula occurring within the scope of an additional negation.
-	inline Context mkNegated() const { return Context(mPos, mPart, mTime, EMPTY_STR, true, !mPositive); }
+	inline Context mkNegated() const { return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, true, !mPositive); }
 
 	/// Convenience method for constructing a new context corresponding
 	/// to an atom taking a specific value.
 	/// @param value The value the atom should take.
-	inline Context mkValue(std::string const& value) const { return Context(mPos, mPart, mTime, value, mNeg, mPositive); }
+	inline Context mkValue(std::string const& value) const { return Context(mPos, mPart, *mTime, value, mExtraClauses, mFreeVars, mNeg, mPositive); }
 
 	/// Convenience method for constructing a new context corresponding
 	/// to a formula at a new position.
 	/// @param pos The new position the formula is at.
-	inline Context mkPos(Position pos) const { return Context(pos, mPart, mTime, EMPTY_STR, mNeg, mPositive); }
+	inline Context mkPos(Position pos) const { return Context(pos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive); }
 
-	/// Convenience method for constucting a new context with a separate timestamp.
+	/// Convenience method for constructing a new context with a separate timestamp.
 	/// @param timestamp The new timestamp for the formula context.
-	inline Context mkTime(std::string const& timestamp) const { return Context(mPos, mPart, timestamp, EMPTY_STR, mNeg, mPositive); }
+	inline Context mkTime(std::string const& timestamp) const { return Context(mPos, mPart, timestamp, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive); }
 
-	inline Context mkIncPart(IPart ipart) const { return Context(mPos, ipart, mTime, EMPTY_STR, mNeg, mPositive); }
+	inline Context mkIncPart(IPart ipart) const { return Context(mPos, ipart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive); }
 
+	/// Convenience method for constructing a new context that captures free variables.
+	/// @param freeVars The list to capture the free variables in.
+	inline Context mkBindVars(ClauseList* freeVars)	const {  return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, freeVars , mNeg, mPositive); }
+
+	/// Convenience method for constructing a new context that captures extra clauses
+	/// @param extraClauses The list to capture the extra clauses in.
+	inline Context mkBindClauses(ClauseList* extraClauses) const {  return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, extraClauses , mNeg, mPositive); }
+
+
+	/// Copy Operator
+	inline Context const& operator=(Context const& other) { return copy(other); }
+
+	/// Copy another context
+	Context const& copy(Context const& other);
 };
+
+typedef std::pair<std::string,Context::IPart> Statement;		///< A simple tuple representing a statement occuring within an specified part of incremental module.
+typedef std::list<Statement> StmtList;							///< A list containing 0 or more statements which should be added to the program and their corresponding IPARTs.
+
 
 
 #endif
