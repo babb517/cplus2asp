@@ -3782,15 +3782,19 @@ bool handleMayCauseLaw(
 		if(causer->hasActions() && !causer->hasFluents())
 		{
 			// Causer and ifBody are going to end up together no matter what.
-			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator();
+			SimpleBinaryOperator* tempPE;
 			// however, we need to ensure parenthesis are aroudn the ifBody
 			if(ifBody != NULL)
 			{
+				tempPE = new SimpleBinaryOperator();
 				ifBody->setParens(true);
+				tempPE->opType = SimpleBinaryOperator::BOP_AND;
+				tempPE->preOp = causer;
+				tempPE->postOp = ifBody;
+			} else {
+				tempPE = ifBody;
 			}
-			tempPE->opType = SimpleBinaryOperator::BOP_AND;
-			tempPE->preOp = causer;
-			tempPE->postOp = ifBody;
+			
 
 			// Where causer and ifBody end up in the basic form depend on what's in causee.
 			if(causee->hasActions() && !causee->hasFluents())

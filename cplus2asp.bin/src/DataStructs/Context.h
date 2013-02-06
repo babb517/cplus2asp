@@ -168,7 +168,7 @@ public:
 
 	/// Convenience method for constructing a new context that captures extra clauses
 	/// @param extraClauses The list to capture the extra clauses in.
-	inline Context mkBindClauses(ClauseList* extraClauses) const {  return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, extraClauses , mNeg, mPositive); }
+	inline Context mkBindClauses(ClauseList* extraClauses) const {  return Context(mPos, mPart, *mTime, TRUE_STR, extraClauses, mFreeVars, mNeg, mPositive); }
 
 
 	/// Copy Operator

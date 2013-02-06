@@ -213,7 +213,7 @@ void processAndOutputAnswerSet(
 				ostOut
 		);
 
-		if (output) ostOut << std::endl << std::endl;
+		if (output) ostOut << std::endl;
 
 	}
 
@@ -227,7 +227,7 @@ void processAndOutputAnswerSet(
 							ostOut
 					);
 
-			if (output) ostOut << std::endl << std::endl;
+			if (output) ostOut << std::endl;
 		}
 	}
 
@@ -240,11 +240,11 @@ void processAndOutputAnswerSet(
 						ostOut
 				);
 
-
+		if (output) ostOut << std::endl;
 	}
 
 	// Done with this solution, add an extra separating end line.
-	ostOut << endl << endl;
+	ostOut << endl;
 }
 
 int main(int argc, char** argv)

@@ -123,7 +123,7 @@ int TimeStepInfo::outputTimeStep( Config const& config, std::ostream& outStream 
 		outStream << "\tMISC CONSTANTS: ";
 	} else {
 		// Output time step header and appropriate trailing whitespace.
-		outStream << "\tSTEP " << timeStep << ": ";
+		outStream << "\t" << timeStep << ": ";
 	}
 
 	// Output each predicate that was true at this time step.

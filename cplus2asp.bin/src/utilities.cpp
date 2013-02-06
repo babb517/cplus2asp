@@ -3,6 +3,29 @@
 namespace utils
 {
 
+
+/// Trims whitespace from a string.
+std::string trimWhitespace(std::string const& text)
+{
+	std::string retVal = "";
+	std::string whitespace = " \n\f\r\t\v";
+	size_t sztFirstPos = 0, sztSecondPos = 0;
+	if(text.length() > 0)
+	{
+		sztFirstPos = text.find_first_not_of(whitespace);
+		sztSecondPos = text.find_last_not_of(whitespace);
+		if(sztFirstPos != std::string::npos)
+		{	// We got two valid positions, trim accordingly.
+			retVal = text.substr(sztFirstPos, sztSecondPos - sztFirstPos + 1);
+		}
+		else
+		{	// The whole dang string is whitespace, return blank.
+			retVal = "";
+		}
+	}
+	return retVal;
+}
+
 /**
  * Checks if a character represents a digit or not.
  * @param testChar - The character to test.

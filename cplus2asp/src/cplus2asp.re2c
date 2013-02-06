@@ -460,20 +460,19 @@ int main(int argc, char** argv)
 
 		// Minstep
 		// If a minstep isn't specified and we know a query, then we might be able to get it from the query...
-		if (config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED
-				&& activeQuery
-				&& activeQuery->minstep != Config::UNDEFINED)
-		{
-			// The query has specified a minimum step for us to use.
-			config.intConfigOpt(Config::OPT_MINSTEP, activeQuery->minstep);
-			debug("Got minstep value '%d' from the query '%s'.", true, activeQuery->minstep, activeQuery->name.c_str());
-			neededConstantFlgs &= ~CONST_MINSTEP_MASK;
-		} else {
-			// No such luck, default to 0.
-			debug("No minimum step specified. Defaulting to 0.", true);
-			config.intConfigOpt(Config::OPT_MINSTEP, 0);
-			neededConstantFlgs &= ~CONST_MINSTEP_MASK;
+		if (config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED) {
+			if (activeQuery && activeQuery->minstep != Config::UNDEFINED) {
+				// The query has specified a minimum step for us to use.
+				config.intConfigOpt(Config::OPT_MINSTEP, activeQuery->minstep);
+				debug("Got minstep value '%d' from the query '%s'.", true, activeQuery->minstep, activeQuery->name.c_str());
+				neededConstantFlgs &= ~CONST_MINSTEP_MASK;
+			} else {
+				// No such luck, default to 0.
+				debug("No minimum step specified. Defaulting to 0.", true);
+				config.intConfigOpt(Config::OPT_MINSTEP, 0);
+				neededConstantFlgs &= ~CONST_MINSTEP_MASK;
 
+			}
 		}
 
 		// MaxAdditive Deficiency:
@@ -1337,6 +1336,7 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "            maxAdditive - The maximum additive integer (only needed if" << endl
 		  << "                          using additive fluents/actions)." << endl
 		  << "            maxstep - The maximum time step to consider." << endl
+		  << "            minstep - The minimum time step to consider." << endl
 		  << "            query - The query number (i.e., label) to select." << endl
 		  << "  NUM_SOLUTIONS is the desired number of solutions for the solver to find." << endl
 		  << "                This should be a non-negative integer (0 or greater)." << endl
@@ -1642,7 +1642,7 @@ unsigned int queryUserForQuery(Config const& config)
 		if ((!config.customConfigOpt(Config::OPT_MINSTEP) && it->second.minstep != Config::UNDEFINED))
 			std::cout << " minstep=" << it->second.minstep;
 
-		if ((!config.customConfigOpt(Config::OPT_MINSTEP) && it->second.maxstep != Config::UNDEFINED))
+		if ((!config.customConfigOpt(Config::OPT_MAXSTEP) && it->second.maxstep != Config::UNDEFINED))
 			std::cout << " maxstep=" << it->second.maxstep;
 
 		std::cout << std::endl;

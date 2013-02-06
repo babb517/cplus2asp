@@ -974,8 +974,9 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 	// We are in a term or arithmetic expression, translate it as a temporary variable.
 	if (constRef && !Constant::isAbnormalityType(constRef->constType))
 	{
-		// The variable that holds the intermediate value.
+		// The variable that holds the intermediate value (and register it!).
 		std::string var = getNewVar();
+		context.addFreeVariable(var);
 
 		// add the appropriate extra clause
 		localContext = context.mkPos(Context::POS_BODY).mkValue(var);

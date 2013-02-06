@@ -1052,7 +1052,7 @@ void Translator::translateQuery(Query* transQuery)
 		// For each item in queryConditions, output an ASP-style constraint for it.
 		for(std::list<ParseElement*>::iterator lIter = transQuery->queryConditions.begin(); lIter != transQuery->queryConditions.end(); ++lIter)
 		{
-			bool isDynamic = false;
+			bool isDynamic = false, alteredTimestamp = false;
 			int tmpLoc;
 			std::string tmpQueryTimeStamp;
 
@@ -1061,13 +1061,17 @@ void Translator::translateQuery(Query* transQuery)
 
 			// Transform 'maxstep' to the appropriate timestamp
 			if (!blnStaticTrans) {
-				tmpQueryTimeStamp = (*lIter)->getQueryTimeStamp();
+				tmpQueryTimeStamp = utils::trimWhitespace((*lIter)->getQueryTimeStamp());
+				// A query statement is dynamic if it's not regarding t=0 or contains actions.
+				if (tmpQueryTimeStamp != "0" || (*lIter)->hasActions()){
+					isDynamic = true;
+				}
 				while ((tmpLoc = tmpQueryTimeStamp.find("maxstep")) != std::string::npos) {
 					// we have a 'maxstep' occurrence in the string
-					isDynamic = true;
+					alteredTimestamp = true;
 					tmpQueryTimeStamp.replace(tmpLoc, 7, dynamicTimeStamp);
 				}
-				if (isDynamic) (*lIter)->setQueryTimeStamp(tmpQueryTimeStamp);
+				if (alteredTimestamp) (*lIter)->setQueryTimeStamp(tmpQueryTimeStamp);
 			}
 
 			ossOutputBuffer << "false <- query_label(" << transQuery->label << ") & not (";
@@ -1102,7 +1106,8 @@ void Translator::translateCausalLaw(
 	// The initialized values default to "static law" (i.e., fluents only, no "after").
 	RuleType type = RULE_STATIC;	// The type of the rule we're currently working with.
 
-	bool needsNotNot = false;		// true if the only constants within the head of the rule are "true" and "false" amd we're only using 1 timestep.
+	bool afterNotNot = false;		// Whether the after body should be encased in double negation.
+	bool ifNotNot = false;			// Whether the if body should be encased in double negation.
 	bool malformed = false; 		// true if one or more problems with the law have been detected.
 
 	std::ostringstream ossOutputBuffer; // Holds translated output so things can be easily added on before or after the normal output.
@@ -1214,8 +1219,11 @@ void Translator::translateCausalLaw(
 	}
 
 	// Now check if we actually need "not not (...)" encasing the law's body (if it has one).
-	if (!head->isTrivial() && (type == RULE_STATIC || type == RULE_ACTIONDYNAMIC || type == RULE_RIGID)) {
-		needsNotNot = true;
+	if (!head->isTrivial()) {
+		if (type == RULE_ACTIONDYNAMIC && afterBody && !afterBody->isTrivial())
+			afterNotNot = true;
+		else if ( type == RULE_FLUENTDYNAMIC && ifBody && !ifBody->isTrivial() )
+			ifNotNot = true;
 	}
 
 	// catch malformed rules and don't translate them.
@@ -1229,7 +1237,8 @@ void Translator::translateCausalLaw(
 			ossOutputBuffer,
 			stmts,
 			Context::BASE,
-			needsNotNot,
+			ifNotNot,
+			afterNotNot,
 			"0",
 			head,
 			ifBody,
@@ -1249,7 +1258,8 @@ void Translator::translateCausalLaw(
 			ossOutputBuffer,
 			stmts,
 			Context::CUMULATIVE,
-			needsNotNot,
+			ifNotNot,
+			afterNotNot,
 			baseTimeStamp,
 			head,
 			ifBody,
@@ -1273,7 +1283,8 @@ std::ostream& Translator::makeCausalTranslation(
 	std::ostream& output,
 	StmtList& extraStmts,
 	Context::IPart ipart,
-	bool needsNotNot,
+	bool ifNotNot,
+	bool afterNotNot,
 	std::string const& baseTimeStamp,
 	ParseElement* head,
 	ParseElement* ifBody,
@@ -1317,7 +1328,7 @@ std::ostream& Translator::makeCausalTranslation(
 			bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
-			if(needsNotNot) {
+			if(ifNotNot) {
 				output << "not not (";
 				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false);
 				bindAndTranslate(output, ifBody, localContext, false);
@@ -1350,7 +1361,7 @@ std::ostream& Translator::makeCausalTranslation(
 			else bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
-			if(needsNotNot) {
+			if(afterNotNot) {
 				output << "not not (";
 				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false);
 				bindAndTranslate(output, afterBody, localContext, false);
@@ -1941,20 +1952,20 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr
 	}
 
 	if (!localVariables.empty()
-			|| (upwardMobileClauses && !localClauses.empty()))
+			|| (!upwardMobileClauses && !localClauses.empty()))
 	{
 		out << "(";
 	}
 
 	out << tmp.str();
 
-	if (!localVariables.empty()
-			|| (upwardMobileClauses && !localClauses.empty()))
-	{
-		Translator::outputClauses(out, localClauses, true);
-		out << ")";
-	} else {
-		context.transferExtraClauses(localClauses);
+	if (!localClauses.empty()) {
+		if (!localVariables.empty() || !upwardMobileClauses) {
+			Translator::outputClauses(out, localClauses, true);
+			out << ")";
+		} else {
+			context.transferExtraClauses(localClauses);
+		}
 	}
 
 	return out;

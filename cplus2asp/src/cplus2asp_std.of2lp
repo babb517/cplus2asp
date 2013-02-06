@@ -27,6 +27,15 @@ constant_posobject(V_constant,Object) <-
   & not constant_sort(V_constant, boolean)
   & Object != none.
 
+% constant_negobject relates constants with their negative object.
+% negative objects are false (boolean) and none (non-boolean).
+constant_negobject(V_constant,false) <-
+  constant_sort(V_constant, boolean).
+
+constant_negobject(V_constant,none) <-
+  not constant_sort(V_constant, boolean)
+  & constant(V_constant).
+
 %-------------------------------------------------------------
 #base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
@@ -199,9 +208,9 @@ false <- not 1{ h(eql(V_fluent,Object1),0) : constant_object(V_fluent,Object1) }
 
 % Restriction that attributes must take on the value "none" if and only if their linked action does not execute.
 false <- 
-   not (( occ(eql(V_attribute,none),t-1) -> occ(eql(V_action,false),t-1) ) &
-        ( occ(eql(V_action,false),t-1) -> occ(eql(V_attribute,none),t-1) )) &
-   action_attribute(V_action,V_attribute). 
+   not (( occ(eql(V_attribute,NegObj1),t-1) -> occ(eql(V_action,NegObj2),t-1) ) &
+        ( occ(eql(V_action,NegObj2),t-1) -> occ(eql(V_attribute,NegObj1),t-1) )) &
+   action_attribute(V_action,V_attribute) & constant_negobject(V_attribute, NegObj1) & constant_negobject(V_action, NegObj2).
 
 % exogenous: Grants exogeneity to a constant.
 
@@ -252,6 +261,7 @@ false <- not 1{ occ(eql(V_action,Object1),t-1) : constant_object(V_action,Object
 % Etc
 #hide constant_object/2.
 #hide constant_posobject/2.
+#hide constant_negobject/2.
 #hide constant_sort/2.
 #hide sort_object/2.
 #hide action_attribute/2.

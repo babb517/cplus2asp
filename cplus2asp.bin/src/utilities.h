@@ -350,6 +350,13 @@ void deallocateListContents(std::list<T*>& lst)
 }
 
 /**
+ * Trims whitespace from both ends of a text string.
+ * @param text - The text to trim.
+ * @return The string stripped of whitespace on both sides.
+ */
+std::string trimWhitespace(std::string const& text);
+
+/**
  * Attempts to transform a string into a numeric representation of itself.
  * For numbers, fmt should be dec, hex, or oct.
  * @param val - A reference to the recipient of the generated number.
