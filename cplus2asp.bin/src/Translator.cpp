@@ -1222,7 +1222,7 @@ void Translator::translateCausalLaw(
 	if (!head->isTrivial()) {
 		if (type == RULE_ACTIONDYNAMIC && afterBody && !afterBody->isTrivial())
 			afterNotNot = true;
-		else if ( type == RULE_FLUENTDYNAMIC && ifBody && !ifBody->isTrivial() )
+		else if ( (type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID) && ifBody && !ifBody->isTrivial() )
 			ifNotNot = true;
 	}
 
