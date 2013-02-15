@@ -1726,7 +1726,7 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 						} else if (from_string(tempQuery.maxstep, tempString)) {
 							// The query is good and contains only a maxstep.
 							// The minstep is undefined.
-							tempQuery.minstep = Config::UNDEFINED;
+							tempQuery.minstep = tempQuery.maxstep;
 							foundQuery = true;
 						} else {
 							// The step information is malformed.

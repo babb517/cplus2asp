@@ -136,6 +136,8 @@ bool Object::translate(
 				}
 			}
 		}
+
+		out << ")";
 	}
 
 	if (tmpCount) delete runningCount;
