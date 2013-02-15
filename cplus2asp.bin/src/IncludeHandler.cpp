@@ -3,10 +3,12 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-
+#include <cstdlib>		// realpath
+#include <climits>		// PATH_MAX
 #include <list>
 #include <sstream>
 #include <vector>
+
 
 #include "Macro.h"
 #include "Token.h"
@@ -44,7 +46,11 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 	std::list<std::string>::iterator includeListIterator;
 	std::list<Comment*>* tempComments;
 	std::string line = "";//part of a hack
+	std::string includeAlias;
 	bool hack1condition1, hack1condition2;
+
+	char resolvedFileName[PATH_MAX];
+
 	// This acts as the handler's "base" state, looking for includes.
 	// Look for grammar rules of the form "T_COLON_DASH T_INCLUDE include_file_tuple T_PERIOD", ignores anything else.
 	// We know we need >= 2 tokens for a macro definition, so it's fine to check if either cur or next token is end-of-stream.
@@ -70,7 +76,7 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 						}
 						if(curTokIter != ltsyyLexer::streamEnd())this->getNextToken();
 					}
-					if(curTokIter != ltsyyLexer::streamEnd() && ((*curTokIter)->tokenID == T_PERIOD) || ((*curTokIter)->stringValue).compare(".") == 0)
+					if((curTokIter != ltsyyLexer::streamEnd()) && (((*curTokIter)->tokenID == T_PERIOD) || ((*curTokIter)->stringValue).compare(".") == 0))
 					{
 						this->getNextToken();
 						includeDefEnd = curTokIter;//this is the last token we will delete, a period
@@ -78,8 +84,25 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 						
 						for(includeListIterator = includeList.begin(); includeListIterator != includeList.end(); includeListIterator++)//add each files tokens to the current stream.
 						{
-							flexerReset();
-							flexin = fopen((*includeListIterator).c_str(), "r");
+
+							includeAlias = *includeListIterator;
+							flexin = NULL;
+
+							// Start by checking path's relative to the current include directory.
+							if (realpath(includeFileName.c_str(), resolvedFileName)) {
+								*includeListIterator = resolvedFileName;
+								*includeListIterator = includeListIterator->substr(0,includeListIterator->find_last_of("/")) + "/" + includeAlias;
+								flexin = fopen(includeListIterator->c_str(), "r");
+							}
+
+							// If that didn't work, fall back to the standard PATH variables and current working directory.
+							if (!flexin) {
+
+								flexerReset();
+								flexin = fopen((*includeListIterator).c_str(), "r");
+							}
+
+
 							if(flexin != NULL)							
 							{
 
@@ -101,7 +124,7 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 								Comment* fileCom = new Comment();
 								fileCom->contents = "";
 								fileCom->contents += " File \"";
-								fileCom->contents += *includeListIterator;
+								fileCom->contents += includeAlias;
 								fileCom->contents += "\".";
 								fileCom->fileName = *includeListIterator;
 								fileCom->loc->first_line = 0;
@@ -139,7 +162,7 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 							else
 							{	//File not found.
 								this->includeNumErrors++;
-								includeFileNotFoundError((*includeListIterator),false);
+								includeFileNotFoundError(includeAlias,false);
 							}
 							
 						}
