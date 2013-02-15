@@ -83,6 +83,7 @@ enum Option {
 	OPT_MODE_REACTIVE,
 	OPT_NO_DEL,
 	OPT_NO_STD,
+	OPT_GRINGO_NONE_HACK,
 	OPT_PORT_INTERNAL,
 	OPT_PORT_EXTERNAL,
 	OPT_POSTPROC,
@@ -887,6 +888,15 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			}
 			break;
 
+		case OPT_GRINGO_NONE_HACK:
+			// They want us to treat none as an integral type to circumvent a
+			// bug in gringo that prevents grounding of certain domains otherwise.
+			if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, true)) {
+				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+			}
+			break;
+			
+
 		case OPT_JUST_GRD:
 			// Just call the grounder program, no others.
 			if (outConf.setOnlyRun(Config::TC_GROUNDER)) {
@@ -1353,6 +1363,7 @@ Option parseOption(char const* opt) {
 			"-fromtrans"|"--from-translator"		{ return OPT_FROM_TRAN; }
 			"-gr"|"--grounder"						{ return OPT_GRD; }
 			"-gropt"|"--grounder-opts"				{ return OPT_GRD_OPTS; }
+			"-nh"|"--none-hack"					{ return OPT_GRINGO_NONE_HACK; }
 			"-i"|"--internal-port"					{ return OPT_PORT_INTERNAL; }
 			"-justgr"|"--just-grounder"				{ return OPT_JUST_GRD; }
 			"-justpre"|"--just-pre-processor"		{ return OPT_JUST_PRE; }
@@ -1496,6 +1507,12 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << " --internal-port [PORT] - Sets the port used for internal communication between the " << endl
 		  << "                          reactive solver and bridge. This option is only valid in " << endl
 		  << "                          reactive mode." << endl
+		  << endl
+		  << " -nh" << endl
+		  << " --none-hack ------------ Indicates that we should simulate the 'none' value as a integral " << endl
+		  << "                          type. This is helpful for circumventing a bug in Gringo 3.0.4 that " << endl
+		  << "                          sometimes prevents domains from properly grounding due to " << endl
+		  << "                          unification issues." << endl
 		  << endl
 		  << "Extra Program Options:" << endl
 		  << "  Options with [PROG] or [PROGRAM] in their name affect individual" << endl

@@ -92,7 +92,7 @@ class Predicate
 	inline bool isNegative() { return isNone() || isFalse(); }
 
 	/// Determines if the predicate's value is 'none'.
-	inline bool isNone() { return value == "none"; }
+	inline bool isNone() { return value == sNoneValue; }
 
 	/// Determines if the predicate's value is 'true'.
 	inline bool isTrue() { return value == "true"; }
@@ -156,6 +156,16 @@ class Predicate
 	 */
 	static std::string predTypeToPrefixString(Type predType);
 
+	/**
+	 * Sets the value that should be treated as 'none'.
+	 * @param noneAlias the new alias for 'none'.
+	 */
+	inline static void setNoneAlias(std::string const& noneAlias)	{ sNoneValue = noneAlias; }
+
+	/// Gets the value that's being treated as 'none'
+	inline static std::string const& getNoneAlias()			{ return sNoneValue; }
+
+
   protected:
 	std::string name; 		///< The full contents of the predicate (just the inner predicate if it was a specially formatted predicate).
 	int timeStamp; 			///< The time stamp the predicate occurs in (if applicable). Possibly UNKNOWN_TIME (if we don't know) or RIGID_TIME (if the predicate is rigid).
@@ -163,6 +173,9 @@ class Predicate
 	bool hasEql;			///< True if the predicate has an eql(<name>,<value>) or eq(<name>,<value>) function wrapper, false otherwise.
 	bool xpred;				///< True if the predicate's name has the form 'x_<name>', which marks it as an internal predicate.
 	std::string value;		///< The value the predicate has taken, or "" if there is no function wrapper.
+	
+
+	static std::string sNoneValue;	///< The (possibly aliased) value that corresponds to a value of 'none'.
 };
 
 #endif // PREDICATE_DOT_H

@@ -4,6 +4,9 @@
 #include "Predicate.h"
 #include "Config.h"
 
+
+std::string Predicate::sNoneValue = "none";
+
 // Re-creates an appropriate string representation of the predicate and returns it.
 std::string Predicate::toPredicateString(Config::Format fmt)
 {

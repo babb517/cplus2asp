@@ -43,7 +43,7 @@ Config::Config() {
 	mConfigOpts[OPT_NUM_SOLN] = DEF_NUM_SOLN;
 	mConfigOpts[OPT_EXT_PORT] = UNDEFINED;
 	mConfigOpts[OPT_INT_PORT] = DEF_INTERNAL_PORT;
-
+	mConfigOpts[OPT_NONE_HACK] = DEF_NONE_HACK;
 
 	memset(mCustomConfig,0,OPT_LENGTH);
 
@@ -403,6 +403,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
 			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
 			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
+			if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
 			for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 				out << " -c " << it->first << "=" << it->second;
@@ -442,6 +443,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
 		if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
 		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
+		if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
 		for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 			out << " -c " << it->first << "=" << it->second;
@@ -461,9 +463,11 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// Note: Symbol table file provided through stdin.
 		out << " --oclingo-port " << intConfigOpt(OPT_INT_PORT);
 		out << " --client-port " << intConfigOpt(OPT_EXT_PORT);
+		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none-alias " << HACKED_NONE_VALUE;
 		break;
 
 	case TC_POSTPROC:
+		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none-alias " << HACKED_NONE_VALUE;
 		break;
 	}
 

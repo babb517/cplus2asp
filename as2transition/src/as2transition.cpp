@@ -5,6 +5,7 @@
  */
 
 /* History:
+ * v2.1 - Added the '--none-alias' command line option to allow for aliased values of none. 
  * v2.0 - Extended to allow for abnormality constants (staticAbnormality / dynamicAbnormality).
  * 		- Now uses four different top-level predicates to classify constant types.
  * 			- h/2 		- fluents
@@ -52,7 +53,7 @@ using namespace std;
 
 // Program version.
 #define VERSION_MAJOR 2
-#define VERSION_MINOR 0
+#define VERSION_MINOR 1
 #define VERSION_REV 0
 
 // Prototypes.
@@ -372,6 +373,16 @@ int main(int argc, char** argv)
 			{	// They want to see the intermediate "x_..." h-style predicates, so show them.
 				config.showXPredicates = true;
 			}
+			else if (!strcmp(argv[i], "--none-alias")|| !strcmp(argv[i], "-n"))
+			{
+				if (++i < argc) {
+					/// They've provided us with some alias to use for the none value.
+					Predicate::setNoneAlias(argv[i]);
+				} else {
+					blnBadArgs = true;
+				}
+
+			}
 			else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-?")) {
 				// They've asked for help
 				blnShowHelp = true;
@@ -423,6 +434,10 @@ int main(int argc, char** argv)
 						  << "  -x  (or --x-pred) will show h-style predicates that begin with \"x_\"" << endl
 						  << "      (these are usually additional intermediate predicates created during" << endl
 						  << "      translation, and are hidden by default)." << endl
+						  << "  -n [VALUE] (or --none-alias [VALUE]) sets [VALUE] to be treated as an " << endl
+						  << "      alias for 'none' for  filtering purposes. Useful if none has been " << endl
+						  << "      replaced with an integer to circumvent a bug in Gringo 3.0.4's " << endl
+						  << "      unification checking that sometimes prevents grounding." << endl
 						  << "  --help shows this usage message." << endl
 						  << "  -v  (or --version) outputs version information." << endl << endl
 						  << "  Example: gringo some_asp_file.lp | clasp | " << strEXEName << endl
