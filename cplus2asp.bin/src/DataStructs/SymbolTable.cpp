@@ -43,16 +43,19 @@ void SymbolTable::clearTable()
 }
 
 // Attempts to add a new symbol to the symbol table.
-int SymbolTable::addSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType)
+int SymbolTable::addSymbol(std::string const& symName, std::vector<std::string> const* symParams, SymbolNode::SymbolType symType)
 {
 	int retVal = ADDSYM_ERR; // Start pessimistic.
+
+	size_t numParams = (symParams) ? symParams->size() : 0;
+
 	if(findSymbol(symName, symParams, symType) == NULL)
 	{
 		if(symName != "")
 		{
-			for(size_t i = 0; i < symParams.size(); i++)
+			for(size_t i = 0; i < numParams; i++)
 			{	// Check that none of the parameters have bad names.
-				if(symParams[i] == "")
+				if(symParams->at(i) == "")
 				{
 					retVal = ADDSYM_BAD;
 					break;
@@ -62,7 +65,7 @@ int SymbolTable::addSymbol(std::string& symName, std::vector<std::string>& symPa
 			{	// Nothing's bad about the symbol, add it.
 				SymbolNode *tempNode = new SymbolNode;
 				tempNode->name = symName;
-				tempNode->paramNames = symParams;
+				if (symParams) tempNode->paramNames = *symParams;
 				tempNode->symbolType = symType;
 				symbolList.push_back(tempNode);
 				retVal = ADDSYM_OK;
@@ -81,7 +84,7 @@ int SymbolTable::addSymbol(std::string& symName, std::vector<std::string>& symPa
 }
 
 // Attempts to remove a defined symbol from the symbol table.
-int SymbolTable::delSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType)
+int SymbolTable::delSymbol(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType)
 {
 	int retVal = DELSYM_ERR; // Start pessimistic.
 	std::list<SymbolNode*>::iterator sIter = findSymbolIter(symName, symParams, symType);
@@ -99,7 +102,7 @@ int SymbolTable::delSymbol(std::string& symName, std::vector<std::string>& symPa
 }
 
 // Finds the requested symbol's SymbolNode object in the symbol table if the symbol has been defined.
-SymbolNode* SymbolTable::findSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType)
+SymbolNode* SymbolTable::findSymbol(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType)
 {
 	SymbolNode* retVal = NULL; // Start pessimistic.
 	std::list<SymbolNode*>::iterator sIter = findSymbolIter(symName, symParams, symType);
@@ -122,33 +125,29 @@ SymbolNode* SymbolTable::getLastSymbol()
 }
 
 // Internal version of findSymbol that returns an iterator instead of a pointer to the symbol (if it's found).
-std::list<SymbolNode*>::iterator SymbolTable::findSymbolIter(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType)
+std::list<SymbolNode*>::iterator SymbolTable::findSymbolIter(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType)
 {
-	bool matchFound;
-	std::list<SymbolNode*>::iterator sIter = symbolList.begin();
-	while(sIter != symbolList.end())
-	{
-		matchFound = true; // Start optimistic.
-		if((*sIter)->name != symName || (*sIter)->symbolType != symType || (*sIter)->paramNames.size() != symParams.size())
-		{	// At least one of name, type, or # of params didn't match.
-			matchFound = false;
-		}
-		else
+	size_t paramSize;
+
+	if (symParams) paramSize = symParams->size();
+	else paramSize = 0;
+
+	std::list<SymbolNode*>::iterator sIter;
+
+	for(sIter = symbolList.begin(); sIter != symbolList.end(); sIter++) {
+		if((*sIter)->name == symName
+				&& (*sIter)->symbolType == symType
+				&& (*sIter)->paramNames.size() == paramSize)
 		{
 			// Name, type, & # of params match, check the parameter names.
 			for(size_t i = 0; i < (*sIter)->paramNames.size() && i < (*sIter)->paramNames.size(); i++)
 			{
-				if((*sIter)->paramNames[i] != symParams[i])
+				if((*sIter)->paramNames[i] == symParams->at(i))
 				{	// One of the parameter names didn't match.
-					matchFound = false;
+					break;
 				}
 			}
 		}
-		if(matchFound)
-		{
-			break;
-		}
-		++sIter;
 	}
 	return sIter;
 }

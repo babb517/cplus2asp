@@ -2,6 +2,7 @@
 #include <list>
 #include <string>
 
+#include "types.h"
 #include "Comment.h"
 #include "Token.h"
 
@@ -49,6 +50,7 @@ void ltsyyLexer::restartLexer()
 	tokenIter = tokenStream.begin();
 	restartCommentIterators();
 }
+
 
 /* *** TOKEN STREAM METHODS *** */
 
@@ -465,7 +467,7 @@ int ltsyyLexer::nextToken()
 		while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
 		{
 			std::string tempStr = (*(*cIter))->output();
-			mainTrans.output(tempStr, Context::NONE, true);
+			mainTrans.output(tempStr, IPART_NONE, true);
 			++(*cIter);
 		}
 		

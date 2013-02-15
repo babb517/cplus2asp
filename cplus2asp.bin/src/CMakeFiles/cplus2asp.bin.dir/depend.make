@@ -21,12 +21,17 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/Attribute.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/Attribute.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/Constant.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: DataStructs/Comment.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: DataStructs/Comment.h
@@ -48,26 +53,44 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o: utilities.h
 
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Attribute.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Constant.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Object.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/Variable.h
-CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: DataStructs/SymbolTable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: Translator.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o: utilities.h
 
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Context.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Context.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Object.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/Sort.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Element.cpp.o: DataStructs/Element.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Element.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Element.cpp.o: types.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ElementCounter.cpp.o: DataStructs/Element.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ElementCounter.cpp.o: DataStructs/ElementCounter.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ElementCounter.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/ElementCounter.cpp.o: types.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: DataStructs/Macro.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: DataStructs/Macro.h
@@ -91,13 +114,18 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o: utilities.h
 
-CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/NumberRange.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/NumberRange.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/Object.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Element.h
@@ -105,7 +133,13 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Object.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Object.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/SymbolTable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: DataStructs/Variable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: Translator.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Query.cpp
@@ -114,9 +148,12 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Constant.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Element.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Object.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/Variable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: DataStructs/datastruct_externs.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Constant.h
@@ -126,12 +163,18 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Sort.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Variable.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/Context.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: DataStructs/SymbolTable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: Translator.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/SymbolTable.cpp.o: DataStructs/Element.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/SymbolTable.cpp.o: DataStructs/SymbolTable.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/SymbolTable.cpp.o: DataStructs/SymbolTable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/SymbolTable.cpp.o: types.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: DataStructs/Comment.h
@@ -154,6 +197,7 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: DataStructs/Token.h
@@ -178,14 +222,23 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Constant.h
-CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Object.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Variable.cpp
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Variable.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Context.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/Element.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: DataStructs/SymbolTable.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: Translator.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: types.h
+CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o: utilities.h
 
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: IncludeHandler.cpp
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: IncludeHandler.h
@@ -195,6 +248,7 @@ CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: lexerTokenStream.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o: DataStructs/Attribute.h
@@ -221,6 +275,7 @@ CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: Translator.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: lexerTokenStream.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o: DataStructs/Attribute.h
@@ -248,6 +303,7 @@ CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o: DataStructs/Attribute.h
@@ -270,6 +326,7 @@ CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: flexertypes.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o: DataStructs/Attribute.h
@@ -292,6 +349,7 @@ CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: lexerTokenStream.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o: DataStructs/Attribute.h
@@ -316,6 +374,7 @@ CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: ltsglobals.cpp
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o: DataStructs/Attribute.h
@@ -344,6 +403,7 @@ CMakeFiles/cplus2asp.bin.dir/main.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: main.cpp
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/main.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/main.cpp.o: DataStructs/Attribute.h
@@ -368,6 +428,7 @@ CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: ltsglobals.h
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: parser.cpp
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: parser.h
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: parser_types.h
+CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: types.h
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: DataStructs/ASPCode.h
 CMakeFiles/cplus2asp.bin.dir/parser.cpp.o: DataStructs/Attribute.h
@@ -406,9 +467,11 @@ CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o: DataStructs/Sort.h
 CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o: DataStructs/SymbolTable.h
 CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o: DataStructs/Variable.h
 CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o: DataStructs/datastruct_externs.h
+CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o: types.h
 
 CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o: utilities.cpp
 CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o: utilities.h
 CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o: DataStructs/Element.h
 CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o: DataStructs/ElementCounter.h
+CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o: types.h
 

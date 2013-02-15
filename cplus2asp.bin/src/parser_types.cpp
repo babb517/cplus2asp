@@ -13,12 +13,16 @@
 
 extern std::ostringstream ltsyyossErr;
 
+/*******************************************************************/
+/* PT_constant_binder_t */
+/*******************************************************************/
+
 // Default constructor. Initializes attributes to NULL.
 PT_constant_binder_t::PT_constant_binder_t()
 {
 	constType = Constant::CONST_UNKNOWN;
 	domain = NULL;
-	attributeOf = NULL;
+	parent = NULL;
 }
 
 // Destructor. Resets all to NULL.
@@ -26,101 +30,102 @@ PT_constant_binder_t::~PT_constant_binder_t()
 {
 	constType = Constant::CONST_UNKNOWN;
 	domain = NULL;
-	attributeOf = NULL;
+	parent = NULL;
 }
 
-/* ParseElement methods. */
+/*******************************************************************/
+/* ParseElement */
+/*******************************************************************/
 
-size_t ParseElement::extraClauseCount = 0;
+size_t ParseElement::sVarCount = 0;
 
-// Constructor.
-ParseElement::ParseElement(ParseElementType elemType)
-{
-	this->elemType = elemType;
-	parens = false;
-	queryTimeStamp = "UNKNOWN";
-}
-
-// Destructor.
-ParseElement::~ParseElement()
-{
-	// Intentionally empty.
-}
 
 // Translates a query
-std::ostream& ParseElement::translateQuery(std::ostream& out) {
+StmtList& ParseElement::translateQuery(StmtList& outStmts, std::string const& label, IPart ipart) const {
+	std::ostringstream tmp;
+
+
+	tmp << "false <- query_label(" << label << ") & not (";
+
 	// We want to bind the variables and clauses
-	Context localContext =
-		Context(
-			Context::POS_QUERY,
-			Context::BASE,
-			queryTimeStamp,
-			NULL,
-			NULL
-	);
+		Context localContext =
+			Context(
+				Context::POS_QUERY,
+				ipart,
+				mQueryTimeStamp,
+				NULL,
+				NULL,
+				false,
+				false,
+				&outStmts
+		);
 
-	return Translator::bindAndTranslate(out, this, localContext, false);
+	Translator::bindAndTranslate(tmp, this, localContext, false);
+
+	// end the statement.
+	tmp << ").";
+
+	// push the results in the statements list.
+	outStmts.push_back(Statement(tmp.str(),ipart));
+
+	return outStmts;
 }
 
-/* SimpleUnaryOperator methods. */
-
-// Constructor.
-SimpleUnaryOperator::SimpleUnaryOperator() : ParseElement(PELEM_UOP)
-{
-	opType = UOP_UNKNOWN;
-	postOp = NULL;
-}
+/*******************************************************************/
+/* SimpleUnaryOperator */
+/*******************************************************************/
 
 // Translator method.
-std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context)
+std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context) const
 {
 	Context localContext;
 
 	out << translateBeforeParen();
 
 	// Sanity check: is the argument to the operator not NULL?
-	if(!postOp) {
+	if(!postOp()) {
 		// TODO: Throw warning
 		return out;
 	}
 
 	// Then, perform different translations based on what the operator is.
-	switch(opType)
+	switch(opType())
 	{
 	case UOP_NOT: // Logical negation (including logical "-").
 
 		// Negation works differently for bare booleans, check for them.
-		if(postOp->getType() == PELEM_CONSTLIKE && !postOp->hasAbnormalities()) {
+		if(postOp()->getType() == PELEM_CONSTLIKE && !postOp()->hasConstants(MASK_AB)) {
 
 			// some validation, make sure it's boolean
-			if (!((ConstantLikeElement*)postOp)->isBoolean()) {
+			if (!((ConstantLikeElement*)postOp())->isBoolean()) {
 				// Not a boolean constant, but still used in bare "-c" style, this doesn't make sense.
 				ltsyystartParseError();
-				ltsyyossErr << "Can't use \"-\" or \"not\" to negate non-Boolean constant \""
-						<< postOp->fullName()
-						<< "\" without specifying which value is being negated. Try something like \""
-						<< postOp->fullName() << "=some_value\".";
+				ltsyyossErr << "Can't use \"-\" or \"not\" to negate non-Boolean constant \"";
+				postOp()->fullName(ltsyyossErr);
+				ltsyyossErr	<< "\" without specifying which value is being negated. Try something like \"";
+				postOp()->fullName(ltsyyossErr);
+				ltsyyossErr << "=some_value\".";
 				ltsyyreportError();
 				return out;
 			}
 
 			// output the constant with value false
 			localContext = context.mkValue(Context::FALSE_STR);
-			postOp->translate(out, localContext);
+			postOp()->translate(out, localContext);
 
 
-		} else if(postOp->getType() == PELEM_VARLIKE && ((VariableLikeElement*)postOp)->isConstantVariable()) {
+		} else if(postOp()->getType() == PELEM_VARLIKE && ((VariableLikeElement*)postOp())->isConstantVariable()) {
 
 			// This variable actually stands for a constant of some kind, treat this as "not constant".
 			// Throw up a warning, as using "-V" with V being a constant is not guaranteed to work.
-			VariableLikeElement* varPostOp = (VariableLikeElement*)postOp;
+			VariableLikeElement* varPostOp = (VariableLikeElement*)postOp();
 
 			ltsyystartWarning();
-			ltsyyossErr << "Using negation on variable \""
-					<< varPostOp->fullName()
-					<< "\" representing constant type \""
-					<< varPostOp->varRef->sortRef->fullName()
-					<< "\" is not a good idea, and is almost guaranteed to not work as expected unless you know exactly what you're doing.";
+			ltsyyossErr << "Using negation on variable \"";
+			varPostOp->fullName(ltsyyossErr);
+			ltsyyossErr	<< "\" representing constant type \"";
+			ltsyyossErr << ((Variable const*)varPostOp->ref())->domain()->fullName();
+			ltsyyossErr	<< "\" is not a good idea, and is almost guaranteed to not work as expected unless you know exactly what you're doing.";
 			ltsyyreportWarning();
 
 			localContext = context.mkValue(Context::FALSE_STR);
@@ -134,8 +139,8 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 			// Make sure we capture the clauses locally...
 			if (context.getPos() != Context::POS_HEAD) {
 
-				out << translateOpType(opType) + "(";
-				Translator::bindAndTranslate(out, postOp, context, false);
+				out << translateOpType(opType()) + "(";
+				Translator::bindAndTranslate(out, postOp(), context, false);
 				out << ")";
 
 			} else {
@@ -144,8 +149,8 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 				// TODO
 
 				localContext = context.mkNegated();
-				out << translateOpType(opType) << "(";
-				postOp->translate(out, localContext);
+				out << translateOpType(opType()) << "(";
+				postOp()->translate(out, localContext);
 				out << ")";
 
 			}
@@ -157,8 +162,8 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	case UOP_ABS: 	// Absolute value.
 
 		localContext = context.mkPos(Context::POS_ARITHEXPR);
-		out << translateOpType(opType);
-		postOp->translate(out, localContext);
+		out << translateOpType(opType());
+		postOp()->translate(out, localContext);
 		break;
 
 	case UOP_EXOGENOUS: // Exogenous declaration.
@@ -166,24 +171,26 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	case UOP_RIGID: // Rigid declaration.
 
 		// All three "operators" do the same thing, it's just a matter of what name to use.
-		if(postOp->getType() == PELEM_CONSTLIKE)
+		if(postOp()->getType() == PELEM_CONSTLIKE)
 		{
-			localContext = context.mkPos(Context::POS_INTERNAL);
-			out << translateOpType(opType) << "(";
-			postOp->translate(out, localContext);
+			localContext = context.mkPos(Context::POS_BODY);
+			out << translateOpType(opType()) << "(";
+			postOp()->translate(out, localContext);
 			out << ")";
 		}
 		else
 		{
 			ltsyystartParseError();
-			ltsyyossErr << "Declaring \"" << postOp->fullName() << "\" as " << translateOpType(opType) << " is not supported.";
+			ltsyyossErr << "Declaring \"";
+			postOp()->fullName(ltsyyossErr);
+			ltsyyossErr << "\" as " << translateOpType(opType()) << " is not supported.";
 			ltsyyreportError();
 		}
 		break;
 	default:
 		// Unknown operator, just do a blind translation.
-		out << translateOpType(opType);
-		postOp->translate(out, context);
+		out << translateOpType(opType());
+		postOp()->translate(out, context);
 		break;
 	}
 
@@ -191,139 +198,111 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	return out;
 }
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool SimpleUnaryOperator::hasActions()
-{	// True if postOp contains an action.
-	bool retVal = false;
-	if(postOp)
-	{
-		retVal = postOp->hasActions();
-	}
-	return retVal;
+bool SimpleUnaryOperator::hasConstants(unsigned int types) const {
+	if (postOp()) {
+		if ((types & MASK_RIGID))
+			return  opType() == UOP_EXOGENOUS
+						|| opType() == UOP_INERTIAL
+						|| opType() == UOP_RIGID
+						|| postOp()->hasConstants(types);
+		else
+			return  opType() != UOP_EXOGENOUS
+						&& opType() != UOP_INERTIAL
+						&& opType() != UOP_RIGID
+						&& postOp()->hasConstants(types);
+	} else return false;
+
 }
 
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool SimpleUnaryOperator::hasFluents()
-{	// True if postOp contains an fluent.
-	bool retVal = false;
-	if(postOp)
-	{
-		retVal = postOp->hasFluents();
-	}
-	return retVal;
-}
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool SimpleUnaryOperator::hasStaticAbnormalities()
-{
-	if (postOp) return postOp->hasStaticAbnormalities();
-	else return false;
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool SimpleUnaryOperator::hasDynamicAbnormalities()
-{
-	if (postOp) return postOp->hasDynamicAbnormalities();
-	else return false;
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool SimpleUnaryOperator::hasRigidElements()
-{
-	// For our purposes, we also check against the special declarative operators...
-	if (postOp) {
-		return opType == UOP_EXOGENOUS
-			|| opType == UOP_INERTIAL
-			|| opType == UOP_RIGID
-			|| postOp->hasRigidElements();
-	}
-	else return false;
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool SimpleUnaryOperator::hasNonRigidConstants()
-{
-	return postOp
-			&& !opType == UOP_EXOGENOUS
-			&& !opType == UOP_INERTIAL
-			&& !opType == UOP_RIGID
-			&& postOp->hasNonRigidConstants();
-}
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleUnaryOperator::isSingleAtom() {
+bool SimpleUnaryOperator::isSingleAtom() const
+{
 	// Two cases:
 	// the expression is '-p' or 'not p', as this is shorthand for p=false.
 	// or this is a declarative law such as exogenous p. where p is a constant.
 	// Alternatively, in the event we are working with a declarative law it may be one of UOP_EXOGENOUS, UOP_INERTIAL, UOP_RIGID
 
 	// sanity
-	if (!postOp) return false;
+	if (!postOp()) return false;
 
 	// case 1
-	if (opType == UOP_NOT || opType == UOP_EXOGENOUS) {
-		return (postOp->getType() == ParseElement::PELEM_CONSTLIKE && ((ConstantLikeElement*)postOp)->constRef->domain->isBooleanSort())
-				|| (postOp->getType() == ParseElement::PELEM_VARLIKE && ((VariableLikeElement*)postOp)->varRef->sortRef->isBooleanSort());
+	if (opType() == UOP_NOT || opType() == UOP_EXOGENOUS) {
+		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
+				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
 	}
 
 	// case 2
-	if (opType == UOP_INERTIAL || opType == UOP_RIGID) {
-		return (postOp->getType() == ParseElement::PELEM_CONSTLIKE
-						|| (postOp->getType() == ParseElement::PELEM_VARLIKE));
+	if (opType() == UOP_INERTIAL || opType() == UOP_RIGID) {
+		return postOp()->getType() == ParseElement::PELEM_CONSTLIKE
+				|| (postOp()->getType() == ParseElement::PELEM_VARLIKE);
 	}
 
 	return false;
 }
 
-// returns true if this expression contains only "true" and "false" constants
-bool SimpleUnaryOperator::isTrivial() {
-	return !postOp || postOp->isTrivial();
+// Determines if the element is a valid arithmetic expression.
+bool SimpleUnaryOperator::isArithExpr() const {
+	if (!postOp()) return false;
+	else {
+		switch (opType()) {
+		case UOP_NEGATIVE:
+		case UOP_ABS:
+			return postOp()->isArithExpr();
+		case UOP_UNKNOWN:
+		case UOP_NOT:
+		case UOP_EXOGENOUS:
+		case UOP_INERTIAL:
+		case UOP_RIGID:
+		default:
+			return false;
+		}
+	}
 }
 
-// returns true if this expression contains one or more LUA calls.
-bool SimpleUnaryOperator::hasLuaCalls() {
-	return postOp && postOp->hasLuaCalls();
-}
-
-
-// Returns an original string representation of this operator and its operand.
-std::string SimpleUnaryOperator::fullName()
+// Outputs the original string representation of the element.
+std::ostream& SimpleUnaryOperator::fullName(std::ostream& out) const
 {
-	std::string retVal = "";
-	if(postOp)
+	if(postOp())
 	{
 		// Create a CCalc-compatible representation of the operator first.
-		std::string opStr = "";
-		switch(opType)
+		switch(opType())
 		{
 		case UOP_NOT:
-			opStr = "not ";
+			out << "not ";
 			break;
 		case UOP_NEGATIVE:
-			opStr = "-";
+			out << "-";
 			break;
 		case UOP_ABS:
-			opStr = "abs ";
+			out << "abs ";
 			break;
 		case UOP_EXOGENOUS:
-			opStr = "exogenous ";
+			out << "exogenous ";
 			break;
 		case UOP_INERTIAL:
-			opStr = "inertial ";
+			out << "inertial ";
 			break;
 		case UOP_RIGID:
-			opStr = "rigid ";
+			out << "rigid ";
 			break;
 		default:
 			// Unknown operator, this should never happen
-			opStr = " UNKNOWN ";
+			out << " UNKNOWN ";
 			break;
 		}
-		retVal += opStr;
-		retVal += postOp->fullName();
+		postOp()->fullName(out);
 	}
-	return retVal;
+	return out;
 }
+
+// Detaches the operator's sub expression, returning it.
+ParseElement* SimpleUnaryOperator::detachPostOp() {
+	ParseElement* ret = mPostOp;
+	mPostOp = NULL;
+	return ret;
+}
+
 
 std::string SimpleUnaryOperator::translateOpType(UnaryOperatorType op) {
 	switch(op)
@@ -348,64 +327,93 @@ std::string SimpleUnaryOperator::translateOpType(UnaryOperatorType op) {
 // Destructor.
 SimpleUnaryOperator::~SimpleUnaryOperator()
 {
-	if(postOp) delete postOp;
+	if(mPostOp) delete mPostOp;
 }
 
-/* SimpleBinaryOperator methods. */
 
-// Constructor.
-SimpleBinaryOperator::SimpleBinaryOperator() : ParseElement(PELEM_BOP)
-{
-	opType = BOP_UNKNOWN;
-	preOp = NULL;
-	postOp = NULL;
-}
 
+/*******************************************************************/
+/* SimpleBinaryOperator */
+/*******************************************************************/
 
 
 // Translator method.
-std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& context)
+std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& context, BinaryOperatorType type) const
 {
 	Context localContext;
 	std::ostringstream tmp;
+	//SimpleBinaryOperatorWrapper* tmpOp;
 
 	out << translateBeforeParen();
 
-	if (!preOp && !postOp) {
+	if (!preOp() && !postOp()) {
 		// TODO: Throw error
 		return out;
-	} else if(!preOp) {
+	} else if(!preOp()) {
 		// If just preOp is NULL, pretend there's just postOp and translate it.
-		postOp->translate(out, context);
-	} else if(!postOp) {
+		postOp()->translate(out, context);
+	} else if(!postOp()) {
 		// If just postOp is NULL, pretend there's just preOp and translate it.
-		preOp->translate(out, context);
+		preOp()->translate(out, context);
 	}
 	else
 	{ 	// Then, perform different translations based on what the operator is.
 		// Lack of breaks is intentional.
-		switch(opType) {
+		switch(type) {
+		/* This special case isn't actually neccessary.
+		case BOP_NEQ:
+
+			// Special case. X\=Y <-> not (X==Y)
+			out << "not (";
+
+			tmpOp = new SimpleBinaryOperatorWrapper(this, BOP_EQ);
+			localContext = context.mkNegated();
+			Translator::bindAndTranslate(out, tmpOp, localContext, false);
+			delete tmpOp;
+			out << ")";
+			break;
+		*/
 		case BOP_EQ:
 
-			if (preOp->getType() == PELEM_CONSTLIKE && !postOp->hasConstants()) {
+			if (preOp()->getType() == PELEM_CONSTLIKE) {
+				if (postOp()->isTrivial()) {
+					// special case, direct assignment to a constant...
+					// just translate the constant with the appropriate value.
+					localContext = context.mkPos(Context::POS_TERM);
+					postOp()->translate(tmp, localContext);
+					std::string tmpstr = tmp.str();
+					localContext = context.mkValue(tmpstr);
+					preOp()->translate(out, localContext);
+					break;
+				} else if (postOp()->getType() == PELEM_CONSTLIKE) {
 
-				// special case, direct assignment to a constant...
-				// just translate the constant with the appropriate value.
-				localContext = context.mkPos(Context::POS_TERM);
-				postOp->translate(tmp, localContext);
-				std::string tmpstr = tmp.str();
-				localContext = context.mkValue(tmpstr);
-				preOp->translate(out, localContext);
-				break;
+					// special case, equality between two constants.
+					// c=d is translated to (exists x)(c(x) & d(x))
+
+					// Setup the new variable
+					std::string tmpvar = getNewVar();
+
+					Sort const* domain = (((ConstantLikeElement const*)preOp())->domain()) ?
+							((ConstantLikeElement const*)preOp())->domain()
+							: ((ConstantLikeElement const*)postOp())->domain();
+
+					context.addFreeVariable(tmpvar, domain);
+					localContext = context.mkValue(tmpvar);
+
+					// Make sure the constants are equal.
+					preOp()->translate(out, localContext);
+					out << " & ";
+					postOp()->translate(out, localContext);
+					break;
+				}
 			}
 			/* no break */
-
+		case BOP_NEQ:
 		case BOP_PLUS:
 		case BOP_MINUS:
 		case BOP_TIMES:
 		case BOP_DIVIDE:
 		case BOP_MOD:
-		case BOP_NEQ:
 		case BOP_LTHAN:
 		case BOP_GTHAN:
 		case BOP_LTHAN_EQ:
@@ -414,15 +422,15 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM) {
 				// Already inside an arithmetic expression.
 				// pass all the variables up to the highest arith-expr level.
-				preOp->translate(out, context);
-				out << translateOpType(opType);
-				postOp->translate(out, context);
+				preOp()->translate(out, context);
+				out << translateOpType(type);
+				postOp()->translate(out, context);
 
 			} else {
 
 				// Entering an arithmetic expression
 				// Bind all of the local variables as we may need existential quantifiers.
-				localContext = localContext = context.mkPos(Context::POS_ARITHEXPR);
+				localContext = context.mkPos(Context::POS_ARITHEXPR);
 				Translator::bindAndTranslate(out, this, localContext, true);
 
 			}
@@ -433,22 +441,22 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 			// If this isn't conjunction, then we want to capture local clauses for each term.
 			// otherwise we'll just pass the clauses upward.
 
-			if (opType != BOP_AND && context.getPos() != Context::POS_HEAD) {
+			if (type != BOP_AND && context.getPos() != Context::POS_HEAD) {
 
 				// preop
-				Translator::bindAndTranslate(out, preOp, context, false);
+				Translator::bindAndTranslate(out, preOp(), context, false);
 
 				// operand
-				out << translateOpType(opType);
+				out << translateOpType(type);
 
 				// postOp
-				Translator::bindAndTranslate(out, postOp, context, false);
+				Translator::bindAndTranslate(out, postOp(), context, false);
 
 			} else {
 				// conjunction (hopefully), just pass the clauses upward.
-				preOp->translate(out, context);
-				out << translateOpType(opType);
-				postOp->translate(out, context);
+				preOp()->translate(out, context);
+				out << translateOpType(type);
+				postOp()->translate(out, context);
 			}
 			break;
 		}
@@ -458,97 +466,88 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 	return out;
 }
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool SimpleBinaryOperator::hasActions()
-{	// True if preOp or postOp contains an action.
-	return (preOp && preOp->hasActions()) || (postOp && postOp->hasActions());
-}
-
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool SimpleBinaryOperator::hasFluents()
-{	// True if preOp or postOp contains a fluent.
-	return preOp->hasFluents() || postOp->hasFluents();
-}
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool SimpleBinaryOperator::hasStaticAbnormalities()
-{
-	return (postOp && postOp->hasStaticAbnormalities()) || (preOp && preOp->hasStaticAbnormalities());
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool SimpleBinaryOperator::hasDynamicAbnormalities()
-{
-	return (postOp && postOp->hasDynamicAbnormalities()) || (preOp && preOp->hasDynamicAbnormalities());
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool SimpleBinaryOperator::hasRigidElements()
-{
-	return (postOp && postOp->hasRigidElements()) || (preOp && preOp->hasRigidElements());
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool SimpleBinaryOperator::hasNonRigidConstants()
-{
-	return (postOp && postOp->hasNonRigidConstants()) || (preOp && preOp->hasNonRigidConstants());
+bool SimpleBinaryOperator::hasConstants(unsigned int types) const {
+	bool ret = false;
+	if (postOp())  ret = postOp()->hasConstants(types);
+	if (!ret && preOp()) ret = preOp()->hasConstants(types);
+	return ret;
 }
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleBinaryOperator::isSingleAtom() {
+bool SimpleBinaryOperator::isSingleAtom() const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v.
-	return (!preOp && postOp && postOp->isSingleAtom()) || (!postOp && preOp && preOp->isSingleAtom())
-			|| (preOp && postOp && opType == BOP_EQ && preOp->getType() == ParseElement::PELEM_CONSTLIKE
-					&& !postOp->hasActions() && !postOp->hasFluents());
+	return (!preOp() && postOp() && postOp()->isSingleAtom()) || (!postOp() && preOp() && preOp()->isSingleAtom())
+			|| (preOp() && postOp() && opType() == BOP_EQ && preOp()->getType() == ParseElement::PELEM_CONSTLIKE
+					&& !postOp()->hasConstants(MASK_NON_TRIVIAL));
 }
 
-// returns true if this expression contains only "true" and "false" constants
-bool SimpleBinaryOperator::isTrivial() {
-	return (!preOp || preOp->isTrivial()) && (!postOp || postOp->isTrivial());
-}
 
-// returns true if this expression contains one or more LUA calls.
-bool SimpleBinaryOperator::hasLuaCalls() {
-	return (preOp && preOp->hasLuaCalls()) || (postOp && postOp->hasLuaCalls());
+// Determines if the element is a valid arithmetic expression.
+bool SimpleBinaryOperator::isArithExpr() const {
+	if (!postOp() && !preOp()) return false;
+	else if (!preOp()) return postOp()->isArithExpr();
+	else if (!postOp()) return preOp()->isArithExpr();
+	else {
+		switch (opType()) {
+		case BOP_PLUS:
+		case BOP_MINUS:
+		case BOP_TIMES:
+		case BOP_DIVIDE:
+		case BOP_MOD:
+			return postOp()->isArithExpr() && preOp()->isArithExpr();
+		case BOP_UNKNOWN:
+		case BOP_AND:
+		case BOP_OR:
+		case BOP_EQUIV:
+		case BOP_IMPL:
+		case BOP_EQ:
+		case BOP_NEQ:
+		case BOP_DBL_EQ:
+		case BOP_LTHAN:
+		case BOP_GTHAN:
+		case BOP_LTHAN_EQ:
+		case BOP_GTHAN_EQ:
+		default:
+			return false;
+		}
+	}
 }
 
 
 // Returns an original string representation of this operator and its operands.
-std::string SimpleBinaryOperator::fullName()
+std::ostream& SimpleBinaryOperator::fullName(std::ostream& out) const
 {
-	std::string retVal = "";
-	if(preOp && postOp)
-	{
-		// Get a string representation of the CCalc operator first.
-		std::string opStr = translateOpType(opType);
-		retVal += preOp->fullName();
-		retVal += opStr;
-		retVal += postOp->fullName();
+	if(preOp() && postOp()) {
+		preOp()->fullName(out);
+		out << translateOpType(opType());
+		postOp()->fullName(out);
 	}
-	else if(preOp == NULL)
-	{
-		retVal += postOp->fullName();
+	else if(!preOp()) {
+		postOp()->fullName(out);
 	}
-	else if(postOp == NULL)
-	{
-		retVal += preOp->fullName();
+	else if(!postOp()) {
+		preOp()->fullName(out);
 	}
-	return retVal;
+	return out;
 }
 
-// Destructor.
-SimpleBinaryOperator::~SimpleBinaryOperator()
-{
-	if(preOp)
-	{
-		delete preOp;
-		preOp = NULL;
-	}
-	if(postOp)
-	{
-		delete postOp;
-		postOp = NULL;
-	}
+void SimpleBinaryOperator::aggregateUndefined(BaseElementList& outIdentifiers)	{
+		if (preOp()) mPreOp->aggregateUndefined(outIdentifiers);
+		if (postOp()) mPostOp->aggregateUndefined(outIdentifiers);
+}
+
+// Detaches the operator's sub expression, returning it.
+ParseElement* SimpleBinaryOperator::detachPostOp() {
+	ParseElement* ret = mPostOp;
+	mPostOp = NULL;
+	return ret;
+}
+
+// Detaches the operator's sub expression, returning it.
+ParseElement* SimpleBinaryOperator::detachPreOp() {
+	ParseElement* ret = mPreOp;
+	mPreOp = NULL;
+	return ret;
 }
 
 // Converts an operatory to a string representation.
@@ -612,16 +611,28 @@ std::string SimpleBinaryOperator::translateOpType(BinaryOperatorType op) {
 	return opStr;
 }
 
-/* BigQuantifiers methods. */
-
-// Constructor.
-BigQuantifiers::BigQuantifiers() : ParseElement(PELEM_QUANT)
+// Destructor.
+SimpleBinaryOperator::~SimpleBinaryOperator()
 {
-	postOp = NULL;
+	if(mPreOp)
+	{
+		delete mPreOp;
+		mPreOp = NULL;
+	}
+	if(mPostOp)
+	{
+		delete mPostOp;
+		mPostOp = NULL;
+	}
 }
 
+/*******************************************************************/
+/* BigQuantifier */
+/*******************************************************************/
+
+
 // Translator method.
-std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context)
+std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context) const
 {
 
 	// The local context is used for variable list.
@@ -629,11 +640,9 @@ std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context)
 	Context localContext = context.mkPos(Context::POS_TERM).mkBindVars(NULL).mkBindClauses(NULL);
 	out << translateBeforeParen();
 
-	// First, create a wrapping quantifier statement for each quantifier.
-	std::list<std::pair<enum QuantifierType, ParseElement*>* >::iterator lIter;
 
 
-	for(lIter = quants.begin(); lIter != quants.end(); ++lIter)
+	for(QuantifierList::const_iterator lIter = quantsBegin(); lIter != quantsEnd(); lIter++)
 	{
 
 		switch((*lIter)->first)
@@ -659,12 +668,11 @@ std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context)
 	}
 
 	// Next, translate whatever subformula was in the big quantifiers.
-	if(postOp)
-		Translator::bindAndTranslate(out, postOp, context, false);
+	if(postOp())
+		Translator::bindAndTranslate(out, postOp(), context, false);
 
 	// Nested parens
-	for(lIter = quants.begin(); lIter != quants.end(); ++lIter)
-	{
+	for(QuantifierList::const_iterator lIter = quantsBegin(); lIter != quantsEnd(); lIter++) {
 		out << ")";
 	}
 
@@ -673,106 +681,72 @@ std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context)
 	return out;
 }
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool BigQuantifiers::hasActions()
-{	// True if postOp contains an action.
-	bool retVal = false;
-	if(postOp)
-	{
-		retVal = postOp->hasActions();
-	}
-	return retVal;
-}
 
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool BigQuantifiers::hasFluents()
-{	// True if postOp contains an fluent.
-	bool retVal = false;
-	if(postOp)
-	{
-		retVal = postOp->hasFluents();
-	}
-	return retVal;
+bool BigQuantifiers::hasConstants(unsigned int types) const {
+	return postOp() && postOp()->hasConstants(types);
 }
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool BigQuantifiers::hasStaticAbnormalities()
-{
-	return (postOp && postOp->hasStaticAbnormalities());
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool BigQuantifiers::hasDynamicAbnormalities()
-{
-	return (postOp && postOp->hasDynamicAbnormalities());
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool BigQuantifiers::hasRigidElements()
-{
-	return (postOp && postOp->hasRigidElements());
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool BigQuantifiers::hasNonRigidConstants()
-{
-	return (postOp && postOp->hasNonRigidConstants());
-}
-
-// Returns true if this expression corresponds to a single atom.
-bool BigQuantifiers::isSingleAtom() {
-	// This is always false
-	return false;
-}
-
-// returns true if this expression contains only "true" and "false" constants
-bool BigQuantifiers::isTrivial() {
-	return postOp || postOp->isTrivial();
-}
-
-// returns true if this expression contains one or more LUA calls.
-bool BigQuantifiers::hasLuaCalls() {
-	return postOp && postOp->hasLuaCalls();
-}
-
 
 // Returns an original string representation of the quantifiers and what's getting quantified.
-std::string BigQuantifiers::fullName()
+std::ostream& BigQuantifiers::fullName(std::ostream& out) const
 {
-	std::string retVal = "";
-	if(postOp && !quants.empty())
+	if(postOp() && numQuants())
 	{
-		retVal += "[ ";
-		std::list<std::pair<enum QuantifierType, ParseElement*>* >::iterator lIter;
-		for(lIter = quants.begin(); lIter != quants.end(); ++lIter)
+		out << "[ ";
+		for(QuantifierList::const_iterator lIter = quantsBegin(); lIter != quantsBegin(); lIter++)
 		{
 			if((*lIter) && (*lIter)->second)
 			{
 				switch((*lIter)->first)
 				{
 				case QUANT_CONJ:
-					retVal += "/\\ ";
+					out << "/\\ ";
 					break;
 				case QUANT_DISJ:
-					retVal += "\\/ ";
+					out << "\\/ ";
 					break;
 				default:
 					break;
 				}
-				retVal += (*lIter)->second->fullName();
+				(*lIter)->second->fullName(out);
 			}
 		}
-		retVal += " | ";
-		retVal += postOp->fullName();
-		retVal += " ]";
+		out << " | ";
+		postOp()->fullName(out);
+		out << " ]";
 	}
-	return retVal;
+	return out;
+}
+
+ParseElement* BigQuantifiers::copy() const {
+	BigQuantifiers* res = new BigQuantifiers(NULL, NULL, parens());
+	res->postOp((postOp()) ? postOp()->copy() : NULL);
+	for (QuantifierList::const_iterator it = quantsBegin(); it != quantsEnd(); it++) {
+		if ((*it)->second)
+			res->addQuant(new Quantifier((*it)->first, (*it)->second->copy()));
+	}
+	return res;
+}
+
+void BigQuantifiers::aggregateUndefined(BaseElementList& outIdentifiers)	{
+	for (QuantifierList::const_iterator it = quantsBegin(); it != quantsEnd(); it++) {
+		if ((*it)->second) {
+			(*it)->second->aggregateUndefined(outIdentifiers);
+		}
+	}
+	if (postOp()) mPostOp->aggregateUndefined(outIdentifiers);
+}
+
+// Detaches the operator's sub expression, returning it.
+ParseElement* BigQuantifiers::detachPostOp() {
+	ParseElement* ret = mPostOp;
+	mPostOp = NULL;
+	return ret;
 }
 
 // Destructor.
 BigQuantifiers::~BigQuantifiers()
 {
-	for(std::list<std::pair<enum QuantifierType, ParseElement*>* >::iterator lIter = quants.begin(); lIter != quants.end(); ++lIter)
+	for(QuantifierList::iterator lIter = quantsBegin(); lIter != quantsEnd(); lIter++)
 	{
 		if((*lIter)->second)
 		{
@@ -780,49 +754,52 @@ BigQuantifiers::~BigQuantifiers()
 		}
 		delete (*lIter);
 	}
-	quants.clear();
-	if(postOp)
-	{
-		delete postOp;
-		postOp = NULL;
+	if(mPostOp)
+		delete mPostOp;
+}
+
+
+/*******************************************************************/
+/* BaseLikeElement */
+/*******************************************************************/
+
+// Guesses the sorts associated with this element.
+bool BaseLikeElement::guessParamSorts(ConstSortList& outSorts) {
+	bool foundAll = true;
+	outSorts.clear();
+
+	for (ParseElementList::const_iterator it = paramsBegin(); it != paramsEnd(); it++) {
+		// Check if it's a variable, if it is then use it's sort.
+		if ((*it)->getType() == PELEM_VARLIKE) {
+			outSorts.push_back(((VariableLikeElement const*)*it)->domain());
+		} else {
+			// nope, it's not.
+			outSorts.push_back(NULL);
+			foundAll = false;
+		}
 	}
+
+	return foundAll;
 }
 
-/* BaseLikeElement methods. */
 
-// Constructor.
-BaseLikeElement::BaseLikeElement(ParseElementType elemType) : ParseElement(elemType)
-{
-	baseName = "";
-}
-
-// Translator method.
-std::ostream& BaseLikeElement::translate(std::ostream& out, Context& context)
-{
-
-	out << translateBeforeParen()
-		<< Translator::sanitizeObjectName(baseName);
-	this->translateParams(out, context);
-	out << translateAfterParen();
-	return out;
-}
 
 // Translator helper method for params.
-std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context)
+std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context, bool internal) const
 {
-	Context localContext = context.mkPos(Context::POS_TERM);
+	Context localContext;
+	if (internal)
+		localContext = context.mkPos(Context::POS_INTERNAL);
+	else
+		localContext = context.mkPos(Context::POS_TERM);
 
-	if(!params.empty())
-	{
+	int i = 0;
+	if(arity()) {
 		out <<  "(";
-		for(std::vector<ParseElement*>::iterator vIter = params.begin(); vIter != params.end(); ++vIter)
+		for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); ++vIter)
 		{	
-			if(vIter != params.begin())
-			{
-				out << ",";
-			}
-			if(*vIter)
-			{
+			if (*vIter) {
+				if(i++ > 0) out << ",";
 				(*vIter)->translate(out, localContext);
 			}
 		}
@@ -831,114 +808,57 @@ std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& conte
 	return out;
 }
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool BaseLikeElement::hasActions()
-{	// The base "x-like" element is never an action.
-	return false;
-}
-
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool BaseLikeElement::hasFluents()
-{	// The base "x-like" element is never a fluent.
-	return false;
-}
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool BaseLikeElement::hasStaticAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool BaseLikeElement::hasDynamicAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool BaseLikeElement::hasRigidElements()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool BaseLikeElement::hasNonRigidConstants()
-{
-	return false;
-}
-
-// Returns true if this expression corresponds to a single atom.
-bool BaseLikeElement::isSingleAtom() {
-	// This is always false
-	return false;
-}
-
-// returns true if this expression contains only "true" and "false" constants
-bool BaseLikeElement::isTrivial() {
-	return true;
-}
-
-// returns true if this expression contains one or more LUA calls.
-bool BaseLikeElement::hasLuaCalls() {
-	return false;
-}
-
 // Outputs the original full name of the element, including parameters.
-std::string BaseLikeElement::fullName()
+std::ostream& BaseLikeElement::fullName(std::ostream& out) const
 {
-	std::string retVal = this->baseName;
-	if(!params.empty())
-	{
-		retVal += "(";
-	}
-	for(std::vector<ParseElement*>::iterator vIter = params.begin(); vIter != params.end(); ++vIter)
-	{
-		if(*vIter)
-		{
-			if(vIter != params.begin())
+	out << baseName();
+	if(arity()) {
+		out << "(";
+		int i = 0;
+		for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++) {
+			if(*vIter)
 			{
-				retVal += ",";
+				if(i++ > 0)	out <<",";
+				(*vIter)->fullName(out);
 			}
-			retVal += (*vIter)->fullName();
 		}
+		out << ")";
 	}
-	if(!params.empty())
-	{
-		retVal += ")";
-	}
-	return retVal;
+	return out;
 }
 
 // Destructor.
 BaseLikeElement::~BaseLikeElement()
 {
-	for(std::vector<ParseElement*>::iterator vIter = params.begin(); vIter != params.end(); ++vIter)
-	{
-		if(*vIter)
-		{
-			delete *vIter;
-		}
+	for(ParseElementList::iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++) {
+		if(*vIter) delete *vIter;
 	}
-	params.clear();
 }
 
-/* ConstantLikeElement methods. */
+/*******************************************************************/
+/* ConstantLikeElement */
+/*******************************************************************/
 
-// Constructor.
-ConstantLikeElement::ConstantLikeElement() : BaseLikeElement(PELEM_CONSTLIKE)
-{
-	constRef = NULL;
+ParseElement* ConstantLikeElement::copy() const {
+	ParseElementList params;
+
+	for (ParseElementList::const_iterator it = paramsBegin(); it != paramsEnd(); it++) {
+		params.push_back((*it)->copy());
+	}
+
+	return new ConstantLikeElement(baseName(), (Constant const*)ref(), &params, parens());
 }
+
 
 // Translator method.
-std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context)
+std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context) const
 {
 	// This tries it's best to output a wrapped atom (i.e. h(eql(<name>(<args>),<value>),<timestep>)).
 	// If, for one reason or another, the constant's type isn't available, it'll wing it producing a bare atom <name>(<args>).
 	switch (context.getPos()) {
 	case Context::POS_INTERNAL:
 		// Used for internal sorts and whatnot, just return the bare name.
-		out << (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName));
+		out << (ref() ? ref()->baseTransName() : Translator::sanitizeConstantName(baseName()));
 		translateParams(out, context);
 		break;
 	case Context::POS_HEAD:
@@ -955,38 +875,48 @@ std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context
 	return out;
 }
 
+bool ConstantLikeElement::hasConstants(unsigned int types) const {
+	bool ret = false;
+	Constant::ConstantType type = (ref()) ? ((Constant const*)ref())->constType() : Constant::CONST_UNKNOWN;
+
+	if (types & MASK_ACTION) 		ret |= Constant::isActionType(type);
+	if (types & MASK_FLUENT) 		ret |= Constant::isFluentType(type, false);
+	if (types & MASK_RIGID)  		ret |= type == Constant::CONST_RIGID || type == Constant::CONST_UNKNOWN;
+	if (types & MASK_STATIC_AB)		ret |= type == Constant::CONST_STATICAB;
+	if (types & MASK_DYNAMIC_AB)	ret |= type == Constant::CONST_DYNAMICAB;
+	return ret;
+}
+
+
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, Context& context) {
+std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, Context& context) const {
 	// We are in a logical formula, translate it as an atom
 	out <<	translateBeforeParen()
 				<< translatePrefix()
-				<< (constRef ? constRef->transName : Translator::sanitizeConstantName(baseName));
-	translateParams(out, context);
+				<< (ref() ? ref()->baseTransName() : Translator::sanitizeConstantName(baseName()));
+	translateParams(out, context, ref() && ((Constant const*)ref())->isContribConstant());
 	out << translatePostfix(context)
 				<< translateAfterParen();
 	return out;
 }
 
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context) {
+std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context) const {
 	Context localContext;
 	std::ostringstream tmp;
 	// We are in a term or arithmetic expression, translate it as a temporary variable.
-	if (constRef && !Constant::isAbnormalityType(constRef->constType))
+	if (ref() && !((Constant const*)ref())->isAbnormal())
 	{
 		// The variable that holds the intermediate value (and register it!).
 		std::string var = getNewVar();
-		context.addFreeVariable(var);
+		context.addFreeVariable(var, domain());
 
 		// add the appropriate extra clause
 		localContext = context.mkPos(Context::POS_BODY).mkValue(var);
 		translate(tmp, localContext);
 		context.addExtraClause(tmp.str());
 
-		if (context.getPos() == Context::POS_ARITHEXPR
-				&& constRef->domain
-				&& constRef->domain->fullName().find("*") != std::string::npos)
-		{
+		if (context.getPos() == Context::POS_ARITHEXPR && ref()->isStarred()) {
 			// ensure that the value isn't 'none'.
 			context.addExtraClause(var + " != none");
 		}
@@ -994,110 +924,49 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 		// return the variable name
 		out << translateBeforeParen() + var + translateAfterParen();
 
-	} else if (!constRef) {
+	} else if (!ref()) {
 		ltsyystartParseError();
-		ltsyyossErr << "An error occurred while translating the constant " + this->fullName() + ". The constant doesn't appear to be properly declared.";
+		ltsyyossErr << "An error occurred while translating the constant ";
+		fullName(ltsyyossErr);
+		ltsyyossErr << ". The constant doesn't appear to be properly declared.";
 		ltsyyreportError();
 
 	} else {
 		// This should never happen, as the syntax to trigger this is prohibited in the parser.
 		ltsyystartParseError();
-		ltsyyossErr << "An error occurred while translating an abnormality constant " + constRef->name + ". The constant appears to be used as a function.";
+		ltsyyossErr << "An error occurred while translating an abnormality constant ";
+		fullName(ltsyyossErr);
+		ltsyyossErr << ". The constant appears to be used as a function.";
 		ltsyyreportError();
 	}
 
 	return out;
 }
 
+/*******************************************************************/
+/* ConstantLikeElement */
+/*******************************************************************/
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool ConstantLikeElement::hasActions()
-{	// A Constant-like has an action if it is linked with an actual
-	// constant and that constant is any action type.
+ParseElement* ObjectLikeElement::copy() const {
+	ParseElementList params;
 
-	return (this->constRef && Constant::isActionType(this->constRef->constType))
-		// Special check: even if constRef is NULL, if this element looks
-		// like the reserved "contribution" element, then assume it's an action.
-		|| (this->baseName == "contribution" && this->params.size() == 2);
+	for (ParseElementList::const_iterator it = paramsBegin(); it != paramsEnd(); it++) {
+		params.push_back((*it)->copy());
+	}
 
-}
-
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool ConstantLikeElement::hasFluents()
-{	// A Constant-like has a fluent if it is linked with an actual
-	// constant and that constant is any fluent type.
-	return this->constRef && Constant::isFluentType(this->constRef->constType);
-}
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool ConstantLikeElement::hasStaticAbnormalities()
-{
-	return this->constRef && this->constRef->constType == Constant::CONST_STATICAB;
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool ConstantLikeElement::hasDynamicAbnormalities()
-{
-	return this->constRef && this->constRef->constType == Constant::CONST_DYNAMICAB;
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool ConstantLikeElement::hasRigidElements()
-{
-	return !this->constRef || this->constRef->constType == Constant::CONST_RIGID;
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool ConstantLikeElement::hasNonRigidConstants()
-{
-	return this->constRef && this->constRef->constType != Constant::CONST_RIGID;
-}
-
-// Returns true if this expression corresponds to a single atom.
-bool ConstantLikeElement::isSingleAtom() {
-	// This is true if the constant is boolean
-	return this->constRef && this->constRef->domain->name == "boolean";
-}
-
-// returns true if this expression contains only "true" and "false" constants
-bool ConstantLikeElement::isTrivial() {
-	// "true" and "false" are actually object like elements, so nothing here
-	// satisfies the condition.
-	return false;
-}
-
-// returns true if this expression contains one or more LUA calls.
-bool ConstantLikeElement::hasLuaCalls() {
-	// LUA calls are treated as object elements.
-	return false;
-}
-
-
-
-// Destructor.
-ConstantLikeElement::~ConstantLikeElement()
-{
-	constRef = NULL;
-}
-
-/* ObjectLikeElement methods. */
-
-// Constructor.
-ObjectLikeElement::ObjectLikeElement() : BaseLikeElement(PELEM_OBJLIKE)
-{
-	objRef = NULL;
+	return new ObjectLikeElement(baseName(), (Object const*)ref(), &params, parens());
 }
 
 // Translator method.
-std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context)
+std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context) const
 {
 	out << translateBeforeParen();
 
-	if(objRef)
+	if(ref())
 	{	// Use the canonical translated object name if it's available.
-		if(objRef->isLua) out << "#spatom{@";//need to make f2lp pass this through to ASP
-		out << objRef->transName;
-		if(objRef->isLua) {
+		if(((Object const*)ref())->isLua()) out << "#spatom{@";//need to make f2lp pass this through to ASP
+		out << ref()->baseTransName();
+		if(((Object const*)ref())->isLua()) {
 				if (context.getPos() != Context::POS_ARITHEXPR
 						&& context.getPos() != Context::POS_TERM)
 					out << " == 1";
@@ -1106,91 +975,36 @@ std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context)
 	}
 	else
 	{	// Otherwise, just wing it with this instance's base name.
-		out << Translator::sanitizeObjectName(baseName);
+		out << Translator::sanitizeObjectName(baseName());
 	}
 
 	translateParams(out, context);
-
 	out << translateAfterParen();
 	return out;
 }
 
-// Returns true if this or any pre/postOp elements are action constants.
-bool ObjectLikeElement::hasActions()
-{	// An Object-like element is never an action.
-	return false;
+bool ObjectLikeElement::hasConstants(unsigned int types) const {
+	return (types & MASK_TRUE_FALSE) && arity() == 0 && (baseName() == "true" || baseName() == "false");
 }
 
-// Returns true if this is one of the few reserved fluent constants.
-bool ObjectLikeElement::hasFluents()
-{	// A Object-like element counts as a fluent if it's "true" or "false".
-	return fullName() == "true" || fullName() == "false";
-}
+// Determines if the element is a valid arithmetic expression.
+bool ObjectLikeElement::isNumeric() const {
+	// This is only the case if the object is numeric.
+	int tmp;
+	std::stringstream fullname;
+	fullName(fullname);
 
-// Returns true if this or any sub expression is a static abnormality constant.
-bool ObjectLikeElement::hasStaticAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool ObjectLikeElement::hasDynamicAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool ObjectLikeElement::hasRigidElements()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool ObjectLikeElement::hasNonRigidConstants()
-{
-	return false;
+	return (ref() && ref()->isNumeric())
+			|| (!ref() && utils::from_string(tmp,fullname.str()));
 }
 
 
-// Returns true if this expression corresponds to a single atom.
-bool ObjectLikeElement::isSingleAtom() {
-	// this is only valid if it's "true" or "false"
-	return fullName() == "true" || fullName() == "false";
-}
-
-// returns true if this expression contains only "true" and "false" constants
-bool ObjectLikeElement::isTrivial() {
-	return true;
-}
-
-// returns true if this expression contains one or more LUA calls.
-bool ObjectLikeElement::hasLuaCalls() {
-	return objRef && objRef->isLua;
-}
-
-// Destructor.
-ObjectLikeElement::~ObjectLikeElement()
-{
-	objRef = NULL;
-}
-
-/* VariableLikeElement methods. */
-
-// Constructor.
-VariableLikeElement::VariableLikeElement() : BaseLikeElement(PELEM_VARLIKE)
-{
-	varRef = NULL;
-}
-
-// Checks if the variable-like element is a constant variable.
-bool VariableLikeElement::isConstantVariable()
-{
-	return this->varRef && this->varRef->sortRef && this->varRef->sortRef->isConstantSort();
-}
+/*******************************************************************/
+/* VariableLikeElement */
+/*******************************************************************/
 
 // Translator method. Ignores parameters, as variables shouldn't have any.
-std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context)
-{
+std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context) const {
 
 	switch (context.getPos()) {
 
@@ -1212,14 +1026,18 @@ std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context
 	return out;
 }
 
-std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, Context& context) {
+bool VariableLikeElement::hasConstants(unsigned int types) const {
+	return false;
+}
+
+std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, Context& context) const {
 	out << translateBeforeParen();
-	if(varRef) {
+	if(ref()) {
 		// Use the canonical translated variable name if it's available.
-		out << varRef->transName;
+		out << ref()->fullTransName();
 	} else {
 		// Otherwise, just wing it with this instance's base name.
-		out << Translator::sanitizeVariableName(baseName);
+		out << Translator::sanitizeVariableName(baseName());
 	}
 	out << translateAfterParen();
 
@@ -1227,29 +1045,31 @@ std::ostream& VariableLikeElement::translateAsVariable(std::ostream& out, Contex
 }
 
 // Translates the variable as though it were a constant.
-std::ostream& VariableLikeElement::translateAsConstant(std::ostream& out, Context& context)
-{
+std::ostream& VariableLikeElement::translateAsConstant(std::ostream& out, Context& context) const {
+
 	out << translateBeforeParen();
 
-	Constant::ConstantType type = (this->varRef && this->varRef->sortRef) ?
-			this->varRef->sortRef->getConstantType()
+	Constant::ConstantType type = ref() ?
+			((Variable const*)ref())->getConstantType()
 			: Constant::CONST_UNKNOWN;
 
 	if (type == Constant::CONST_UNKNOWN) {
 		ltsyystartWarning();
-		ltsyyossErr << "In trying to treat variable \"" << this->fullName() << "\" like a constant, unable to determine the type of the constant. Using default behavior.";
+		ltsyyossErr << "In trying to treat variable \"";
+		fullName(ltsyyossErr);
+		ltsyyossErr << "\" like a constant, unable to determine the type of the constant. Using default behavior.";
 		ltsyyreportWarning();
 	}
 
 	// start the predicate
 	out << Constant::translatePrefix(type);
 
-	if(this->varRef && this->varRef->sortRef) {
+	if (ref()) {
 		// Use the canonical translated variable name if it's available.
-		out << this->varRef->transName;
+		out << ref()->fullTransName();
 	} else {
 		// Otherwise, just wing it with this instance's information.
-		out << Translator::sanitizeVariableName(this->baseName);
+		out << Translator::sanitizeVariableName(baseName());
 	}
 
 	// finish up the predicate
@@ -1258,77 +1078,3 @@ std::ostream& VariableLikeElement::translateAsConstant(std::ostream& out, Contex
 
 	return out;
 }
-
-// Returns true if this or any pre/postOp elements are action constants.
-bool VariableLikeElement::hasActions()
-{	// A Variable-like is an action if it is linked with an actual variable
-	// whose sort is any of the "internal" action sorts.
-	bool retVal = false;
-	if(this->varRef && this->varRef->sortRef)
-	{
-		retVal = this->varRef->sortRef->isActionSort();
-	}
-	return retVal;
-}
-
-// Returns true if this or any pre/postOp elements are fluent constants.
-bool VariableLikeElement::hasFluents()
-{	// A Variable-like element counts as a fluent if it is linked to
-	// a real Variable that isn't an "action" variable.
-	// A broad definition, but necessary for certain laws.
-	bool retVal = false;
-	if(this->varRef && this->varRef->sortRef)
-	{
-//		retVal = !this->hasActions();
-		retVal = this->varRef->sortRef->isFluentSort();
-	}
-	return retVal;
-}
-
-// Returns true if this or any sub expression is a static abnormality constant.
-bool VariableLikeElement::hasStaticAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a dynamic abnormality constant.
-bool VariableLikeElement::hasDynamicAbnormalities()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a rigid constant
-bool VariableLikeElement::hasRigidElements()
-{
-	return false;
-}
-
-// Returns true if this or any sub expression is a  non-rigid constant
-bool VariableLikeElement::hasNonRigidConstants()
-{
-	return false;
-}
-
-// Returns true if this expression corresponds to a single atom.
-bool VariableLikeElement::isSingleAtom() {
-	// this is only the case when it's a 'constant' variable of boolean type.
-	return isConstantVariable() && this->varRef->sortRef->name == "boolean";
-}
-
-// returns true if this expression contains only "true" and "false" constants
-bool VariableLikeElement::isTrivial() {
-	return true;
-}
-
-// returns true if this expression contains one or more LUA calls
-bool VariableLikeElement::hasLuaCalls() {
-	// LUA calls are treated as object like elements.
-	return false;
-}
-
-// Destructor.
-VariableLikeElement::~VariableLikeElement()
-{
-	varRef = NULL;
-}
-

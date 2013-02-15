@@ -8,21 +8,22 @@
 #include <string>
 #include <vector>
 
+#include "types.h"
 
 #include "parser_types.h"
 #include "ElementCounter.h"
 #include "SymbolTable.h"
 #include "Context.h"
+#include "Sort.h"
+#include "Element.h"
 
 class Constant;
 class Object;
-class Sort;
 class Variable;
 class Query;
 class ParseElement;
 class NumberRange;
 struct YYLTYPE;
-
 
 /**
  * Class that provides data storage and translation capabilities.
@@ -51,7 +52,7 @@ private:
 	bool blnEncounteredShowStmt;	///< True if the translator has encountered at least one show statement.
 
 
-	Context::IPart mCurrentPart; ///< The current incremental part that the translation is using.
+	IPart mCurrentPart; ///< The current incremental part that the translation is using.
 
 
 	std::string staticTimeStamp; 		// Represents the time stamp used for static portions of the causal laws.
@@ -79,7 +80,7 @@ public:
 	 * @param originalName - The original base name of the constant.
 	 * @return A sanitized name for the constant, or "" (blank) on an error.
 	 */
-	static std::string sanitizeConstantName(std::string& originalName);
+	static std::string sanitizeConstantName(std::string const& originalName);
 	/**
 	 * Transforms a C+ object name to be compatible with ASP naming/syntax conventions.
 	 * Uses a consistent sanitization scheme, so calling it twice on the same
@@ -87,7 +88,7 @@ public:
 	 * @param originalName - The original base name of the object.
 	 * @return A sanitized name for the object, or "" (blank) on an error.
 	 */
-	static std::string sanitizeObjectName(std::string& originalName);
+	static std::string sanitizeObjectName(std::string const& originalName);
 	/**
 	 * Transforms a C+ sort name to be compatible with ASP naming/syntax conventions.
 	 * Uses a consistent sanitization scheme, so calling it twice on the same
@@ -95,7 +96,7 @@ public:
 	 * @param originalName - The original base name of the sort.
 	 * @return A sanitized name for the sort, or "" (blank) on an error.
 	 */
-	static std::string sanitizeSortName(std::string& originalName);
+	static std::string sanitizeSortName(std::string const& originalName);
 	/**
 	 * Transforms a C+ variable name to be compatible with ASP naming/syntax conventions.
 	 * Uses a consistent sanitization scheme, so calling it twice on the same
@@ -103,7 +104,7 @@ public:
 	 * @param originalName - The original base name of the variable.
 	 * @return A sanitized name for the variable, or "" (blank) on an error.
 	 */
-	static std::string sanitizeVariableName(std::string& originalName);
+	static std::string sanitizeVariableName(std::string const& originalName);
 	
 	/**
 	 * Transforms an arbitrary string such that the result will be compatible
@@ -113,7 +114,7 @@ public:
 	 * @param originalString - The raw string to sanitize.
 	 * @return A sanitized version of the string, or "" (blank) on an error.
 	 */
-	static std::string sanitizeString(std::string& originalString);
+	static std::string sanitizeString(std::string const& originalString);
 	
 	/**
 	 * Static version of translateVariableDecl that returns the result as
@@ -124,7 +125,7 @@ public:
 	 * @return A string containing the ASP-equivalent variable declaration,
 	 * or a blank string ("") on an error.
 	 */
-	static std::string translateVariableDeclToString(Variable* transVar);
+	static std::string translateVariableDeclToString(Variable const* transVar);
 	
 	/**
 	 * Creates a standardized sort name representing a range of numbers.
@@ -137,7 +138,7 @@ public:
 	 * @return A representation of the number range suitable for use as a
 	 * sort name, or "" (blank) on an error.
 	 */
-	static std::string numRangeToSortName(std::string& min, std::string& max);
+	static std::string numRangeToSortName(std::string const& min, std::string const& max);
 	
 	/**
 	 * Transforms a sort name into an acceptable variable name containing
@@ -150,7 +151,7 @@ public:
 	 * @return An acceptable variable representation of the sort name, or ""
 	 * (blank) on an error.
 	 */
-	static std::string sortNameToVariable(std::string& sortName, bool sanitizeFirst=false);
+	static std::string sortNameToVariable(std::string const& sortName, bool sanitizeFirst=false);
 	
 	/**
 	 * Merges two sub-formulas together into one formula using an AND operation.
@@ -178,20 +179,33 @@ public:
 	 * Searches for a constant matching the given name and parameters in the
 	 * translator's data structures.
 	 * @param symName - The base name of the constant to find.
-	 * @param symParams - A vector of parameter names for the constant.
+	 * @param symParams - A vector of parameter names for the constant. NULL to indicate no parameters.
 	 * @return A pointer to the first matching Constant object, or NULL
 	 * if a match isn't found.
 	 */
-	Constant* getConstant(std::string const& symName, std::vector<std::string> const& symParams);
+	Constant* getConstant(std::string const& symName, NameList const& symParams);
+
+
+	/**
+	 * Searches for a constant matching the given name and parameters in the
+	 * translator's data structures.
+	 * @param symName - The base name of the constant to find.
+	 * @param symParams - A list of all the sort's which correspond to the constant's parameters.
+	 * @return A pointer to the first matching Constant object, or NULL
+	 * if a match isn't found.
+	 */
+	Constant* getConstant(std::string const& symName, SortList const* symParams);
+
+
 	/**
 	 * Searches for an object matching the given name and parameters in the
 	 * translator's data structures.
 	 * @param symName - The base name of the object to find.
-	 * @param symParams - A vector of parameter names for the object.
+	 * @param symParams - A vector of parameter names for the object. NULL to indicate no parameters.
 	 * @return A pointer to the first matching Object instance, or NULL
 	 * if a match isn't found.
 	 */
-	Object* getObject(std::string const& symName, std::vector<std::string> const& symParams);
+	Object* getObject(std::string const& symName, NameList const* symParams);
 	/**
 	 * Searches for a sort matching the given name in the
 	 * translator's data structures.
@@ -200,6 +214,7 @@ public:
 	 * if a match isn't found.
 	 */
 	Sort* getSort(std::string const& symName);
+
 	/**
 	 * Searches for a variable matching the given name in the
 	 * translator's data structures.
@@ -227,6 +242,7 @@ public:
 	 * if a match isn't found.
 	 */
 	Constant* getConstantLike(std::string const& symName, size_t numParams);
+
 	/**
 	 * Searches for an object like one matching the given name and parameters in the
 	 * translator's data structures. Used to try to connect an object-like
@@ -238,6 +254,17 @@ public:
 	 * if a match isn't found.
 	 */
 	Object* getObjectLike(std::string const& symName, size_t numParams, bool isLua = false);
+
+
+	/**
+	 * Helper function for getting an Object type reference or dynamically adding it
+	 * if it doesn't occur.
+	 * @param symName - The base name of the object to find.
+	 * @param type - The type of object that the should be created.
+	 * @return A pointer to the first matching Object instance (or the newly created one if none were found)
+	 */
+	Object* getOrCreateSimpleObjectLike(std::string const& symName,  Object::ObjectType type = Object::OBJ_NAME);
+
 	/**
 	 * Searches for a sort like one matching the given name in the
 	 * translator's data structures. Used to try to connect a sort-like
@@ -273,6 +300,7 @@ public:
 	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
 	 */
 	int addObject(Object* newObj);
+
 	/**
 	 * Attempts to add a new Sort object to the translator's data structures and the symbol table.
 	 * The object must not already be present in the symbol table, or it will be flagged as a duplicate.
@@ -280,6 +308,18 @@ public:
 	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
 	 */
 	int addSort(Sort* newSort);
+
+	/**
+	 * Attempts to create and add a sort object to the translator.
+	 * @param sortName The name of the sort to add.
+	 * @param subsorts A (possibly NULL) list of subsorts to attach to the sort. In the event the sort already exists, these subsorts will be added to the existing sort.
+	 * @param translateDeclaration Whether to add the declaration to the translation output.
+	 * @param warnOnDup Whether to print a warning if the sort declaration is a duplicate.
+	 * @return A pointer to the newly created sort or the previously existing sort.
+	 */
+
+	Sort* addSort(std::string const& sortName, SortList* subsorts = NULL, bool translateDeclaration = true, bool warnOnDup = false);
+
 	/**
 	 * Attempts to add a new Variable object to the translator's data structures and the symbol table.
 	 * The object must not already be present in the symbol table, or it will be flagged as a duplicate.
@@ -302,7 +342,7 @@ public:
 	 * Sends the result to ostOut.
 	 * @param transConst - The Constant element to translate.
 	 */
-	void translateConstantDecl(Constant* transConst);
+	void translateConstantDecl(Constant const* transConst);
 	/**
 	 * Translates an Object element into an ASP-compatible declaration of an
 	 * object as a member of a sort's domain.
@@ -311,13 +351,13 @@ public:
 	 * @param transObj - The Object element to translate.
 	 * @param sortObj - The Sort element the object belongs to.
 	 */
-	void translateObjectDecl(Object* transObj, Sort* sortObj);
+	void translateObjectDecl(Object const* transObj, Sort const* sortObj);
 	/**
 	 * Translates a Sort element into an ASP-compatible sort declaration.
 	 * Sends the result to ostOut.
 	 * @param transSort - The Sort element to translate.
 	 */
-	void translateSortDecl(Sort* transSort);
+	void translateSortDecl(Sort const* transSort);
 	/**
 	 * Translates a declaration of a super/sub-sort relationship into
 	 * ASP-compatible syntax.
@@ -325,14 +365,14 @@ public:
 	 * @param transSupersort - The "parent" sort object.
 	 * @param transSubsort - The "child" sort object.
 	 */
-	void translateSubsortDecl(Sort* transSupersort, Sort* transSubsort);
+	void translateSubsortDecl(Sort const* transSupersort, Sort const* transSubsort);
 	/**
 	 * Translates a Variable element into an ASP-compatible variable declaration.
 	 * Sends the result to ostOut.
 	 * If the variable's sort reference is NULL, will not output anything.
 	 * @param transVar - The Variable element to translate.
 	 */
-	void translateVariableDecl(Variable* transVar);
+	void translateVariableDecl(Variable const* transVar);
 	/**
 	 * Translates a Query into an ASP-compatible query declaration.
 	 * Sends the result to ostOut.
@@ -340,35 +380,13 @@ public:
 	 * If the query's label or maxstep are blank, will not output anything.
 	 * @param transQuery - The Query element to translate.
 	 */
-	void translateQuery(Query* transQuery);
+	void translateQuery(Query const* transQuery);
 	
 	/**
 	 * Translates a causal law into ASP-compatible rule(s). Sends the result to ostOut.
-	 * This models a causal law of the basic form "caused head if ifBody after afterBody where whereBody."
+	 * This models a causal law of the basic form "caused head if ifBody after afterBody unless unlessBody when whenBody following followingBody where whereBody."
 	 * Passing NULL for the various parameters will change what kind of translation is performed,
 	 * and the type of elements (if any) in the parameters will also affect the translation.
-	 * @param head - The head portion of the causal law ("caused head...").
-	 * @param ifBody - The part of the law's body associated with the if keyword ("...if ifBody...").
-	 * @param assumingBody - The part of the law's body associated with the if keyword ("...assuming ifBody...").
-	 * @param afterBody - The part of the law's body associated with the after keyword ("...after afterBody...").
-	 * @param whenBody - The part of the law's body associated with the when keyword ("...when whenBody...").
-	 * @param followingBody - The part of the law's body associated with the following keyword ("...following followingBody...").
-	 * @param whereBody - The part of the law's body associated with the where keyword ("...where whereBody.").
-	 */
-	void translateCausalLaw(
-		ParseElement* head,
-		ParseElement* ifBody,
-		ParseElement* assumingBody,
-		ParseElement* afterBody,
-		ParseElement* whenBody,
-		ParseElement* followingBody,
-		ParseElement* whereBody
-		);
-
-	/**
-	 * Helper wrapper to translateCausalLaw that merges ifBody and unlessBody.
-	 * This models a causal law of the basic form "caused head if ifBody after afterBody unless unlessBody where whereBody."
-	 * It's okay to pass NULL for any parameter except head.
 	 * @param head - The head portion of the causal law ("caused head...").
 	 * @param ifBody - The part of the law's body associated with the if keyword ("...if ifBody...").
 	 * @param assumingBody - The part of the law's body associated with the if keyword ("...assuming ifBody...").
@@ -388,13 +406,209 @@ public:
 		ParseElement* followingBody,
 		ParseElement* whereBody
 		);
+
+	/**
+	 * Helper wrapper to translateCausalLaw w/o an unlessBody
+	 * @param head - The head portion of the causal law ("caused head...").
+	 * @param ifBody - The part of the law's body associated with the if keyword ("...if ifBody...").
+	 * @param assumingBody - The part of the law's body associated with the if keyword ("...assuming ifBody...").
+	 * @param afterBody - The part of the law's body associated with the after keyword ("...after afterBody...").
+	 * @param whenBody - The part of the law's body associated with the when keyword ("...when whenBody...").
+	 * @param followingBody - The part of the law's body associated with the following keyword ("...following followingBody...").
+	 * @param whereBody - The part of the law's body associated with the where keyword ("...where whereBody.").
+	 */
+	inline void translateCausalLaw(
+		ParseElement* head,
+		ParseElement* ifBody,
+		ParseElement* assumingBody,
+		ParseElement* afterBody,
+		ParseElement* whenBody,
+		ParseElement* followingBody,
+		ParseElement* whereBody
+		) { translateCausalLaw(head, ifBody, assumingBody, afterBody, NULL, whenBody, followingBody, whereBody); }
 	
 
 	/**
 	 * Handles a ':- show' statement, adding the appropriate #show statements to the program.
 	 * @param atomicFormulas The list of atomic formulas which were included in the show statement.
 	 */
-	void handleShowStmt(std::vector<ParseElement*> atomicFormulas);
+	void translateShowStmt(ParseElementList const& atomicFormulas);
+
+
+	/**
+	 * Transforms declarative laws ("inertial p", "exogenous a(X)", "rigid q", etc.) to basic form and calls the translator for them.
+	 * @param head - The head of the law, in this case a bare constant-like expression.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param assumingBody - Optional conditional formula similar to the 'ifBody', except results in edges in the dependency graph.
+	 * @param afterBody - Optional conditional formula specifying conditions from the prior time step.
+	 * @param unlessBody -  Optional formula that acts as an abnormality condition.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param followingBody - Optional conditional formula specifying abnormalities in the previous time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @param opType - The kind of declaration this is (exogenous, inertial, etc.).
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateDeclarativeLaw(
+		ParseElement* head,
+		ParseElement* ifBody,
+		ParseElement* assumingBody,
+		ParseElement* afterBody,
+		ParseElement* unlessBody,
+		ParseElement* whenBody,
+		ParseElement* followingBody,
+		ParseElement* whereBody,
+		SimpleUnaryOperator::UnaryOperatorType opType
+	);
+
+	/**
+	 * Transforms a causal law of the form "always F [where G]." to basic form, then calls the translator for it.
+	 * @param constraint - The condition that must be true.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param whereBody - A conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateAlwaysLaw(
+		ParseElement* constraint,
+		ParseElement* whenBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "constraint F [after H] [where J]." to basic form, then calls the translator for it.
+	 * @param constraint - The condition that must be true.
+	 * @param afterBody - Optional conditional formula specifying restrictions from the prior time step.
+	 * @param unlessBody - Optional formula that acts as an abnormality condition.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param followingBody - Optional conditional formula specifying abnormalities in the previous time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @param positive - Whether the constraint is of the positive 'constraint F' form, or negative 'impossible F' form.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateConstraintLaw(
+		ParseElement* constraint,
+		ParseElement* afterBody,
+		ParseElement* unlessBody,
+		ParseElement* whenBody,
+		ParseElement* followingBody,
+		ParseElement* whereBody,
+		bool positive
+	);
+
+	/**
+	 * Transforms a causal law of the form "default F [if G] [after H] [where J]." to basic form, then calls the translator on it.
+	 * @param head - The head of the law.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param assumingBody - Optional conditional formula similar to the 'ifBody', except results in edges in the dependency graph.
+	 * @param afterBody - Optional conditional formula specifying conditions from the prior time step.
+	 * @param unlessBody - Optional atom to be dynamically declared as an default-false constant.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param followingBody - Optional conditional formula specifying abnormalities in the previous time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateDefaultLaw(
+		ParseElement* head,
+		ParseElement* ifBody,
+		ParseElement* assumingBody,
+		ParseElement* afterBody,
+		ParseElement* unlessBody,
+		ParseElement* whenBody,
+		ParseElement* followingBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "nonexecutable F [if G] [where H]." to basic form, then calls the translator for it.
+	 * @param nonEx - The formula that should not be executed.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateNonexecutableLaw(
+		ParseElement* nonEx,
+		ParseElement* ifBody,
+		ParseElement* whenBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "possibly caused F [if G] [after H] [where J]." to basic form, then calls the translator on it.
+	 * @param head - The head of the law.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param assumingBody - Optional conditional formula similar to the 'ifBody', except results in edges in the dependency graph.
+	 * @param afterBody - Optional conditional formula specifying conditions from the prior time step.
+	 * @param unlessBody - Optional atom to be dynamically declared as an default-false constant.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param followingBody - Optional conditional formula specifying abnormalities in the previous time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translatePossiblyCausedLaw(
+		ParseElement* head,
+		ParseElement* ifBody,
+		ParseElement* assumingBody,
+		ParseElement* afterBody,
+		ParseElement* unlessBody,
+		ParseElement* whenBody,
+		ParseElement* followingBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "G may cause F [if H] [where J]." to basic form, then calls the translator on it.
+	 * @param causer - The causing action formula.
+	 * @param causee - The formula being caused.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateMayCauseLaw(
+		ParseElement* causer,
+		ParseElement* causee,
+		ParseElement* ifBody,
+		ParseElement* whenBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "G causes F [if H] [where J]." to basic form, then calls the translator on it.
+	 * @param causer - The causing action formula.
+	 * @param causee - The formula being caused.
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateCausesLaw(
+		ParseElement* causer,
+		ParseElement* causee,
+		ParseElement* ifBody,
+		ParseElement* whenBody,
+		ParseElement* whereBody
+	);
+
+	/**
+	 * Transforms a causal law of the form "A increments B by N [if H] [where J]." to basic form, then calls the translator on it.
+	 * @param causer - The causing action.
+	 * @param causee - The additive constant being incremented.
+	 * @param increment - The increment expression
+	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
+	 * @param whereBody - Another conditional formula to govern when the law applies.
+	 * @param isIncrement - True if the law is increment, false if it is decrement.
+	 * @return True if everything translates properly, false if anything goes wrong.
+	 */
+	bool translateIncrementLaw(
+		ParseElement* causer,
+		ParseElement* causee,
+		ParseElement* increment,
+		ParseElement* ifBody,
+		ParseElement* whenBody,
+		ParseElement* whereBody,
+		bool isIncrement
+	);
 
 
 	/**
@@ -411,31 +625,30 @@ public:
 	 * Also sets up a default Variable for the sort.
 	 * @param newSortName - The base name for the new sort.
 	 * @param subsorts - A list of Sort pointers to sorts that are subsorts of
-	 * of the sort to be created.
+	 * of the sort to be created. NULL if there are no subsorts.
 	 * @return A pointer to the newly created and added sort, or NULL on an error.
 	 */
-	Sort* createInternalSort(const char *newSortName, std::list<Sort*> subsorts);
+	inline Sort* createInternalSort(std::string const& newSortName, SortList* subsorts = NULL)
+		{ return addSort(newSortName, subsorts, false); }
 	
 	/**
 	 * Allocates and adds an object with the given name to the translator's
 	 * internal data structures, connecting it as a member of the given sort's domain.
 	 * @param newObjName - The base name for the new object.
-	 * @param params - A list of Sort pointers representing the parameters of the object.
+	 * @param params - A list of Sort pointers representing the parameters of the object. NULL if there are no params.
 	 * @param ofSort - The sort the new object is a member of.
 	 * @return A pointer to the newly created and added object, or NULL on an error.
 	 */
-	Object* createInternalObject(const char *newObjName, std::list<Sort*> params, Sort* ofSort);
+	Object* createInternalObject(std::string const& newObjName, SortList* params, Sort* ofSort);
 	
 	/**
 	 * Allocates and adds a number range with the given name and bounds to the translator's
 	 * internal data structures, connecting it as a member of the given sort's domain.
 	 * @param newObjName - The base name for the new object.
-	 * @param newMin - The lower bound of the range.
-	 * @param newMax - The upper bound of the range.
 	 * @param ofSort - The sort the new object is a member of.
 	 * @return A pointer to the newly created and added number range, or NULL on an error.
 	 */
-	NumberRange* createInternalNumRange(const char *newObjName, const char *newMin, const char *newMax, Sort* ofSort);
+	NumberRange* createInternalNumRange(std::string const& newObjName, Sort* ofSort);
 	
 	/**
 	 * Allocates a new Query instance and assigns it to tempQuery.
@@ -516,9 +729,10 @@ public:
 	 * @param expr - The expression to translate.
 	 * @param context - The current translation context.
 	 * @param upwardMobileClauses - Whether we should migrate clauses to the parent context if no quantification was needed.
+	 * @param suppressQuantifier - Whether to suppress the generation of quantifiers generated when leaving the context. Free variables will be simply dropped.
 	 * @return The output stream.
 	 */
-	static std::ostream& bindAndTranslate(std::ostream& out, ParseElement* expr, Context& context, bool upwardMobileClauses);
+	static std::ostream& bindAndTranslate(std::ostream& out, ParseElement const* expr, Context& context, bool upwardMobileClauses, bool suppressQuantifier = false);
 
 
 	/**
@@ -527,7 +741,7 @@ public:
 	 * @param incPart - The Incremental part that the chunk is associated with.
 	 * @param endWithNewline - If true, will append a newline character to the end of str.
 	 */
-	void output(std::string const& str, Context::IPart incPart, bool endWithNewline=false);
+	void output(std::string const& str, IPart incPart, bool endWithNewline=false);
 
 	/**
 	 * Outputs a list of statements to the translators output.
@@ -556,7 +770,7 @@ protected:
 	 * @param newIncPart - The new incremental module to work with.
 	 * @return True if successful, false otherwise.
 	 */
-	bool setIncrementalPart(Context::IPart newIncPart);
+	bool setIncrementalPart(IPart newIncPart);
 
 	/**
 	 * Outputs the contents of str to wherever the translator's output stream is aimed.
@@ -592,7 +806,7 @@ protected:
 	static std::ostream& makeCausalTranslation(
 		std::ostream& output,
 		StmtList& extraStmts,
-		Context::IPart ipart,
+		IPart ipart,
 		bool ifNotNot,
 		bool afterNotNot,
 		std::string const& baseTimeStamp,

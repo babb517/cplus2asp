@@ -207,23 +207,27 @@ bool Config::opts(Toolchain tool, std::string const& val) {
 bool Config::def(std::string const& constant, std::string const& value) {
 	std::string constant_trimmed = trimWhitespace(constant);
 	std::string value_trimmed = trimWhitespace(value);
-	int tmpVal;
+	unsigned int tmpVal;
 	bool redef = false;
+	bool bad = false;
 
 	// Check this against several known constants and update their values if necessary...
 	if (constant_trimmed == CONST_MAXSTEP) {
-		if (from_string(tmpVal,value_trimmed)) {
-			redef = intConfigOpt(OPT_MAXSTEP, tmpVal);
+		std::pair<unsigned int,unsigned int> stepvals = parseMaxstep(value_trimmed);
+
+		if (stepvals.first == UNDEFINED) {
+			bad = true;
 		} else {
-			// Oops... Throw a warning, ignore it, and continue.
-			warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
+			redef = intConfigOpt(OPT_MAXSTEP, stepvals.first);
+			if (stepvals.second != UNDEFINED) intConfigOpt(OPT_MINSTEP, stepvals.second);
 		}
+
 	} else if (constant_trimmed == CONST_MINSTEP) {
 		if (from_string(tmpVal,value_trimmed)) {
 			redef = intConfigOpt(OPT_MINSTEP, tmpVal);
 		} else {
 			// Oops... Throw a warning, ignore it, and continue.
-			warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
+			bad = true;
 		}
 	} else if (constant_trimmed == CONST_QUERY) {
 
@@ -239,20 +243,25 @@ bool Config::def(std::string const& constant, std::string const& value) {
 			redef = intConfigOpt(OPT_QUERY,tmpVal);
 		} else {
 			// Oops... Throw a warning, ignore it, and continue.
-			warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
+			bad = true;
 		}
 	} else if (constant_trimmed == CONST_MAXADDITIVE) {
 		if (from_string(tmpVal,value_trimmed)) {
 			redef = intConfigOpt(OPT_MAXADDITIVE,tmpVal);
 		} else {
 			// Oops... Throw a warning, ignore it, and continue.
-			warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
+			bad = true;
 		}
 	} else {
 		// It's a normal constant...
 		redef = (bool)mConstDefs.count(constant_trimmed);
 		mConstDefs[constant_trimmed] = value_trimmed;
 
+	}
+
+	if (bad) {
+		// If the value was bad then go ahead and warn the user.
+		warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
 	}
 
 	return redef;
@@ -393,6 +402,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 			if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
 			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
 			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 
 			for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 				out << " -c " << it->first << "=" << it->second;
@@ -416,6 +426,11 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (run(TC_POSTPROC) || mode() == MODE_REACTIVE)
 			out << " > \"" << intSoFile() << "\"";
 
+		// Silence the solver warnings by default
+		if (boolConfigOpt(OPT_SQUELCH_SOLVER)) {
+			out << " 2> /dev/null";
+		}
+
 		// If we're running in reactive mode and are set to run the reactive bridge then we should run the solver in the background
 		if (mode() == MODE_REACTIVE && run(TC_REACTIVE_BRIDGE)) out << " &";
 
@@ -426,6 +441,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
 		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
 		if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 
 		for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 			out << " -c " << it->first << "=" << it->second;
@@ -456,7 +472,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 // Sets the configuration to run up to (and including) the provided tool.
 bool Config::setRunTo(Toolchain tool) {
-	bool conflict;
+	bool conflict = false;
 
 	for (int i = (int)TC_BEGIN; i < (int)tool+1; i++) {
 		conflict |= run((Toolchain)i, true);
@@ -469,7 +485,7 @@ bool Config::setRunTo(Toolchain tool) {
 
 // Sets the configuration to run from the provided tool.
 bool Config::setRunFrom(Toolchain tool) {
-	bool conflict;
+	bool conflict = false;
 
 	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
@@ -482,7 +498,8 @@ bool Config::setRunFrom(Toolchain tool) {
 
 // Sets the configuration to run only the provided tool.
 bool Config::setOnlyRun(Toolchain tool) {
-	bool conflict;
+	bool conflict = false;
+
 	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
@@ -552,6 +569,25 @@ Config::FileType Config::addInput(std::string const& input) {
 
 
 	return type;
+}
+
+/// Parses a maxstep specification.
+std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& maxstep) {
+	size_t pos;
+	std::pair<unsigned int, unsigned int> ret(UNDEFINED, UNDEFINED);
+
+	if ((pos = maxstep.find("..")) != std::string::npos) {
+		// They've provided a range. Interpret it as a minstep and maxstep.
+		if (!from_string(ret.first,maxstep.substr(pos+2))
+				|| !from_string(ret.second,maxstep.substr(0,pos))) {
+			ret.first = UNDEFINED;
+			ret.second = UNDEFINED;
+		}
+	} else if (!from_string(ret.first,maxstep)) {
+		ret.first = UNDEFINED;
+	}
+
+	return ret;
 }
 
 std::string Config::compileInputCommand(Toolchain tool) const {

@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "types.h"
+
 #include "Context.h"
 #include "parser_types.h"
 #include "Attribute.h"
@@ -16,6 +18,8 @@
 #include "Variable.h"
 #include "Query.h"
 #include "parser.h"
+#include "ElementCounter.h"
+#include "Constant.h"
 
 #include "utilities.h"
 
@@ -42,7 +46,7 @@
 /* Static class methods */
 
 // Santitizes a constant name so it's compatible with ASP naming conventions.
-std::string Translator::sanitizeConstantName(std::string& originalName)
+std::string Translator::sanitizeConstantName(std::string const& originalName)
 {
 	std::string tempStr = "";
 	// If the name starts with an underscore, number, or upper-case letter,
@@ -64,7 +68,7 @@ std::string Translator::sanitizeConstantName(std::string& originalName)
 }
 
 // Santitizes an object name so it's compatible with ASP naming conventions.
-std::string Translator::sanitizeObjectName(std::string& originalName)
+std::string Translator::sanitizeObjectName(std::string const& originalName)
 {
 	std::string tempStr = "";
 	// If the name starts with an underscore or upper-case letter,
@@ -100,7 +104,7 @@ std::string Translator::sanitizeObjectName(std::string& originalName)
 }
 
 // Santitizes a sort name so it's compatible with ASP naming conventions.
-std::string Translator::sanitizeSortName(std::string& originalName)
+std::string Translator::sanitizeSortName(std::string const& originalName)
 {
 	std::string tempStr = "";
 	// If the name starts with an underscore, number, or upper-case letter,
@@ -128,7 +132,7 @@ std::string Translator::sanitizeSortName(std::string& originalName)
 }
 
 // Santitizes a variable name so it's compatible with ASP naming conventions.
-std::string Translator::sanitizeVariableName(std::string& originalName)
+std::string Translator::sanitizeVariableName(std::string const& originalName)
 {
 	std::string tempStr = "";
 	// If the name starts with an underscore, number, or lower-case letter,
@@ -150,7 +154,7 @@ std::string Translator::sanitizeVariableName(std::string& originalName)
 }
 
 // Sanitizes an arbitrary string so it's compatible with ASP syntax for predicates.
-std::string Translator::sanitizeString(std::string& originalString)
+std::string Translator::sanitizeString(std::string const& originalString)
 {
 	std::string tempStr = "";
 	if(originalString.length() > 0)
@@ -179,21 +183,21 @@ std::string Translator::sanitizeString(std::string& originalString)
 }
 
 // Static version of translateVariableDecl that returns the result as a string instead of sending the result to an output stream.
-std::string Translator::translateVariableDeclToString(Variable* transVar)
+std::string Translator::translateVariableDeclToString(Variable const* transVar)
 {
 	std::ostringstream retStream;
 	// Sanity check: make sure the variable isn't NULL and neither is its sort.
-	if(transVar && transVar->sortRef)
+	if(transVar && transVar->domain())
 	{
 		// Variable declarations are just domain variable declarations.
-		retStream << "#domain " << transVar->sortRef->fullTransName() << "(";
+		retStream << "#domain " << transVar->domain()->fullTransName() << "(";
 		retStream << transVar->fullTransName() << ").";
 	}
 	return retStream.str();
 }
 
 // Returns a standardized sort name representing a range of numbers.
-std::string Translator::numRangeToSortName(std::string& min, std::string& max)
+std::string Translator::numRangeToSortName(std::string const& min, std::string const& max)
 {
 	std::string tempStr = NUMRANGE_TO_SORT_PREFIX;
 	tempStr += Context::ANON_STR;
@@ -204,7 +208,7 @@ std::string Translator::numRangeToSortName(std::string& min, std::string& max)
 }
 
 // Turns a sort name into a variable version of itself.
-std::string Translator::sortNameToVariable(std::string& sortName, bool sanitizeFirst)
+std::string Translator::sortNameToVariable(std::string const& sortName, bool sanitizeFirst)
 {
 	std::string tempStr = "";
 	std::string baseName = "";
@@ -230,11 +234,7 @@ std::string Translator::sortNameToVariable(std::string& sortName, bool sanitizeF
 // Merges two sub-formulas together into one formula.
 ParseElement* Translator::mergeSubFormulas(ParseElement* first, ParseElement* second)
 {
-	SimpleBinaryOperator* tempPE = new SimpleBinaryOperator();
-	tempPE->opType = SimpleBinaryOperator::BOP_AND;
-	tempPE->preOp = first;
-	tempPE->postOp = second;
-	return tempPE;
+	return new SimpleBinaryOperator(first, SimpleBinaryOperator::BOP_AND, second);
 }
 
 /* Normal class methods */
@@ -242,95 +242,76 @@ ParseElement* Translator::mergeSubFormulas(ParseElement* first, ParseElement* se
 // Default constructor. Initializes attributes to blank/empty.
 Translator::Translator()
 {
+	Sort *newSort, *additiveConstantSort, *actionSort;
+	SortList tmpList;
+
+	/**************************************** Initialize IO ********************************************/
 	// Open a null file output and set ostNull to it.
 	fNull.open("/dev/null");
 	ostNullPtr = new std::ostream(fNull.rdbuf());
+
 	// Start ostOutPtr and ostErrPtr using fNull as well.
 	ostOutPtr = new std::ostream(ostNullPtr->rdbuf());
 	ostErrPtr = new std::ostream(ostNullPtr->rdbuf());
+
 	// Allocate an initial tempQuery.
 	tempQuery = new Query();
-	// Set up default internal sorts & their objects.
-	Sort* newSort = NULL;
-	std::list<Sort*> internalSortList; // Used when some kind of parameter list is required.
-	std::string tempName;
-	// Create the boolean* (and, by extension, the boolean) domains.
-	newSort = this->createInternalSort("boolean*", internalSortList);
-	tempName = "boolean";
-	newSort = this->getSort(tempName);
-	// Create "true" and "false" members of the boolean sort.
-	this->createInternalObject("true", internalSortList, newSort);
-	this->createInternalObject("false", internalSortList, newSort);
-	// Create astep, the action time sort.
-	newSort = this->createInternalSort("astep", internalSortList);
-	// Attach "0..maxstep-1" range to astep.
-	this->createInternalNumRange("0..maxstep-1", "0", "maxstep-1", newSort);
-	// Create step, the fluent time sort (supersort of astep).
-	internalSortList.push_back(newSort);
-	newSort = this->createInternalSort("step", internalSortList);
-	internalSortList.clear();
-	// Add "maxstep" object to step's domain.
-	this->createInternalObject("maxstep", internalSortList, newSort);
-	// Create additiveInteger, the integer sort for additive constants.
-	newSort = this->createInternalSort("additiveInteger", internalSortList);
-	// Attach "-maxAdditive..maxAdditive" range to additiveInteger.
-	this->createInternalNumRange("-maxAdditive..maxAdditive", "-maxAdditive", "maxAdditive", newSort);
-	// Create nnAdditiveInteger, the positive integer sort for additive constants.
-	newSort = this->createInternalSort("nnAdditiveInteger", internalSortList);
-	// Attach "0..maxAdditive" range to nnAdditiveInteger.
-	this->createInternalNumRange("0..maxAdditive", "0", "maxAdditive", newSort);
-	// Set up internal constant sorts.
-	internalSortList.clear();
-	std::list<Sort*> subsortList;
-	// Action sorts.
-	newSort = this->createInternalSort("abAction", internalSortList);
-	subsortList.push_back(newSort);
-	newSort = this->createInternalSort("attribute", internalSortList);
-	subsortList.push_back(newSort);
-	newSort = this->createInternalSort("exogenousAction", internalSortList);
-	subsortList.push_back(newSort);
-	newSort = this->createInternalSort("additiveAction", internalSortList);
-	subsortList.push_back(newSort);
-	// The "action" grouped meta-sort.
-	newSort = this->createInternalSort("action", subsortList);
-	subsortList.clear();
-	// Fluent sorts.
-	newSort = this->createInternalSort("inertialFluent", internalSortList);
-	subsortList.push_back(newSort);
-	newSort = this->createInternalSort("additiveFluent", internalSortList);
-	subsortList.push_back(newSort);
-	// simpleFluent has inertialFluent and additiveFluent as its subsorts.
-	newSort = this->createInternalSort("simpleFluent", subsortList);
-	subsortList.clear();
-	subsortList.push_back(newSort);
-	newSort = this->createInternalSort("sdFluent", internalSortList);
-	subsortList.push_back(newSort);
-	// Rigids aren't technically "fluents" after translation, but in CCalc they still are.
-	newSort = this->createInternalSort("rigid", internalSortList);
-	subsortList.push_back(newSort);
-	// The "fluent" grouped meta-sort.
-	newSort = this->createInternalSort("fluent", subsortList);
-	subsortList.clear();
-	
-	// Add the contribution constant for additive actions.
-	std::string contrib_string("contribution");
-	Constant* contribution = new Constant(contrib_string,Translator::sanitizeConstantName(contrib_string));
-	std::string action("action");
-	contribution->params.push_back(getSort(action));
-	std::string additiveAction("additiveAction");
-	contribution->params.push_back(getSort(additiveAction));
-	contribution->constType = Constant::CONST_ACTION;
-	tempName = "additiveInteger";
-	contribution->domain = getSort(tempName);
-	addConstant(contribution);
 
-	// Add the contribution constant for additive fluents.
-	contribution = new Constant(contrib_string,Translator::sanitizeConstantName(contrib_string));
-	contribution->params.push_back(getSort(action));
-	std::string additiveFluent("additiveFluent");
-	contribution->params.push_back(getSort(additiveFluent));
-	contribution->constType = Constant::CONST_ACTION;
-	contribution->domain = getSort(tempName);
+	/**************************************** Initialize Sorts ********************************************/
+
+	// Create boolean / boolean* domains
+	newSort = this->createInternalSort("boolean*", NULL);
+	newSort = this->getSort("boolean");
+	this->createInternalObject("true", NULL, newSort);
+	this->createInternalObject("false", NULL, newSort);
+
+	// Create step/astep domains, the action time sort.
+	newSort = this->createInternalSort("astep", NULL);
+	this->createInternalNumRange("0..maxstep-1", newSort);
+	tmpList.push_back(newSort);
+	newSort = this->createInternalSort("step", &tmpList);
+	tmpList.clear();
+	this->createInternalObject("maxstep", NULL, newSort);
+
+	// The additiveConstant sort is a supersort for both additiveFluent and additiveAction.
+	additiveConstantSort = this->createInternalSort("additiveConstant", NULL);
+
+
+	// Action sorts.
+	tmpList.push_back(this->createInternalSort("abAction", NULL));
+	tmpList.push_back(this->createInternalSort("attribute", NULL));
+	tmpList.push_back(this->createInternalSort("exogenousAction", NULL));
+	newSort = this->createInternalSort("additiveAction", NULL);
+	additiveConstantSort->addSubsort(newSort);
+	tmpList.push_back(newSort);
+	actionSort = this->createInternalSort("action", &tmpList);
+	tmpList.clear();
+
+	// Fluent sorts.
+	tmpList.push_back(this->createInternalSort("inertialFluent", NULL));
+	newSort = this->createInternalSort("additiveFluent", NULL);
+	additiveConstantSort->addSubsort(newSort);
+	tmpList.push_back(newSort);
+	newSort = this->createInternalSort("simpleFluent", &tmpList); 			// inertialFluent and additiveFluent are both simpleFluents
+	tmpList.clear();
+	tmpList.push_back(newSort);
+	tmpList.push_back(this->createInternalSort("sdFluent", NULL));
+	tmpList.push_back(this->createInternalSort("rigid", NULL));				// Rigids aren't technically "fluents" after translation, but in CCalc they still are.
+	this->createInternalSort("fluent", &tmpList);
+	tmpList.clear();
+
+	// Additive range sorts
+	newSort = this->createInternalSort("nnAdditiveInteger", NULL);				// positive integer sort.
+	this->createInternalNumRange("0..maxAdditive", newSort);
+	newSort = this->createInternalSort("additiveInteger", NULL);				// positive + negative integer sort.
+	this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
+
+	
+	// Add the contribution constant for additive constants.
+	tmpList.push_back(actionSort);
+	tmpList.push_back(additiveConstantSort);
+	Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, (ConstSortList*)&tmpList);
+	tmpList.clear();
 	addConstant(contribution);
 	
 	// we want to use a dynamic translation.
@@ -340,65 +321,100 @@ Translator::Translator()
 	blnFoundAdditive = false;
 
 	// Initialize the incremental part
-	mCurrentPart = Context::NONE;
+	mCurrentPart = IPART_NONE;
 
 
 }
 
 // Searches for a Constant object matching the given name and parameters.
-Constant* Translator::getConstant(std::string const& symName, std::vector<std::string> const& symParams)
+Constant* Translator::getConstant(std::string const& symName, NameList const& symParams)
 {
 	Constant* retVal = NULL;
-	std::list<Constant*>::iterator cIter = constants.begin();
-	while(cIter != constants.end())
-	{
-		if((*cIter)->name == symName && (*cIter)->params.size() == symParams.size())
-		{
+	size_t paramSize;
+
+	paramSize = symParams.size();
+
+	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++) {
+		if((*cIter)->baseName() == symName && (*cIter)->arity() == paramSize) {
 			bool paramsMatch = true;
-			for(size_t i = 0; i < (*cIter)->params.size() && i < symParams.size(); i++)
-			{
-				if((*cIter)->params[i]->name != symParams[i])
-				{
+			for(size_t i = 0; i < paramSize; i++) {
+				// We consider NULL a wild card.
+				if (!((*cIter)->param(i))) continue;
+
+				if((*cIter)->param(i)->baseName() != symParams[i]) {
 					paramsMatch = false;
 					break;
 				}
 			}
-			if(paramsMatch)
-			{
+
+			if(paramsMatch) {
 				retVal = *cIter;
 				break;
 			}
 		}
-		++cIter;
 	}
+
 	return retVal;
 }
 
-// Searches for a Object object matching the given name and parameters.
-Object* Translator::getObject(std::string const& symName, std::vector<std::string> const& symParams)
+// Searches for a Constant object matching the given name and parameters.
+Constant* Translator::getConstant(std::string const& symName, SortList const* symParams)
 {
-	Object* retVal = NULL;
-	std::list<Object*>::iterator oIter = objects.begin();
-	while(oIter != objects.end())
-	{
-		if((*oIter)->name == symName && (*oIter)->params.size() == symParams.size())
-		{
+	Constant* retVal = NULL;
+	size_t paramSize;
+
+	if (!symParams) paramSize = 0;
+	else paramSize = symParams->size();
+
+	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++) {
+		if((*cIter)->baseName() == symName && (*cIter)->arity() == paramSize) {
 			bool paramsMatch = true;
-			for(size_t i = 0; i < (*oIter)->params.size() && i < symParams.size(); i++)
-			{
-				if((*oIter)->params[i]->name != symParams[i])
-				{
+			for(size_t i = 0; i < paramSize; i++) {
+				// We consider NULL a wild card.
+				if (!(*cIter)->param(i) || !(*symParams)[i]) continue;
+
+				// pointer-wise comparison.
+				if((*cIter)->param(i) != (*symParams)[i]) {
 					paramsMatch = false;
 					break;
 				}
 			}
-			if(paramsMatch)
-			{
+
+			if(paramsMatch) {
+				retVal = *cIter;
+				break;
+			}
+		}
+	}
+
+	return retVal;
+}
+
+
+// Searches for a Object object matching the given name and parameters.
+Object* Translator::getObject(std::string const& symName, NameList const* symParams)
+{
+	Object* retVal = NULL;
+	size_t paramSize;
+
+	if (!symParams) paramSize = 0;
+	else paramSize = symParams->size();
+
+	for (std::list<Object*>::iterator oIter = objects.begin(); oIter != objects.end(); oIter++) {
+		if((*oIter)->baseName() == symName && (*oIter)->arity() == paramSize) {
+			bool paramsMatch = true;
+			for(size_t i = 0; i < paramSize; i++) {
+				if((*oIter)->param(i)->baseName() != (*symParams)[i]) {
+					paramsMatch = false;
+					break;
+				}
+			}
+
+			if(paramsMatch) {
 				retVal = *oIter;
 				break;
 			}
 		}
-		++oIter;
 	}
 	return retVal;
 }
@@ -407,15 +423,13 @@ Object* Translator::getObject(std::string const& symName, std::vector<std::strin
 Sort* Translator::getSort(std::string const& symName)
 {
 	Sort* retVal = NULL;
-	std::list<Sort*>::iterator sIter = sorts.begin();
-	while(sIter != sorts.end())
+	for (std::list<Sort*>::iterator sIter = sorts.begin(); sIter != sorts.end(); sIter++)
 	{
-		if((*sIter)->name == symName)
+		if((*sIter)->baseName() == symName)
 		{
 			retVal = *sIter;
 			break;
 		}
-		++sIter;
 	}
 	return retVal;
 }
@@ -424,15 +438,13 @@ Sort* Translator::getSort(std::string const& symName)
 Variable* Translator::getVariable(std::string const& symName)
 {
 	Variable* retVal = NULL;
-	std::list<Variable*>::iterator vIter = variables.begin();
-	while(vIter != variables.end())
+	for(std::list<Variable*>::iterator vIter = variables.begin(); vIter != variables.end(); vIter++)
 	{
-		if((*vIter)->name == symName)
+		if((*vIter)->baseName() == symName)
 		{
 			retVal = *vIter;
 			break;
 		}
-		++vIter;
 	}
 	return retVal;
 }
@@ -441,15 +453,13 @@ Variable* Translator::getVariable(std::string const& symName)
 Query* Translator::getQuery(std::string const& testLabel)
 {
 	Query* retVal = NULL;
-	std::list<Query*>::iterator qIter = queries.begin();
-	while(qIter != queries.end())
+	for(std::list<Query*>::iterator qIter = queries.begin(); qIter != queries.end(); qIter++)
 	{
 		if((*qIter)->label == testLabel)
 		{
 			retVal = *qIter;
 			break;
 		}
-		++qIter;
 	}
 	return retVal;
 }
@@ -458,15 +468,13 @@ Query* Translator::getQuery(std::string const& testLabel)
 Constant* Translator::getConstantLike(std::string const& symName, size_t numParams)
 {
 	Constant* retVal = NULL;
-	std::list<Constant*>::iterator cIter = constants.begin();
-	while(cIter != constants.end())
+	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++)
 	{
-		if((*cIter)->name == symName && (*cIter)->params.size() == numParams)
+		if((*cIter)->baseName() == symName && (*cIter)->arity() == numParams)
 		{
 			retVal = *cIter;
 			break;
 		}
-		++cIter;
 	}
 	return retVal;
 }
@@ -475,26 +483,36 @@ Constant* Translator::getConstantLike(std::string const& symName, size_t numPara
 Object* Translator::getObjectLike(std::string const& symName, size_t numParams, bool isLua)
 {
 	Object* retVal = NULL;
-	std::list<Object*>::iterator oIter = objects.begin();
-	while(oIter != objects.end())
+	for (std::list<Object*>::iterator oIter = objects.begin(); oIter != objects.end(); oIter++)
 	{
-		if((*oIter)->name == symName && (*oIter)->params.size() == numParams && (*oIter)->isLua == isLua)
+		if((*oIter)->baseName() == symName && (*oIter)->arity() == numParams && (*oIter)->isLua() == isLua)
 		{
 			retVal = *oIter;
 			break;
 		}
-		++oIter;
 	}
 
 	// Allow lua objects to be dynamically declared.
 	if (retVal == NULL && isLua) {
 		// Ensure that we preserve the name of the object and append the LUA symbol.
-		retVal = new Object(symName, symName, true);
+		retVal = new Object(symName, numParams);
 		addObject(retVal);
 	}
 
 	return retVal;
 }
+
+Object* Translator::getOrCreateSimpleObjectLike(std::string const& symName, Object::ObjectType type) {
+	Object* ret = getObjectLike(symName, 0, false);
+
+	if (!ret) {
+		ret = new Object(symName, type, NULL);
+		addObject(ret);
+	}
+
+	return ret;
+}
+
 
 // Searches for a Sort object like one matching the given name.
 // No difference between this and getSort, just call that.
@@ -516,11 +534,13 @@ Variable* Translator::getVariableLike(std::string const& symName)
 int Translator::addConstant(Constant* newConst)
 {
 	int retVal = SymbolTable::ADDSYM_ERR; // Start pessimistic.
+	NameList paramNames;
+
 	if(newConst)
 	{
 		// Try adding it into the symbol table, and then into local data structures if successful.
-		std::vector<std::string> paramNames = utils::elementVectorToNameVector(newConst->params);
-		retVal = symbols.addSymbol(newConst->name, paramNames, SymbolNode::SYM_CONST);
+		newConst->getParamFullNames(paramNames);
+		retVal = symbols.addSymbol(newConst->baseName(), &paramNames, SymbolNode::SYM_CONST);
 		if(retVal == SymbolTable::ADDSYM_OK)
 		{
 			// Connect the symbol definition to the actual Element instance, then save the Element.
@@ -529,6 +549,7 @@ int Translator::addConstant(Constant* newConst)
 			constants.push_back(newConst);
 		}
 	}
+
 	return retVal;
 }
 
@@ -553,8 +574,7 @@ int Translator::addSort(Sort* newSort)
 	if(newSort)
 	{
 		// Try adding it into the symbol table, and then into local data structures if successful.
-		std::vector<std::string> paramNames; // Sorts don't have parameters, pass an empty vector.
-		retVal = symbols.addSymbol(newSort->name, paramNames, SymbolNode::SYM_SORT);
+		retVal = symbols.addSymbol(newSort->baseName(), NULL, SymbolNode::SYM_SORT);
 		if(retVal == SymbolTable::ADDSYM_OK)
 		{
 			// Connect the symbol definition to the actual Element instance, then save the Element.
@@ -566,6 +586,75 @@ int Translator::addSort(Sort* newSort)
 	return retVal;
 }
 
+// Tries to create a Sort out of an identifier and (possibly empty) subsort list.
+Sort* Translator::addSort(std::string const& sortName, SortList* subsorts, bool translateDeclaration, bool warnOnDup)
+{
+	std::string trimmedName = utils::trimWhitespace(sortName);
+
+	Sort* retVal = NULL;
+	bool needTrans = false;
+
+	if ((retVal = getSort(trimmedName)) && warnOnDup) {
+		// Duplicate.
+		warn("Found duplicate sort declaration: \"" + trimmedName + "\".", true);
+
+	} else {
+		// It doesn't exist already. Add it.
+		needTrans = true;
+
+
+		// Select a unique variable.
+		std::string baseName = sortNameToVariable(trimmedName, true);
+		std::string varName = baseName;
+		size_t i = 0;
+
+		while (symbols.addSymbol(varName, NULL, SymbolNode::SYM_VAR) == SymbolTable::ADDSYM_DUP) {
+			varName = varName + utils::to_string(++i);
+		}
+
+		Variable* sortVar = new Variable(varName, NULL);
+
+		// Connect the symbol definition to the actual Element instance, then save the Element.
+		SymbolNode* tempSym = symbols.getLastSymbol();
+		tempSym->symbolElement = sortVar;
+		variables.push_back(sortVar);
+
+		retVal = new Sort(trimmedName, sortVar);
+		addSort(retVal);
+	}
+
+
+	// If the sort is "something*" we should ensure that its parent exists and that
+	// the appropriate subsorts are present.
+	if (trimmedName.at(trimmedName.length()-1) == '*') {
+		Sort* parentSort = addSort(trimmedName.substr(0, trimmedName.length()-1), subsorts, translateDeclaration, false);
+		needTrans |= retVal->addSubsort(parentSort, true);
+
+		// In addition, we should add the 'none' object.
+		Object* none = getOrCreateSimpleObjectLike("none", Object::OBJ_NAME);
+		bool needObjTrans = retVal->addObject(none, true);
+
+		// Translate it, if necessary.
+		if (translateDeclaration && needObjTrans) {
+			translateObjectDecl(none, retVal);
+		}
+
+	} else {
+		if (subsorts) {
+			for (SortList::iterator it = subsorts->begin(); it != subsorts->end(); it++)
+				needTrans |= retVal->addSubsort(*it, true);
+		}
+	}
+
+	// Translate the declaration if anything has changed or the sort is new.
+	if (translateDeclaration && needTrans) {
+		translateSortDecl(retVal);
+	}
+
+	return retVal;
+}
+
+
 // Attempts to add a new Variable object to the translator's data structures and the symbol table.
 int Translator::addVariable(Variable* newVar)
 {
@@ -573,8 +662,7 @@ int Translator::addVariable(Variable* newVar)
 	if(newVar)
 	{
 		// Try adding it into the symbol table, and then into local data structures if successful.
-		std::vector<std::string> paramNames; // Variables don't have parameters, pass an empty vector.
-		retVal = symbols.addSymbol(newVar->name, paramNames, SymbolNode::SYM_VAR);
+		retVal = symbols.addSymbol(newVar->baseName(), NULL, SymbolNode::SYM_VAR);
 		if(retVal == SymbolTable::ADDSYM_OK)
 		{
 			// Connect the symbol definition to the actual Element instance, then save the Element.
@@ -614,229 +702,94 @@ int Translator::addQuery(Query* newQuery)
 }
 
 // Translates a Constant element into an ASP-compatible constant declaration.
-void Translator::translateConstantDecl(Constant* transConst)
+void Translator::translateConstantDecl(Constant const* transConst)
 {
 	// Sanity check: make sure the element isn't NULL.
 	if(transConst)
 	{
 		// Detect if it's an abnormality constant and set the appropriate flag.
-		if (Constant::isAbnormalityType(transConst->constType)) {
+		if (transConst->isAbnormal()) {
 			blnFoundAbnormalities = true;
 		}
 
 		// Detect if it's an additive constant and set the appropriate flag.
-		if (transConst->constType == Constant::CONST_ADDITIVEACTION
-				|| transConst->constType == Constant::CONST_ADDITIVEFLUENT) {
+		if (transConst->isAdditive()) {
 			blnFoundAdditive = true;
 		}
 
-		bool needDynamicParams = false; 								// Set to true if two or more of the constant's parameters (if any) are the same.
 		ElementCounter eCount; 											// Used to track occurrences of identical parameters (to avoid name clashes).
-		std::vector<std::string> paramVarNames;							// Holds unique parameter variable names for translation.
-		std::string fullDeclConstName = ""; 							// Holds the results of transforming the constant's name and parameters.
+		std::vector<std::pair<Sort const*,std::string> > parameterMap;	// An ordered mapping from variables to parameters.
 
-		std::stringstream stmtBuilder;									// Used to build each individual statement required for this declaration.
+		std::string translatedConst;
+		ClauseList localClauses;
+
+		std::ostringstream stmtBuilder;									// Used to build each individual statement required for this declaration.
 		StmtList stmts;													// Used to aggregate the statements we need and output them all simultaneously.
 
-		// Transform the type of the constant into a string representation.
-		std::string constTypeName = Constant::constTypeToString(transConst->constType);
-
-
-		// Ouput the class of constant, then its translated name.
-		stmtBuilder << constTypeName << "(";
-		fullDeclConstName += transConst->transName;
-		// Transform any parameters into sort variables.
-		if(!transConst->params.empty())
-		{
-			fullDeclConstName += "(";
-			std::string tempVarName;
-			// Use an occurrence counter to get guaranteed unique variable
-			// names representing the sorts that comprise the parameters
-			// of this constant.
-			for(size_t i = 0; i < transConst->params.size(); i++)
-			{
-				eCount.push_back(transConst->params[i]);
-				if(((Sort*)eCount.elementsBack())->sortVar)
-				{
-					tempVarName = ((Sort*)eCount.elementsBack())->sortVar->fullTransName();
-				}
-				else
-				{
-					tempVarName = "NULL";
-				}
-				paramVarNames.push_back(tempVarName);
-				// Add the occurrence count to the variable name if we've
-				// seen this sort before.
-				if(eCount.countsBack() > 0)
-				{
-					paramVarNames.back() += Context::ANON_STR;
-					paramVarNames.back() += utils::to_string(eCount.countsBack());
-					needDynamicParams = true;
-				}
-				if(i > 0)
-				{	// Separate parameter names if there's more than one.
-					fullDeclConstName += ",";
-				}
-				fullDeclConstName += paramVarNames.back();
-			}
-			fullDeclConstName += ")";
-		}
-		// Now that we've created the full declarable constant name, use that.
-		stmtBuilder << fullDeclConstName << ")";
+		// Translate the constant and save it for later..
+		transConst->translate(stmtBuilder, localClauses, &eCount, NULL, &parameterMap);
+		translatedConst = stmtBuilder.str();
+		stmtBuilder.str("");
 		
-		// If we had to dynamically use "extra" variables to avoid name clashes, bind them locally now.
-		if(needDynamicParams)
-		{
+		// Ouput the class of constant, then its translated name.
+		stmtBuilder << transConst->constTypeStr() << "(" << translatedConst << ")";
+
+		if (localClauses.size() > 0) {
 			stmtBuilder << " <- ";
-			size_t j = 0;
-			for(size_t i = 0; i < eCount.size(); i++)
-			{
-				if(eCount.countAt(i) > 0)
-				{
-					if(j > 0)
-					{	// Separate multiple local variable bindings.
-						stmtBuilder << " & ";
-					}
-					stmtBuilder << transConst->params[i]->fullTransName();
-					stmtBuilder << "(" << paramVarNames[i] << ")";
-					j++;
-				}
-			}
+			outputClauses(stmtBuilder, localClauses, false);
 		}
 		stmtBuilder << ".";
 
 		// Add the first statement to the list.
-		stmts.push_back(Statement(stmtBuilder.str(),Context::BASE));
+		stmts.push_back(Statement(stmtBuilder.str(),IPART_BASE));
 		stmtBuilder.str("");
 		
+
+		// We intentionally don't clear the clause list.
+
 		// Output the line connecting a constant to its domain.
-		if(transConst->domain)
+		if(transConst->domain())
 		{
-			stmtBuilder << "constant_sort(" << fullDeclConstName << ",";
-			stmtBuilder << transConst->domain->fullTransName() << ")";
-			// If we had to dynamically use "extra" variables to avoid name clashes, bind them locally now.
-			if(needDynamicParams)
-			{
+			stmtBuilder << "constant_sort(" << translatedConst << ",";
+			stmtBuilder << transConst->domain()->fullTransName() << ")";
+
+			if (localClauses.size() > 0) {
 				stmtBuilder << " <- ";
-				size_t j = 0;
-				for(size_t i = 0; i < eCount.size(); i++)
-				{
-					if(eCount.countAt(i) > 0)
-					{
-						if(j > 0)
-						{	// Separate multiple local variable bindings.
-							stmtBuilder << " & ";
-						}
-						stmtBuilder << transConst->params[i]->fullTransName();
-						stmtBuilder << "(" << paramVarNames[i] << ")";
-						j++;
-					}
-				}
+				outputClauses(stmtBuilder, localClauses, false);
 			}
+
 			stmtBuilder << ".";
 
-			// Add the next statement to the list...
-			stmts.push_back(Statement(stmtBuilder.str(),Context::BASE));
+			stmts.push_back(Statement(stmtBuilder.str(), IPART_BASE));
 			stmtBuilder.str("");
 		}
 
 		// If the constant is an attribute, connect the attribute to its action.
-		if(transConst->constType == Constant::CONST_ATTRIBUTE)
+		if(transConst->constType() == Constant::CONST_ATTRIBUTE && ((Attribute const*)transConst)->parent())
 		{
-			// Sanity check: attributeOf can't be NULL.
-			if(((Attribute*)transConst)->attributeOf)
-			{
-				stmtBuilder << "action_attribute(";
-				// Perform the same variable replacement magic on the attribute's action.
-				Constant *aConst = ((Attribute*)transConst)->attributeOf;
-				std::string aFullDeclConstName = aConst->transName;
-				bool aNeedDynamicParams = false;
-				ElementCounter aCount;
-				std::vector<std::string> aParamVarNames;
-				if(!aConst->params.empty())
-				{
-					aFullDeclConstName += "(";
-					std::string aTempVarName;
-					// Use an occurrence counter to get guaranteed unique variable
-					// names representing the sorts that comprise the parameters
-					// of this constant.
-					for(size_t i = 0; i < aConst->params.size(); i++)
-					{
-						aCount.push_back(aConst->params[i]);
-						if(((Sort*)aCount.elementsBack())->sortVar)
-						{
-							aTempVarName = ((Sort*)aCount.elementsBack())->sortVar->fullTransName();
-						}
-						else
-						{
-							aTempVarName = "NULL";
-						}
-						aParamVarNames.push_back(aTempVarName);
-						// Add the occurrence count to the variable name if we've
-						// seen this sort before.
-						if(aCount.countsBack() > 0)
-						{
-							aParamVarNames.back() += Context::ANON_STR;
-							aParamVarNames.back() += utils::to_string(aCount.countsBack());
-							aNeedDynamicParams = true;
-						}
-						if(i > 0)
-						{	// Separate parameter names if there's more than one.
-							aFullDeclConstName += ",";
-						}
-						aFullDeclConstName += aParamVarNames.back();
-					}
-					aFullDeclConstName += ")";
-				}
-				stmtBuilder << aFullDeclConstName;
-				stmtBuilder << ",";
-				stmtBuilder << fullDeclConstName;
-				stmtBuilder << ")";
-				// If we had to dynamically use "extra" variables to avoid name clashes, bind them locally now.
-				size_t j = 0;
-				if(needDynamicParams)
-				{
-					stmtBuilder << " <- ";
-					for(size_t i = 0; i < eCount.size(); i++)
-					{
-						if(eCount.countAt(i) > 0)
-						{
-							if(j > 0)
-							{	// Separate multiple local variable bindings.
-								stmtBuilder << " & ";
-							}
-							stmtBuilder << transConst->params[i]->fullTransName();
-							stmtBuilder << "(" << paramVarNames[i] << ")";
-							j++;
-						}
-					}
-				}
-				if(aNeedDynamicParams)
-				{
-					if(!needDynamicParams)
-					{
-						stmtBuilder << " <- ";
-					}
-					for(size_t i = 0; i < aCount.size(); i++)
-					{
-						if(aCount.countAt(i) > 0)
-						{
-							if(j > 0)
-							{	// Separate multiple local variable bindings.
-								stmtBuilder << " & ";
-							}
-							stmtBuilder << aConst->params[i]->fullTransName();
-							stmtBuilder << "(" << aParamVarNames[i] << ")";
-							j++;
-						}
-					}
-				}
-				stmtBuilder << "." << std::endl;
+			stmtBuilder << "action_attribute(";
+			bool matched = ((Attribute const*)transConst)->parent()->translate(stmtBuilder, localClauses, &eCount, &parameterMap, NULL);
+			stmtBuilder << ", " << translatedConst << ")";
 
-				// Add the next statement to the list...
-				stmts.push_back(Statement(stmtBuilder.str(),Context::BASE));
-				stmtBuilder.str("");
+			if (localClauses.size() > 0) {
+				stmtBuilder << " <- ";
+				outputClauses(stmtBuilder, localClauses, false);
 			}
+			stmtBuilder << ".";
+
+			if (!matched) {
+				// The parameter prefixes don't match. Warn the user.
+				warn(std::string("The attribute \"")
+						+ transConst->fullName()
+						+ std::string("\" does not contain all arguments within its parent action \"")
+						+ ((Attribute const*)transConst)->parent()->fullName()
+						+ std::string("\". This will likely cause unintended results."),
+						true,
+						true);
+			}
+
+			stmts.push_back(Statement(stmtBuilder.str(), IPART_BASE));
+			stmtBuilder.str("");
 		}
 
 		// Output all of the statements...
@@ -846,96 +799,36 @@ void Translator::translateConstantDecl(Constant* transConst)
 
 // Translates an Object element into an ASP-compatible declaration of an
 // object as a member of a sort's domain.
-void Translator::translateObjectDecl(Object* transObj, Sort* sortObj)
+void Translator::translateObjectDecl(Object const* transObj, Sort const* sortObj)
 {
 	// Sanity check: make sure the object isn't NULL, and neither is its sort.
 	if(transObj && sortObj)
 	{
 		// An object delcaration is the sort's name, and then the object
 		// name in parentheses.
-		bool needDynamicParams = false; 				// Set to true if two or more of the object's parameters (if any) are the same.
-		ElementCounter eCount; 							// Used to track occurrences of identical parameters (to avoid name clashes).
-		std::vector<std::string> paramVarNames; 		// Holds unique parameter variable names for translation.
-
 		std::stringstream stmtBuilder;					// Used to build each individual statement required for this declaration.
+		ClauseList localClauses;
 
 
 		stmtBuilder << sortObj->fullTransName() << "(";
-		if(transObj->objType == Object::OBJ_RANGE)
-		{	// Number range, ensure we get its translated name.
-			stmtBuilder << ((NumberRange*)transObj)->fullTransName();
-		}
-		else
-		{	// Just a plain object. Use its name and transform its parameters
-			// into sort variables.
-			stmtBuilder << transObj->transName;
-			if(!transObj->params.empty())
-			{
-				stmtBuilder << "(";
-				std::string tempVarName;
-				// Use an occurrence counter to get guaranteed unique
-				// variable names representing the sorts that comprise
-				// the parameters of this object.
-				for(size_t i = 0; i < transObj->params.size(); i++)
-				{
-					eCount.push_back(transObj->params[i]);
-					if(((Sort*)eCount.elementsBack())->sortVar)
-					{
-						tempVarName = ((Sort*)eCount.elementsBack())->sortVar->fullTransName();
-					}
-					else
-					{
-						tempVarName = "NULL";
-					}
-					paramVarNames.push_back(tempVarName);
-					// Add the occurrence count to the variable name if we've
-					// seen this sort before.
-					if(eCount.countsBack() > 0)
-					{
-						paramVarNames.back() += Context::ANON_STR;
-						paramVarNames.back() += utils::to_string(eCount.countsBack());
-						needDynamicParams = true;
-					}
-					if(i > 0)
-					{	// Separate parameter names if there's more than one.
-						stmtBuilder << ",";
-					}
-					stmtBuilder << paramVarNames.back();
-				}
-				stmtBuilder << ")";
-			}
-		}
-
+		transObj->translate(stmtBuilder, localClauses);
 		stmtBuilder << ")";
 
-		// If we had to dynamically use "extra" variables to avoid name clashes, bind them locally now.
-		if(needDynamicParams)
-		{
+		if (localClauses.size()) {
 			stmtBuilder << " <- ";
-			size_t j = 0;
-			for(size_t i = 0; i < eCount.size(); i++)
-			{
-				if(eCount.countAt(i) > 0)
-				{
-					if(j > 0)
-					{	// Separate multiple local variable bindings.
-						stmtBuilder << " & ";
-					}
-					stmtBuilder << transObj->params[i]->fullTransName();
-					stmtBuilder << "(" << paramVarNames[i] << ")";
-					j++;
-				}
-			}
+			outputClauses(stmtBuilder, localClauses, false);
 		}
+
+
 		stmtBuilder << ".";
 
 		// Output the statement
-		output(stmtBuilder.str(), Context::BASE, true);
+		output(stmtBuilder.str(), IPART_BASE, true);
 	}
 }
 
 // Translates a Sort element into an ASP-compatible sort declaration.
-void Translator::translateSortDecl(Sort* transSort)
+void Translator::translateSortDecl(Sort const* transSort)
 {
 	// Sanity check: make sure the sort isn't NULL.
 	if(transSort)
@@ -944,23 +837,23 @@ void Translator::translateSortDecl(Sort* transSort)
 
 		// A translated sort declaration involves three things:
 		// Declare the sort name.
-		stmts.push_back(Statement("sort(" + transSort->fullTransName() + ").",Context::BASE));
+		stmts.push_back(Statement("sort(" + transSort->fullTransName() + ").",IPART_BASE));
 
 		// The sort's default variable and the line connecting the sort 
 		// to its objects (if the variable reference isn't NULL).
-		if(transSort->sortVar)
+		if(transSort->var())
 		{
 			stmts.push_back(
 				Statement(
 						"#domain " + transSort->fullTransName()
-						+ "(" + transSort->sortVar->fullTransName() + ").", Context::BASE
+						+ "(" + transSort->var()->fullTransName() + ").", IPART_BASE
 						)
 				);
 
 			stmts.push_back(
 				Statement(
 						"sort_object(" + transSort->fullTransName() + ","
-						+ transSort->sortVar->fullTransName() + ").", Context::BASE
+						+ transSort->var()->fullTransName() + ").", IPART_BASE
 						)
 				);
 		}
@@ -971,11 +864,10 @@ void Translator::translateSortDecl(Sort* transSort)
 
 		// If the sort has subsorts, add lines indicating that all members of
 		// the subsorts are also members of the sort.
-		if(!transSort->subsorts.empty())
+		if(transSort->numSubsorts())
 		{
-			for(size_t i = 0; i < transSort->subsorts.size(); i++)
-			{
-				Translator::translateSubsortDecl(transSort, transSort->subsorts[i]);
+			for (SortList::const_iterator it = transSort->beginSubsorts(); it != transSort->endSubsorts(); it++) {
+				Translator::translateSubsortDecl(transSort, *it);
 			}
 		}
 
@@ -983,7 +875,7 @@ void Translator::translateSortDecl(Sort* transSort)
 		stmts.push_back(
 			Statement(
 					"#hide " + transSort->fullTransName() + "("
-					+ transSort->sortVar->fullTransName() + ").\n", Context::BASE
+					+ transSort->var()->fullTransName() + ").\n", IPART_BASE
 					)
 			);
 
@@ -993,16 +885,16 @@ void Translator::translateSortDecl(Sort* transSort)
 }
 
 // Translates a declaration of a super/sub-sort relationship between two sorts.
-void Translator::translateSubsortDecl(Sort* transSupersort, Sort* transSubsort)
+void Translator::translateSubsortDecl(Sort const* transSupersort, Sort const* transSubsort)
 {
 	if(transSupersort && transSubsort)
 	{
 
-		if(transSubsort->sortVar)
+		if(transSubsort->var())
 		{
 			output(
-					transSupersort->fullTransName() + "(" + transSubsort->sortVar->fullTransName() + ")."
-					, Context::BASE, true
+					transSupersort->fullTransName() + "(" + transSubsort->var()->fullTransName() + ")."
+					, IPART_BASE, true
 					);
 		}
 		else
@@ -1013,16 +905,16 @@ void Translator::translateSubsortDecl(Sort* transSupersort, Sort* transSubsort)
 }
 
 // Translates a Variable element into an ASP-compatible variable declaration.
-void Translator::translateVariableDecl(Variable* transVar)
+void Translator::translateVariableDecl(Variable const* transVar)
 {
 	// We've got a version that already creates a string of the declaration,
 	// just use that and send it to output.
-	output(Translator::translateVariableDeclToString(transVar), Context::BASE, true);
+	output(Translator::translateVariableDeclToString(transVar), IPART_BASE, true);
 }
 
 
 // Translates a Query into an ASP-compatible query declaration.
-void Translator::translateQuery(Query* transQuery)
+void Translator::translateQuery(Query const* transQuery)
 {
 	ClauseList localClauses;
 	StmtList stmts;
@@ -1045,14 +937,15 @@ void Translator::translateQuery(Query* transQuery)
 		stmts.push_back(
 			Statement(
 					"% [Query: Label:" + transQuery->label + ((hintMaxstep != "") ? ", Maxstep:" + hintMaxstep : "" ) + "]",
-					Context::NONE
+					IPART_NONE
 					)
 			);
 
 		// For each item in queryConditions, output an ASP-style constraint for it.
-		for(std::list<ParseElement*>::iterator lIter = transQuery->queryConditions.begin(); lIter != transQuery->queryConditions.end(); ++lIter)
+		for(ParseElementList::const_iterator lIter = transQuery->queryConditions.begin(); lIter != transQuery->queryConditions.end(); ++lIter)
 		{
 			bool isDynamic = false, alteredTimestamp = false;
+			bool malformed = false;
 			int tmpLoc;
 			std::string tmpQueryTimeStamp;
 
@@ -1063,7 +956,7 @@ void Translator::translateQuery(Query* transQuery)
 			if (!blnStaticTrans) {
 				tmpQueryTimeStamp = utils::trimWhitespace((*lIter)->getQueryTimeStamp());
 				// A query statement is dynamic if it's not regarding t=0 or contains actions.
-				if (tmpQueryTimeStamp != "0" || (*lIter)->hasActions()){
+				if (tmpQueryTimeStamp != "0" || (*lIter)->hasConstants(ParseElement::MASK_ACTION)){
 					isDynamic = true;
 				}
 				while ((tmpLoc = tmpQueryTimeStamp.find("maxstep")) != std::string::npos) {
@@ -1074,17 +967,32 @@ void Translator::translateQuery(Query* transQuery)
 				if (alteredTimestamp) (*lIter)->setQueryTimeStamp(tmpQueryTimeStamp);
 			}
 
-			ossOutputBuffer << "false <- query_label(" << transQuery->label << ") & not (";
-			(*lIter)->translateQuery(ossOutputBuffer);
+			// Quick checking for undeclared identifiers....
+			BaseElementList undefined;
+			(*lIter)->aggregateUndefined(undefined);
 
-			// end the statement.
-			ossOutputBuffer << ").";
+			if (undefined.size()) {
+				// One or more undefined elements.
+				// Throw an error
+				std::ostringstream tmpErr;
+				tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
+				for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
+					tmpErr << "\"";
+					(*it)->fullName(tmpErr);
+					tmpErr << "\"";
+					if (++it != undefined.end()) tmpErr << ", ";
+				}
+				tmpErr << ".";
+				error(tmpErr.str(),true);
+				malformed = true;
+			}
 
-			// output all the resulting statements...
-			if (isDynamic)
-				stmts.push_back(Statement(ossOutputBuffer.str(),Context::VOLATILE));
-			else
-				stmts.push_back(Statement(ossOutputBuffer.str(),Context::BASE));
+
+			// Don't translate malformed queries
+			if (malformed) continue;
+
+
+			(*lIter)->translateQuery(stmts, transQuery->label, (isDynamic) ? IPART_VOLATILE : IPART_BASE);
 		}
 
 		// output all the resulting statements.
@@ -1098,11 +1006,13 @@ void Translator::translateCausalLaw(
 	ParseElement* ifBody,
 	ParseElement* assumingBody,
 	ParseElement* afterBody,
+	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* followingBody,
 	ParseElement* whereBody
 	)
 {
+
 	// The initialized values default to "static law" (i.e., fluents only, no "after").
 	RuleType type = RULE_STATIC;	// The type of the rule we're currently working with.
 
@@ -1121,7 +1031,6 @@ void Translator::translateCausalLaw(
 	// and performing some basic sanity checking on each of the components...
 
 
-
 	// step 1: ensure the head is non-null and in the correct form
 	if (!head || !head->isSingleAtom()) {
 		error("Definite causal laws must have exactly one constant in the head.\n");
@@ -1134,6 +1043,7 @@ void Translator::translateCausalLaw(
 			|| (ifBody && ifBody->hasLuaCalls())
 			|| (assumingBody && assumingBody->hasLuaCalls())
 			|| (afterBody && afterBody->hasLuaCalls())
+			|| (unlessBody && unlessBody->hasLuaCalls())
 			|| (whenBody && whenBody->hasLuaCalls())
 			|| (followingBody && followingBody->hasLuaCalls()))
 	{
@@ -1146,11 +1056,12 @@ void Translator::translateCausalLaw(
 
 
 	// step 3: Ensure that abnormalities are where they are supposed to be...
-	if ( head->hasAbnormalities()
-			|| (ifBody && ifBody->hasAbnormalities())
-			|| (assumingBody && assumingBody->hasAbnormalities())
-			|| (afterBody && afterBody->hasAbnormalities())
-			|| (whereBody && whereBody->hasAbnormalities()))
+	if ( head->hasConstants(ParseElement::MASK_AB)
+			|| (ifBody && ifBody->hasConstants(ParseElement::MASK_AB))
+			|| (assumingBody && assumingBody->hasConstants(ParseElement::MASK_AB))
+			|| (afterBody && afterBody->hasConstants(ParseElement::MASK_AB))
+			|| (unlessBody && unlessBody->hasConstants(ParseElement::MASK_AB))
+			|| (whereBody && whereBody->hasConstants(ParseElement::MASK_AB)))
 	{
 		// The law has abnormalities outside of the when / following clauses...
 		error("Abnormality constants cannot occur outside of 'when' and 'following' clauses of a law.\n");
@@ -1158,8 +1069,8 @@ void Translator::translateCausalLaw(
 	}
 
 	// ensure that the when and following bodies have _only_ abnormalities.
-	if ((whenBody && ( whenBody->hasActions() || whenBody->hasFluents()))
-			|| (followingBody && (followingBody->hasActions() || followingBody->hasFluents())))
+	if ((whenBody && ( whenBody->hasConstants(ParseElement::MASK_ACTION | ParseElement::MASK_FLUENT)))
+			|| (followingBody && (followingBody->hasConstants(ParseElement::MASK_ACTION | ParseElement::MASK_FLUENT))))
 	{
 		// The law has abnormalities outside of the when / following clauses...
 		error("Fluent and Action constants cannot occur within the 'when' and 'following' clauses of a law.\n");
@@ -1167,28 +1078,30 @@ void Translator::translateCausalLaw(
 	}
 
 	// Step 4a: Determine if the law is a 'rigid' law, which contains a rigid fluent in the head (Alternatively, if it contains 'exogenous' or 'inertial').
-	if (head->hasRigidElements()) {
+	if (head->hasConstants(ParseElement::MASK_RIGID)) {
 		type = RULE_RIGID;
 
 		// Verification: We don't allow any non-rigid fluents in the rule.
-		if (head->hasNonRigidConstants()
-				|| (ifBody && ifBody->hasNonRigidConstants())
-				|| (assumingBody && assumingBody->hasNonRigidConstants())
-				|| (afterBody && afterBody->hasNonRigidConstants())
-				|| (whenBody && whenBody->hasNonRigidConstants())
-				|| (followingBody && followingBody->hasNonRigidConstants())
+		if (head->hasConstants(ParseElement::MASK_NON_RIGID)
+				|| (ifBody && ifBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (assumingBody && assumingBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (afterBody && afterBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (unlessBody && unlessBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (whenBody && whenBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (followingBody && followingBody->hasConstants(ParseElement::MASK_NON_RIGID))
 			)
 		{
 			error("A causal law w/ rigid fluents in the head and non-rigid fluents in the body is (currently) unsupported.\n");
 			malformed = true;
 		}
 	}
+
 	// Step 4b: Determine whether the law is a static law, an action dynamic law, or a fluent dynamic law...
 	// Static laws...
-	else if (head->hasFluents() && !head->hasActions()
-			&& (!ifBody || !ifBody->hasActions())
-			&& (!assumingBody || !assumingBody->hasActions())
-			&& (!whenBody || !whenBody->hasDynamicAbnormalities())
+	else if (head->hasConstants(ParseElement::MASK_FLUENT | ParseElement::MASK_TRUE_FALSE) && !head->hasConstants(ParseElement::MASK_ACTION)
+			&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!assumingBody || !assumingBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_DYNAMIC_AB))
 			&& !afterBody
 			&& !followingBody)
 	{
@@ -1196,16 +1109,16 @@ void Translator::translateCausalLaw(
 		baseTimeStamp = staticTimeStamp;
 	}
 	// fluent dynamic laws...
-	else if (head->hasFluents() && !head->hasActions()
-			&& (!ifBody || !ifBody->hasActions())
-			&& (!assumingBody || !assumingBody->hasActions())
-			&& (!whenBody || !whenBody->hasDynamicAbnormalities()))
+	else if (head->hasConstants(ParseElement::MASK_FLUENT | ParseElement::MASK_TRUE_FALSE) && !head->hasConstants(ParseElement::MASK_ACTION)
+			&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!assumingBody || !assumingBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_DYNAMIC_AB)))
 	{
 		type = RULE_FLUENTDYNAMIC;
 		baseTimeStamp = dynamicTimeStamp;
 	}
 	// action dynamic laws...
-	else if (head->hasActions() && !head->hasFluents()
+	else if (head->hasConstants(ParseElement::MASK_ACTION) && !head->hasConstants(ParseElement::MASK_FLUENT)
 			&& !afterBody && !followingBody)
 	{
 		type = RULE_ACTIONDYNAMIC;
@@ -1226,6 +1139,66 @@ void Translator::translateCausalLaw(
 			ifNotNot = true;
 	}
 
+	// Step 5, check to ensure that there are no undefined identifiers (outside the unless clause).
+	BaseElementList undefined;
+	head->aggregateUndefined(undefined);
+	if (ifBody) ifBody->aggregateUndefined(undefined);
+	if (assumingBody) assumingBody->aggregateUndefined(undefined);
+	if (afterBody) afterBody->aggregateUndefined(undefined);
+	if (whenBody) whenBody->aggregateUndefined(undefined);
+	if (followingBody) followingBody->aggregateUndefined(undefined);
+	if (whereBody) whereBody->aggregateUndefined(undefined);
+
+	if (undefined.size()) {
+		// One or more undefined elements.
+		// Throw an error
+		std::ostringstream tmpErr;
+		tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
+		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
+			tmpErr << "\"";
+			(*it)->fullName(tmpErr);
+			tmpErr << "\"";
+			if (++it != undefined.end()) tmpErr << ", ";
+		}
+		tmpErr << ".";
+		error(tmpErr.str(),true);
+		malformed = true;
+	}
+	undefined.clear();
+
+	// Step 5b, declare undefined identifiers in the unless clause.
+	if (unlessBody) {
+		unlessBody->aggregateUndefined(undefined);
+
+		ConstSortList tmpParamSorts;
+		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
+			tmpParamSorts.clear();
+			bool success = (*it)->guessParamSorts(tmpParamSorts);
+
+			if (success) {
+				// We successfully guessed every sort that was required. Finish the declaration.
+				Constant* newConst = new Constant(
+						(*it)->baseName(),
+						getSort("boolean"),
+						(type == RULE_STATIC || type == RULE_RIGID) ? Constant::CONST_ABFLUENT : Constant::CONST_ABACTION,
+						&tmpParamSorts
+				);
+
+				translateConstantDecl(newConst);
+				addConstant(newConst);
+
+				// Make sure we update the declaration.
+				(*it)->ref(newConst);
+
+			} else {
+				// Unable to dynamically declare the constant.
+				// Tell the user.
+				error("Unable to dynamically declare \"" + ((ParseElement*)(*it))->fullName() + "\" as the constant's parameter sorts could not be determined. Declaring the constant beforehand will fix this issue.",true);
+				malformed = true;
+			}
+		}
+	}
+
 	// catch malformed rules and don't translate them.
 	if (malformed) return;
 
@@ -1236,7 +1209,7 @@ void Translator::translateCausalLaw(
 		makeCausalTranslation(
 			ossOutputBuffer,
 			stmts,
-			Context::BASE,
+			IPART_BASE,
 			ifNotNot,
 			afterNotNot,
 			"0",
@@ -1248,7 +1221,7 @@ void Translator::translateCausalLaw(
 			followingBody,
 			whereBody
 		);
-		stmts.push_back(Statement(ossOutputBuffer.str(),Context::BASE));
+		stmts.push_back(Statement(ossOutputBuffer.str(),IPART_BASE));
 		ossOutputBuffer.str("");
 	}
 
@@ -1257,7 +1230,7 @@ void Translator::translateCausalLaw(
 		makeCausalTranslation(
 			ossOutputBuffer,
 			stmts,
-			Context::CUMULATIVE,
+			IPART_CUMULATIVE,
 			ifNotNot,
 			afterNotNot,
 			baseTimeStamp,
@@ -1269,7 +1242,7 @@ void Translator::translateCausalLaw(
 			followingBody,
 			whereBody
 		);
-		stmts.push_back(Statement(ossOutputBuffer.str(),Context::CUMULATIVE));
+		stmts.push_back(Statement(ossOutputBuffer.str(),IPART_CUMULATIVE));
 		ossOutputBuffer.str("");
 	}
 
@@ -1282,7 +1255,7 @@ void Translator::translateCausalLaw(
 std::ostream& Translator::makeCausalTranslation(
 	std::ostream& output,
 	StmtList& extraStmts,
-	Context::IPart ipart,
+	IPart ipart,
 	bool ifNotNot,
 	bool afterNotNot,
 	std::string const& baseTimeStamp,
@@ -1302,12 +1275,11 @@ std::ostream& Translator::makeCausalTranslation(
 	std::string actionTimeStamp = baseTimeStamp + "-1";
 
 	// Translate!
-	ParseElement::extraClauseCount = 0; // Reset the extra clause counter.
 
 	// The head
 	/// @todo If head and ifBody are: not NULL, both const-like or both UOP_NOT(const-like), make a choice rule out of head and translate that.
 
-	localContext = Context(Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true);
+	localContext = Context(Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true, &extraStmts);
 	bindAndTranslate(output, head, localContext, true);
 
 	// The body, if there is one.
@@ -1330,12 +1302,12 @@ std::ostream& Translator::makeCausalTranslation(
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			if(ifNotNot) {
 				output << "not not (";
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false);
-				bindAndTranslate(output, ifBody, localContext, false);
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false, &extraStmts);
+				bindAndTranslate(output, ifBody, localContext, false, true);
 				output << ")";
 			}
 			else {
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 				ifBody->translate(output, localContext);
 			}
 
@@ -1349,7 +1321,7 @@ std::ostream& Translator::makeCausalTranslation(
 			else bodyContent = true;
 
 			// Translate the "assuming" body exactly as the if body, except that it doesn't have "not not" in front.
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, false, false);
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, false, false, &extraStmts);
 			assumingBody->translate(output, localContext);
 		}
 
@@ -1363,12 +1335,12 @@ std::ostream& Translator::makeCausalTranslation(
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			if(afterNotNot) {
 				output << "not not (";
-				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false);
-				bindAndTranslate(output, afterBody, localContext, false);
+				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false, &extraStmts);
+				bindAndTranslate(output, afterBody, localContext, false, true);
 				output << ")";
 			}
 			else {
-				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false);
+				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 				afterBody->translate(output, localContext);
 			}
 
@@ -1380,7 +1352,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			whenBody->translate(output, localContext);
 		}
 
@@ -1391,7 +1363,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false);
+			localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			followingBody->translate(output, localContext);
 		}
 
@@ -1401,7 +1373,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false);
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			whereBody->translate(output, localContext);
 		}
 		
@@ -1413,8 +1385,187 @@ std::ostream& Translator::makeCausalTranslation(
 	return output;
 }
 
-// Convenience method that handles unlessBody and then merges afterBody and "not unlessBody", calling the next wrapper down.
-void Translator::translateCausalLaw(
+// Handles a ':- show' declaration, adding the corresponding #show statements to the translation footer.
+void Translator::translateShowStmt(ParseElementList const& atomicFormulas) {
+	StmtList stmts;
+	Context localContext;
+	std::ostringstream tmp;
+
+	// By default, user defined atoms are shown in the answer set.
+	// The presence of a show statement overrides this and makes them all
+	// default to hidden.
+	if (!blnEncounteredShowStmt) {
+		blnEncounteredShowStmt = true;
+		stmts.push_back(Statement("#hide.", IPART_BASE));
+	}
+
+
+	// Iterate through each element and add the appropriate show statements.
+	for (ParseElementList::const_iterator it = atomicFormulas.begin(); it != atomicFormulas.end(); it++) {
+
+		// Sanity check: Non-null parse elements.
+		if (!(*it)) continue;
+
+		if ((*it)->getType() == ParseElement::PELEM_CONSTLIKE) {
+			// It's a bare constant. Take this to be a shortcut for 'c=v' where V is a variable ranging of the constant's domain
+			ConstantLikeElement* constlike = ((ConstantLikeElement*)(*it));
+			if (constlike->domain() && constlike->domain()->var())
+			{
+				std::string tmpname = constlike->domain()->var()->fullTransName();
+				localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR, tmpname, NULL, NULL, false, false, &stmts);
+				tmp << "#show ";
+				(*it)->translate(tmp, localContext);
+				tmp << ".";
+
+				stmts.push_back(Statement(tmp.str(), IPART_BASE));
+
+			} else {
+				// This appears to be missing one or more references...
+				// Just try a normal translation and hope for the best.
+				localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR,  NULL, NULL, false, false, &stmts);
+				tmp << "#show ";
+				(*it)->translate(tmp, localContext);
+				tmp << ".";
+				stmts.push_back(Statement(tmp.str(), IPART_BASE));
+			}
+		} else {
+			// It's must be 'c=v'. We can translate this without any further ado
+			localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR,  NULL, NULL, false, false, &stmts);
+			tmp << "#show ";
+			(*it)->translate(tmp, localContext);
+			tmp << ".";
+			stmts.push_back(Statement(tmp.str(), IPART_BASE));
+		}
+		tmp.str("");
+	}
+
+	// Add the statements to the footer.
+	addToFooter(stmts);
+}
+
+// Transforms declarative laws ("inertial p", "exogenous a(X)", "rigid q", etc.) to basic form and calls the translator for them.
+bool Translator::translateDeclarativeLaw(
+	ParseElement* head,
+	ParseElement* ifBody,
+	ParseElement* assumingBody,
+	ParseElement* afterBody,
+	ParseElement* unlessBody,
+	ParseElement* whenBody,
+	ParseElement* followingBody,
+	ParseElement* whereBody,
+	SimpleUnaryOperator::UnaryOperatorType opType
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(head != NULL)
+	{
+		// head needs to be wrapped in the appropriate declarative operator.
+		SimpleUnaryOperator* tempPE = new SimpleUnaryOperator(opType, head);
+
+		// This law becomes "delaration(F) [if G] [after H] [unless J] [when K] [following L] [where M]."
+		translateCausalLaw(tempPE, ifBody, assumingBody, afterBody, unlessBody, whenBody, followingBody, whereBody);
+		retVal = true;
+
+		tempPE->detachPostOp();
+		delete tempPE;
+	}
+	return retVal;
+}
+
+// Transforms a causal law of the form "always F [when H] [where G]." to basic form, then calls the translator for it.
+bool Translator::translateAlwaysLaw(
+	ParseElement* constraint,
+	ParseElement* whenBody,
+	ParseElement* whereBody
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(constraint != NULL)
+	{
+		// "not constraint" is the afterBody.
+		SimpleUnaryOperator* tempPE = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_NOT, constraint);
+
+		// The head is "false".
+		ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+
+		// The law becomes "caused false after -F when H where G."
+		translateCausalLaw(tempObj, NULL, NULL, tempPE, NULL, whenBody, NULL, whereBody);
+		delete tempObj;
+		tempPE->detachPostOp();
+		delete tempPE;
+		retVal = true;
+	}
+	return retVal;
+}
+
+// Transforms a causal law of the form "constraint F [after H] [when J] [following K] [where L]." to basic form, then calls the translator for it.
+bool Translator::translateConstraintLaw(
+	ParseElement* constraint,
+	ParseElement* afterBody,
+	ParseElement* unlessBody,
+	ParseElement* whenBody,
+	ParseElement* followingBody,
+	ParseElement* whereBody,
+	bool positive
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(constraint != NULL)
+	{
+		// constraint has to be a fluent formula or the law is malformed. Soft warn if we can't tell what it is (i.e., not a fluent or action formula).
+		if(!constraint->hasConstants(ParseElement::MASK_ACTION))
+		{
+			if(!constraint->hasConstants(ParseElement::MASK_FLUENT))
+			{
+				warn("Cannot determine if \"" + constraint->fullName() + "\" is a fluent formula or not, it might not work as F in a \"constraint F\" style law.", true, true);
+			}
+
+			// "not constraint" is the ifBody.
+			ParseElement* tempPE = NULL; // Points at whatever ends up becoming the head of the rule.
+			SimpleUnaryOperator* tempUOP = NULL;
+
+			if (positive) {
+				// If the constraint is "not something", then we can just drop the not (we'd end up with "not not something", which is equivalent to "something" since "false" is the head).
+				if(constraint->getType() == ParseElement::PELEM_UOP
+						&& ((SimpleUnaryOperator*)constraint)->opType() == SimpleUnaryOperator::UOP_NOT)
+				{
+					tempPE = ((SimpleUnaryOperator*)constraint)->detachPostOp();
+				}
+				else
+				{	// It's not an optimizable case, just tack "not" onto the constraint.
+					tempPE = tempUOP = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_NOT, constraint);
+				}
+			}
+			else {
+				// We are working with the negative version of the constraint, we don't have to negate the body.
+				tempPE = constraint;
+			}
+
+			// The head is "false".
+			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+
+			// The law becomes "caused false if -F after H when J following K where L."
+			translateCausalLaw(tempObj, tempPE, NULL, afterBody, unlessBody, whenBody, followingBody, whereBody);
+			delete tempObj;
+			if (tempUOP) {
+				tempUOP->detachPostOp();
+				delete tempUOP;
+			} else {
+				// Put the constraint's postop back, just in case.
+				((SimpleUnaryOperator*)constraint)->postOp(tempPE);
+			}
+			retVal = true;
+		}
+		else
+		{
+			error("\"" + constraint->fullName() + "\" is not a fluent formula, can't use it as F in a \"constraint F\" style law.", true, true);
+		}
+	}
+	return retVal;
+}
+
+// Transforms a causal law of the form "default F [if G] [assuming H] [after J] [when K] [following L] [where M]." to basic form, then calls the translator on it.
+bool Translator::translateDefaultLaw(
 	ParseElement* head,
 	ParseElement* ifBody,
 	ParseElement* assumingBody,
@@ -1425,347 +1576,376 @@ void Translator::translateCausalLaw(
 	ParseElement* whereBody
 	)
 {
-	// Create "not unlessBody" if unlessBody exists.
-	bool unlessCreationFailed = false; // Set to true if something goes wrong during the preparation of the unless clause.
-	SimpleUnaryOperator* tempUOP = NULL;
-	SimpleBinaryOperator* tempPE = NULL;
-	ConstantLikeElement* unlessConstLike = NULL;
+	bool retVal = false; // Start pessimistic.
+	if(head != NULL)
+	{
+		// head and ifBody are going to end up together no matter what.
+		if (head) head->parens(true);
+		if (ifBody) ifBody->parens(true);
+		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, ifBody);
 
-	if(unlessBody)
-	{
-		// The unlessBody needs to be a constant (or a constant miscategorized as an object) or this whole thing doesn't make sense.
-		if(unlessBody->getType() == ParseElement::PELEM_CONSTLIKE || unlessBody->getType() == ParseElement::PELEM_OBJLIKE)
-		{
-			unlessConstLike = new ConstantLikeElement();
-			if(unlessBody->getType() == ParseElement::PELEM_CONSTLIKE)
-			{
-				unlessConstLike->baseName = ((ConstantLikeElement*)unlessBody)->baseName;
-				unlessConstLike->params = ((ConstantLikeElement*)unlessBody)->params;
-				unlessConstLike->constRef = ((ConstantLikeElement*)unlessBody)->constRef;
-			}
-			else
-			{
-				unlessConstLike->baseName = ((ObjectLikeElement*)unlessBody)->baseName;
-				unlessConstLike->params = ((ObjectLikeElement*)unlessBody)->params;
-				unlessConstLike->constRef = NULL;
-			}
-			// If the constant in unlessBody doesn't even exist yet, make that first.
-			if(unlessBody->getType() == ParseElement::PELEM_OBJLIKE || unlessConstLike->constRef == NULL)
-			{
-				// Take a best guess at what the parameters, if any, of the constant should be.
-				std::string tempStr = "";
-				Constant* unlessConst = new Constant();
-				unlessConst->name = unlessConstLike->baseName;
-				unlessConst->transName = Translator::sanitizeConstantName(unlessConstLike->baseName);
-				tempStr = "boolean";
-				unlessConst->domain = this->getSort(tempStr);
-				// For each parameter, try to figure out what sort it came from.
-				std::vector<Sort*> tempSortParams;
-				for(std::vector<ParseElement*>::iterator vIter = unlessConstLike->params.begin(); vIter != unlessConstLike->params.end(); ++vIter)
-				{
-					if((*vIter)->getType() == ParseElement::PELEM_VARLIKE)
-					{
-						if(((VariableLikeElement*)(*vIter))->varRef && ((VariableLikeElement*)(*vIter))->varRef->sortRef)
-						{
-							tempSortParams.push_back(((VariableLikeElement*)(*vIter))->varRef->sortRef);
-						}
-						else
-						{	// varRef didn't pan out, try finding the Variable that goes with this VariableLikeElement.
-							tempStr = ((VariableLikeElement*)(*vIter))->baseName;
-							Variable* varResult = this->getVariableLike(tempStr);
-							if(varResult && varResult->sortRef)
-							{
-								tempSortParams.push_back(varResult->sortRef);
-							}
-							else
-							{	// Couldn't find the sort for the variable, give up.
-								this->error("Could not dynamically declare constant \"" + unlessConstLike->fullName() + "\", could not figure out the sort(s) of its parameter(s). Declaring the constant yourself will fix this problem.", true);
-								unlessCreationFailed = true;
-							}
-						}
-					}
-					else
-					{	// Anything but a variable and we probably can't guess the sort.
-						this->error("Could not dynamically declare constant \"" + unlessConstLike->fullName() + "\", could not figure out the sort(s) of its parameter(s). Declaring the constant yourself will fix this problem.", true);
-						unlessCreationFailed = true;
-					}
-				}
-				if(!unlessCreationFailed)
-				{	// We found sorts for all the parameters, assign the vector to our new Constant.
-					unlessConst->params = tempSortParams;
-					// What kind of constant unlessBody should be is based on what kind of law it's seen in.
-					// It's an abAction unless it's first seen in a static law, then it's an sdFluent.
-					unlessConst->constType = Constant::CONST_ABACTION;
-					if(!head->hasActions() && head->hasFluents())
-					{
-						if(ifBody == NULL && afterBody == NULL)
-						{	// Static law, this is an sdFluent.
-							unlessConst->constType = Constant::CONST_SDFLUENT;
-						}
-						else if(ifBody && afterBody == NULL && (!ifBody->hasActions() && ifBody->hasFluents()))
-						{	// Another form of static law, this is an sdFluent.
-							unlessConst->constType = Constant::CONST_SDFLUENT;
-						}
-					}
-					int addResult = this->addConstant(unlessConst);
-					if(addResult != SymbolTable::ADDSYM_OK)
-					{	// Throw an error about the ab constant being a bad symbol.
-						if(addResult == SymbolTable::ADDSYM_BAD)
-						{
-							this->error("Could not dynamically declare abnormality constant \"" + unlessConstLike->fullName() + "\", it appears to be a bad constant.", true);
-							unlessCreationFailed = true;
-						}
-					}
-					else
-					{	// Successful add, translate the new constant.
-						this->translateConstantDecl(unlessConst);
-						unlessConstLike->constRef = unlessConst;
-						// Also, if it was an sdFluent, add "default -ab" as a law.
-						if(unlessConst->constType == Constant::CONST_SDFLUENT)
-						{
-							SimpleUnaryOperator* tempNotUnless = new SimpleUnaryOperator();
-							tempNotUnless->opType = SimpleUnaryOperator::UOP_NOT;
-							tempNotUnless->postOp = unlessConstLike;
-							this->translateCausalLaw(tempNotUnless, tempNotUnless, NULL, NULL, NULL, NULL, NULL);
-							// Carefully deallocate tempNotUnless.
-							tempNotUnless->postOp = NULL;
-							delete tempNotUnless;
-						}
-					}
-				}
-			}
-			// Create the "-unlessBody" part to merge with 
-			tempUOP = new SimpleUnaryOperator();
-			tempUOP->opType = SimpleUnaryOperator::UOP_NOT;
-			tempUOP->postOp = unlessConstLike;
-		}
-	}
-	
-	// Finish translating this causal law even if something went wrong above.
-	// If something went wrong, the law might translate funny, but at least they'll have something to look at.
-	if(afterBody == NULL && unlessBody == NULL)
-	{	// They're both NULL, pass NULL through.
-		this->translateCausalLaw(head, ifBody, assumingBody, NULL, whenBody, followingBody, whereBody);
-	}
-	else if(afterBody == NULL)
-	{	// Only unlessBody exists, just pass it along.
-		this->translateCausalLaw(head, ifBody, assumingBody, tempUOP, whenBody, followingBody, whereBody);
-	}
-	else if(unlessBody == NULL)
-	{	// unlessBody was NULL, just pass the rest along.
-		this->translateCausalLaw(head, ifBody, assumingBody, afterBody, whenBody, followingBody, whereBody);
-	}
-	else
-	{	// They both exist, merge them and pass that along.
-		afterBody->setParens(true);
-		tempPE = (SimpleBinaryOperator*)Translator::mergeSubFormulas(afterBody, tempUOP);
-		this->translateCausalLaw(head, ifBody, assumingBody, tempPE, whenBody, followingBody, whereBody);
-	}
-	
-	if(unlessBody)
-	{
-		// Carefully deallocate the temporary "not unlessBody" construct,
-		// avoiding deallocating the original unlessBody.
-		// Do this first to avoid cascading deallocation from possible tempPE.
-		tempUOP->postOp = NULL;
-		delete tempUOP;
-	}
-	if(tempPE)
-	{
-		// Now (carefully) deallocate the temporary ParseElement.
-		// Don't deallocate preOp or postOp, they get deallocated elsewhere.
-		tempPE->preOp = NULL;
-		tempPE->postOp = NULL;
+		// This law becomes "caused F if F [& G] [assuming H] [after J] [when K] [following L] [where M]."
+		translateCausalLaw(head, tempPE, assumingBody, afterBody, unlessBody, whenBody, followingBody, whereBody);
+		retVal = true;
+
+		tempPE->detachPostOp();
+		tempPE->detachPreOp();
 		delete tempPE;
+
 	}
-	if(unlessConstLike)
-	{	// Carefully deallocate unlessConstLike.
-		unlessConstLike->params.clear();
-		delete unlessConstLike;
-	}
+	return retVal;
 }
 
-// Handles a ':- show' declaration, adding the corresponding #show statements to the translation footer.
-void Translator::handleShowStmt(std::vector<ParseElement*> atomicFormulas) {
-	StmtList stmts;
-	Context localContext;
-	std::ostringstream tmp;
-
-	// By default, user defined atoms are shown in the answer set.
-	// The presence of a show statement overrides this and makes them all
-	// default to hidden.
-	if (!blnEncounteredShowStmt) {
-		blnEncounteredShowStmt = true;
-		stmts.push_back(Statement("#hide.", Context::BASE));
-	}
-
-
-	// Iterate through each element and add the appropriate show statements.
-	for (std::vector<ParseElement*>::const_iterator it = atomicFormulas.begin(); it != atomicFormulas.end(); it++) {
-
-		// Sanity check: Non-null parse elements.
-		if (!(*it)) continue;
-
-		if ((*it)->getType() == ParseElement::PELEM_CONSTLIKE) {
-			// It's a bare constant. Take this to be a shortcut for 'c=v' where V is a variable ranging of the constant's domain
-			ConstantLikeElement* constlike = ((ConstantLikeElement*)(*it));
-			if (constlike->constRef
-					&& constlike->constRef->domain
-					&& constlike->constRef->domain->sortVar)
-			{
-				std::string tmpname = constlike->constRef->domain->sortVar->fullTransName();
-				localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR, tmpname);
-				tmp << "#show ";
-				(*it)->translate(tmp, localContext);
-				tmp << ".";
-
-				stmts.push_back(Statement(tmp.str(), Context::BASE));
-
-			} else {
-				// This appears to be missing one or more references...
-				// Just try a normal translation and hope for the best.
-				localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR);
-				tmp << "#show ";
-				(*it)->translate(tmp, localContext);
-				tmp << ".";
-				stmts.push_back(Statement(tmp.str(), Context::BASE));
-			}
-			tmp.str("");
-		} else {
-			// It's must be 'c=v'. We can translate this without any further ado
-			localContext = Context(Context::POS_BODY, Context::BASE, Context::ANON_STR);
-			tmp << "#show ";
-			(*it)->translate(tmp, localContext);
-			tmp << ".";
-			stmts.push_back(Statement(tmp.str(), Context::BASE));
-		}
-	}
-
-	// Add the statements to the footer.
-	addToFooter(stmts);
-}
-
-
-/* Class instance methods for general setup, etc. */
-
-// Creates and adds a new sort to the translator's data structures without translating or outputting it.
-Sort* Translator::createInternalSort(const char *newSortName, std::list<Sort*> subsorts)
+// Transforms a causal law of the form "nonexecutable F [if G] [when H] [where K]." to basic form, then calls the translator for it.
+bool Translator::translateNonexecutableLaw(
+	ParseElement* nonEx,
+	ParseElement* ifBody,
+	ParseElement* whenBody,
+	ParseElement* whereBody
+	)
 {
-	Sort* retVal = NULL;
-	if(newSortName)
+	bool retVal = false; // Start pessimistic.
+	if(nonEx != NULL)
 	{
-		bool alreadyDeclared = true;
-		std::string newSortStr = newSortName;
-		// Add the sort if it isn't already in the symbol table.
-		retVal = this->getSort(newSortStr);
-		if(retVal == NULL)
+		// nonEx has to be an action formula or the law is malformed. Soft warn if its neither kind of formula.
+		if(!nonEx->hasConstants(ParseElement::MASK_FLUENT))
 		{
-			alreadyDeclared = false;
-			retVal = new Sort(newSortStr, Translator::sanitizeSortName(newSortStr));
-			int addSymResult = this->addSort(retVal);
-			if(addSymResult != SymbolTable::ADDSYM_OK)
+			if(!nonEx->hasConstants(ParseElement::MASK_ACTION))
 			{
-				if(addSymResult == SymbolTable::ADDSYM_DUP)
-				{	// Just grab the already-declared sort.
-					delete retVal;
-					retVal = NULL;
-					retVal = this->getSort(newSortStr);
-					alreadyDeclared = true;
-				}
-				else
-				{	// An error happened, null out the return value.
-					delete retVal;
-					retVal = NULL;
-				}
+				warn("Cannot determine if \"" + nonEx->fullName() + "\" is an action formula or not, it might not work as F in a \"nonexecutable F\" style law.", true, true);
 			}
-			else
-			{
-				// Try to create (or get) a default variable for the sort, connect the two if nothing goes wrong.
-				std::string tempName = retVal->fullName();
-				std::string tempTransName = retVal->fullTransName();
-				std::string tempVarName = Translator::sortNameToVariable(tempName);
-				Variable* tempVar = mainTrans.getVariable(tempVarName);
-				if(tempVar == NULL)
-				{
-					std::string tempTransVarName = Translator::sortNameToVariable(tempTransName);
-					tempVar = new Variable(tempVarName, tempTransVarName);
-					if(mainTrans.addVariable(tempVar) != SymbolTable::ADDSYM_OK)
-					{
-						delete tempVar;
-						tempVar = NULL;
-						retVal = NULL; // Won't affect the translator's storage of the (incomplete) sort.
-					}
-					else
-					{
-						tempVar->sortRef = retVal;
-					}
-				}
-				if(tempVar)
-				{
-					retVal->sortVar = tempVar;
-				}
-			}
+
+			// nonEx and ifBody are going to end up together no matter what.
+			if (ifBody) ifBody->parens(true);
+			if (nonEx) nonEx->parens(true);
+			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(nonEx, SimpleBinaryOperator::BOP_AND, ifBody);
+
+			// Create a head of "false".
+			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+
+			// becomes caused false after F [& G] following H where K.
+			translateCausalLaw(tempObj, NULL, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+
+			delete tempObj;
+			tempPE->detachPostOp();
+			tempPE->detachPreOp();
+			delete tempPE;
+
+			retVal = true;
 		}
-		// Add subsorts to the sort's list.
-		if(retVal && !subsorts.empty())
+		else
 		{
-			for(std::list<Sort*>::iterator lIter = subsorts.begin(); lIter != subsorts.end(); ++lIter)
-			{
-				if((*lIter))
-				{
-					retVal->subsorts.push_back(*lIter);
-				}
-			}
-		}
-		// If the sort is new and is a "something*" sort, make sure its child ("something")
-		// is declared too, and link them together.
-		if(!alreadyDeclared && newSortStr.length() > 0 && newSortStr[newSortStr.length()-1] == '*')
-		{
-			// Now find/create the child "something" sort.
-			std::string nonStarIdent;
-			nonStarIdent = newSortStr.substr(0, newSortStr.length()-1);
-			
-			// Check if the child already exists before proceeding with declaration etc.
-			Sort *nonStarSort = mainTrans.getSort(nonStarIdent);
-			if(nonStarSort == NULL)
-			{	// Declare "something" so it can be added as the child of "something*".
-				std::list<Sort*> nonStarSubsorts; // Empty on purpose.
-				nonStarSort = this->createInternalSort(nonStarIdent.c_str(), nonStarSubsorts);
-			}
-			if(nonStarSort)
-			{
-				// Add "something" to subsorts.
-				retVal->subsorts.push_back(nonStarSort);
-			}
-			
-			// Create an object "none" and associate it with the "something*" sort.
-			std::string noneName = "none";
-			Object* noneObj = new Object(noneName, Translator::sanitizeObjectName(noneName));
-			int noneAddResult = mainTrans.addObject(noneObj);
-			if(noneAddResult == SymbolTable::ADDSYM_OK)
-			{
-				retVal->domainObjs.push_back(noneObj);
-			}
+			error("\"" + nonEx->fullName() + "\" is not an action formula, can't use it as F in a \"nonexecutable F\" style law.", true, true);
 		}
 	}
 	return retVal;
 }
 
+// Transforms a causal law of the form "possibly caused F [if G] [assuming H] [after J] [unless K] [when L] [following M] [where N]." to basic form, then calls the translator on it.
+bool Translator::translatePossiblyCausedLaw(
+	ParseElement* head,
+	ParseElement* ifBody,
+	ParseElement* assumingBody,
+	ParseElement* afterBody,
+	ParseElement* unlessBody,
+	ParseElement* whenBody,
+	ParseElement* followingBody,
+	ParseElement* whereBody
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(head != NULL)
+	{
+		// head and ifBody are going to end up together no matter what.
+		if (ifBody) ifBody->parens(true);
+		if (head) head->parens(true);
+		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, ifBody);
+
+		// This law becomes "caused F if F [& G] [assuming H] [after J] [unless K] [when L] [following M] [where N]."
+		translateCausalLaw(head, tempPE, assumingBody, afterBody, unlessBody, whenBody, followingBody, whereBody);
+
+		retVal = true;
+		tempPE->detachPostOp();
+		tempPE->detachPreOp();
+		delete tempPE;
+	}
+	return retVal;
+}
+
+// Transforms a causal law of the form "G may cause F [if H] [when J] [where K]." to basic form, then calls the translator on it.
+bool Translator::translateMayCauseLaw(
+	ParseElement* causer,
+	ParseElement* causee,
+	ParseElement* ifBody,
+	ParseElement* whenBody,
+	ParseElement* whereBody
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(causer != NULL && causee != NULL)
+	{
+		// Causer has to be an action formula, or the law is not properly written.
+		if(causer->hasConstants(ParseElement::MASK_ACTION) && !causer->hasConstants(ParseElement::MASK_FLUENT))
+		{
+			// Causer and ifBody are going to end up together no matter what.
+			if (causer) causer->parens(true);
+			if (ifBody) ifBody->parens(true);
+			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, ifBody);
+
+			// Where causer and ifBody end up in the basic form depend on what's in causee.
+			if(causee->hasConstants(ParseElement::MASK_ACTION) && !causee->hasConstants(ParseElement::MASK_FLUENT))
+			{	// Causee is an action formula, this is "caused F if F & G & H following J where K".
+				// Merge F into G & H.
+				if (causee) causee->parens(true);
+				if (tempPE) tempPE->parens(true);
+				SimpleBinaryOperator* tempPE2 = new SimpleBinaryOperator(causee, SimpleBinaryOperator::BOP_AND, tempPE);
+				translateCausalLaw(causee, tempPE2, NULL, NULL, NULL, NULL, whenBody, whereBody);
+
+				retVal = true;
+				tempPE2->detachPostOp();
+				tempPE2->detachPreOp();
+				delete tempPE2;
+			}
+			else if(!causee->hasConstants(ParseElement::MASK_ACTION) && causee->hasConstants(ParseElement::MASK_FLUENT))
+			{	// Causee is a fluent formula, this is "caused F if F after G & H following J where K".
+				translateCausalLaw(causee, causee, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+				retVal = true;
+			}
+			else
+			{	// Causee is mixed, that isn't allowed.
+				warn("\"" + causee->fullName() + "\" must be a pure action formula or pure fluent formula in this law, it can't have both kinds of constants.", true, true);
+			}
+
+			tempPE->detachPostOp();
+			tempPE->detachPreOp();
+			deallocateTempBinaryOp(tempPE);
+		}
+		else
+		{
+			error("\"" + causer->fullName() + "\" is not an action formula, can't use it as G in a \"G may cause F\" style law.", true, true);
+		}
+	}
+	return retVal;
+}
+
+// Transforms a causal law of the form "G causes F [if H] [where J]." to basic form, then calls the translator on it.
+bool Translator::translateCausesLaw(
+	ParseElement* causer,
+	ParseElement* causee,
+	ParseElement* ifBody,
+	ParseElement* whenBody,
+	ParseElement* whereBody
+	)
+{
+	bool retVal = false; // Start pessimistic.
+	if(causer != NULL && causee != NULL)
+	{
+		// Causer has to be an action formula, or the law is not properly written.
+		if(causer->hasConstants(ParseElement::MASK_ACTION) && !causer->hasConstants(ParseElement::MASK_FLUENT))
+		{
+			// Causer and ifBody are going to end up together no matter what.
+			if (causer) causer->parens(true);
+			if (ifBody) ifBody->parens(true);
+			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, ifBody);
+
+			// Where causer and ifBody end up in the basic form depend on what's in causee.
+			if((causee->hasConstants(ParseElement::MASK_ACTION) && !causee->hasConstants(ParseElement::MASK_FLUENT)) || causee->getType() == ParseElement::PELEM_OBJLIKE)
+			{	// Causee is an action formula, this is "caused F if G".
+				translateCausalLaw(causee, tempPE, NULL, NULL, NULL, NULL, whenBody, whereBody);
+				retVal = true;
+			}
+			else if(!causee->hasConstants(ParseElement::MASK_ACTION) && causee->hasConstants(ParseElement::MASK_FLUENT))
+			{	// Causee is a fluent formula, this is "caused F after G".
+				translateCausalLaw(causee, NULL, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+				retVal = true;
+			}
+			else
+			{	// Causee is mixed, that isn't allowed.
+				error("\"" + causee->fullName() + "\" must be a pure action formula or pure fluent formula in this law, it can't have both kinds of constants.", true, true);
+			}
+
+			tempPE->detachPostOp();
+			tempPE->detachPreOp();
+			delete tempPE;
+		}
+		else
+		{
+			error("\"" + causer->fullName() + "\" is not an action formula, can't use it as G in a \"G causes F\" style law.", true, true);
+		}
+	}
+	return retVal;
+}
+
+// Transforms an increment law of the form "A increments B by N [if H] [when J] [where K]." to basic form, then calls the translator on it.
+bool Translator::translateIncrementLaw(
+	ParseElement* causer,
+	ParseElement* causee,
+	ParseElement* increment,
+	ParseElement* ifBody,
+	ParseElement* whenBody,
+	ParseElement* whereBody,
+	bool isIncrement
+	)
+{
+	ParseElement* inc_expr = NULL;
+	ConstantLikeElement* contrib = NULL;
+	ParseElement* head, *newIf = NULL;
+
+	std::list<SimpleBinaryOperator*> tmpBinOps;
+	std::list<BaseLikeElement*> tmpBaseElems;
+
+	bool malformed = false;
+
+	// Some checking...
+
+	if(!causer || !causee || !increment ) {
+		error("An error occurred while parsing the incremental law.", true, true);
+		return false;
+	}
+
+	/*********************************************************/
+	/* Check the causer */
+	/*********************************************************/
+
+	if (causer->hasConstants(ParseElement::MASK_FLUENT)
+		|| !causer->hasConstants(ParseElement::MASK_ACTION)
+		|| causer->getType() != ParseElement::PELEM_CONSTLIKE)
+	{
+		error("\"" + causer->fullName() + "\" is not a boolean action, can't use it as A in a \"A increments B by N\" style law.", true, true);
+
+		malformed = true;
+	}
+	else if (!((ConstantLikeElement*)causer)->ref()
+		|| !((Constant const*)((ConstantLikeElement*)causer)->ref())->domain())
+	{
+		error("\"" + causer->fullName() + "\" does not appear to be properly declared, can't use it as A in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+	else if (!((ConstantLikeElement*)causer)->isBoolean())
+	{
+		error("\"" + causer->fullName() + "\" is not a boolean action, can't use it as A in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+
+	/*********************************************************/
+	/* Check the causee */
+	/*********************************************************/
+
+	bool isAction = causee->hasConstants(ParseElement::MASK_ACTION);
+	bool isFluent = causee->hasConstants(ParseElement::MASK_FLUENT);
+
+	if ((!isAction && !isFluent) || (isAction && isFluent)
+		|| causee->getType() != ParseElement::PELEM_CONSTLIKE)
+	{
+		error("\"" + causee->fullName() + "\" is not an additive constant, can't use it as B in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+	else if (!((ConstantLikeElement*)causee)->ref()
+		|| !((Constant const*)((ConstantLikeElement*)causee)->ref())->domain())
+	{
+		error("\"" + causee->fullName() + "\" does not appear to be properly declared, can't use it as B in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+
+	else if (!((Constant const*)((ConstantLikeElement*)causee)->ref())->isAdditive())
+	{
+		error("\"" + causee->fullName() + "\" is not an additive constant, can't use it as B in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+
+	/*********************************************************/
+	/* Check the Increment Clause */
+	/*********************************************************/
+
+	if (!increment->isArithExpr()) {
+		error( "\"" + increment->fullName() + "\" does not appear to be a valid arithmetic expression, can't use it as N in a \"A increments B by N\" style law.", true, true);
+		malformed = true;
+	}
+
+	/**************************************************************/
+	/* Done Checking */
+	/**************************************************************/
+
+	if (malformed) {
+		return false;
+	}
+
+	// At this point, we know that the critical portions of the law appear to be
+	// correct. We can procede with the translation.
+
+	// Step one is to step up the atomic formula that will be in the head of our law.
+
+
+	// Craft the LHS of the atomic formula
+	ParseElementList tmpParams;
+	tmpParams.push_back(causer);
+	tmpParams.push_back(causee);
+	tmpBaseElems.push_back(contrib = new ConstantLikeElement("contribution", getConstantLike("contribution", 2), &tmpParams));
+
+	// Determine the RHS of the atomic formula.
+	if (isIncrement) {
+		inc_expr = increment;
+	} else {
+		tmpBaseElems.push_back(new ObjectLikeElement("-1", getOrCreateSimpleObjectLike("-1")));
+		if (increment) increment->parens(true);
+		inc_expr = new SimpleBinaryOperator(tmpBaseElems.back(), SimpleBinaryOperator::BOP_TIMES, increment);
+		tmpBinOps.push_back((SimpleBinaryOperator*) inc_expr);
+	}
+
+	// Craft the atomic formula
+
+	//if (inc_expr) inc_expr->parens(true);
+	head = new SimpleBinaryOperator(contrib, SimpleBinaryOperator::BOP_EQ, inc_expr);
+	tmpBinOps.push_back((SimpleBinaryOperator*) head);
+
+	// Step 2 is to craft the new if clause....
+	// The new if body is the result of conjoining the old ifBody
+	// with the boolean causer action.
+
+	if (causer) causer->parens(true);
+	tmpBaseElems.push_back(new ObjectLikeElement("true", getOrCreateSimpleObjectLike("true")));
+	tmpBinOps.push_back(new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_EQ, tmpBaseElems.back()));
+
+	if (ifBody) {
+		ifBody->parens(true);
+		tmpBinOps.back()->parens(true);
+		newIf = new SimpleBinaryOperator(tmpBinOps.back(), SimpleBinaryOperator::BOP_AND, ifBody);
+		tmpBinOps.push_back((SimpleBinaryOperator*) newIf);
+	} else {
+		newIf = tmpBinOps.back();
+	}
+
+	// Finally, translate!
+	translateCausalLaw(head, newIf, NULL, NULL, NULL, whenBody, whereBody);
+
+	// Clean up!
+	for (std::list<SimpleBinaryOperator*>::iterator it = tmpBinOps.begin(); it != tmpBinOps.end(); it++) {
+		(*it)->detachPostOp();
+		(*it)->detachPreOp();
+		delete *it;
+	}
+	contrib->detachParams();
+
+	for (std::list<BaseLikeElement*>::iterator it = tmpBaseElems.begin(); it != tmpBaseElems.end(); it++) {
+		delete *it;
+	}
+
+	return true;
+}
+
+
+
+/* Class instance methods for general setup, etc. */
+
 // Creates and adds a new object to the translator's data structures without translating or outputting it.
-Object* Translator::createInternalObject(const char *newObjName, std::list<Sort*> params, Sort* ofSort)
+Object* Translator::createInternalObject(std::string const& newObjName, SortList* params, Sort* ofSort)
 {
 	Object* retVal = NULL;
-	if(newObjName && ofSort)
+	if(ofSort)
 	{
 		std::string newObjStr = newObjName;
-		retVal = new Object(newObjStr, Translator::sanitizeObjectName(newObjStr));
-		for(std::list<Sort*>::iterator lIter = params.begin(); lIter != params.end(); ++lIter)
-		{
-			if((*lIter))
-			{
-				retVal->params.push_back(*lIter);
-			}
-		}
+		retVal = new Object(newObjStr, Object::OBJ_NAME, params);
+
 		int addSymResult = this->addObject(retVal);
 		if(addSymResult != SymbolTable::ADDSYM_OK)
 		{	// Something went wrong adding the object, skip connecting & translating it.
@@ -1782,24 +1962,19 @@ Object* Translator::createInternalObject(const char *newObjName, std::list<Sort*
 		}
 		else
 		{	// Object add went okay, connect the sort to the object.
-			ofSort->domainObjs.push_back(retVal);
+			ofSort->addObject(retVal);
 		}
 	}
 	return retVal;
 }
 
 // Creates and adds a new number range (child of Object) to the translator's data structures without translating or outputting it.
-NumberRange* Translator::createInternalNumRange(const char *newObjName, const char *newMin, const char *newMax, Sort* ofSort)
+NumberRange* Translator::createInternalNumRange(std::string const& newObjName, Sort* ofSort)
 {
 	NumberRange* retVal = NULL;
-	if(newObjName && newMin && newMax && ofSort)
+	if(ofSort)
 	{
-		std::string newObjStr = newObjName;
-		retVal = new NumberRange();
-		retVal->name = newObjStr;
-		retVal->transName = Translator::sanitizeObjectName(newObjStr);
-		retVal->min = newMin;
-		retVal->max = newMax;
+		retVal = new NumberRange(newObjName);
 		int addSymResult = this->addObject(retVal);
 		if(addSymResult != SymbolTable::ADDSYM_OK)
 		{	// Something went wrong adding the object, skip connecting & translating it.
@@ -1816,7 +1991,7 @@ NumberRange* Translator::createInternalNumRange(const char *newObjName, const ch
 		}
 		else
 		{	// Object add went okay, connect the sort to the object.
-			ofSort->domainObjs.push_back(retVal);
+			ofSort->addObject(retVal);
 		}
 	}
 	return retVal;
@@ -1849,8 +2024,8 @@ void Translator::setStaticTranslation(bool staticTrans) {
 
 	// Make sure we update the timestamps.
 	if (staticTrans) {
-		staticTimeStamp = getSort("step")->sortVar->transName;
-		dynamicTimeStamp = getSort("astep")->sortVar->transName;
+		staticTimeStamp = getSort("step")->varTransName();
+		dynamicTimeStamp = getSort("astep")->varTransName();
 	} else {
 		staticTimeStamp = "t";
 		dynamicTimeStamp = "t";
@@ -1930,7 +2105,7 @@ std::ostream& Translator::outputClauses(std::ostream& out, ClauseList const& cla
 }
 
 // helper to output a translated expression with a bound context.
-std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr, Context& context, bool upwardMobileClauses) {
+std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement const* expr, Context& context, bool upwardMobileClauses, bool suppressQuantifier) {
 
 	if (!expr) return out;
 
@@ -1941,7 +2116,7 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr
 	expr->translate(tmp, localContext);
 
 	// Existential quantification (if needed).
-	if (!localVariables.empty()) {
+	if (!localVariables.empty() && !suppressQuantifier) {
 		out << "?[";
 
 		for (std::list<std::string>::const_iterator it = localVariables.begin(); it != localVariables.end(); ) {
@@ -1951,7 +2126,7 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr
 		out << "]:";
 	}
 
-	if (!localVariables.empty()
+	if ((!localVariables.empty() && !suppressQuantifier)
 			|| (!upwardMobileClauses && !localClauses.empty()))
 	{
 		out << "(";
@@ -1959,13 +2134,11 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement* expr
 
 	out << tmp.str();
 
-	if (!localClauses.empty()) {
-		if (!localVariables.empty() || !upwardMobileClauses) {
-			Translator::outputClauses(out, localClauses, true);
-			out << ")";
-		} else {
-			context.transferExtraClauses(localClauses);
-		}
+	if ((!localVariables.empty() && !suppressQuantifier) || (!localClauses.empty() && !upwardMobileClauses)) {
+		Translator::outputClauses(out, localClauses, true);
+		out << ")";
+	} else if (!localClauses.empty()){
+		context.transferExtraClauses(localClauses);
 	}
 
 	return out;
@@ -2034,22 +2207,22 @@ Translator::~Translator()
 	fNull.close();
 }
 
-bool Translator::setIncrementalPart(Context::IPart newIncPart) {
+bool Translator::setIncrementalPart(IPart newIncPart) {
 	if (!ostOutPtr) return false;
 	if (newIncPart == mCurrentPart) return true;
 
 	if (!blnStaticTrans) {
 		switch (newIncPart) {
-		case Context::BASE:
+		case IPART_BASE:
 			output("#base.",true);
 			break;
-		case Context::CUMULATIVE:
+		case IPART_CUMULATIVE:
 			output("#cumulative " + dynamicTimeStamp + ".",true);
 			break;
-		case Context::VOLATILE:
+		case IPART_VOLATILE:
 			output("#volatile " + dynamicTimeStamp + ".",true);
 			break;
-		case Context::NONE:
+		case IPART_NONE:
 			return true;
 		default:
 			return false;
@@ -2061,7 +2234,7 @@ bool Translator::setIncrementalPart(Context::IPart newIncPart) {
 
 }
 
-void Translator::output(std::string const& str, Context::IPart ipart, bool endWithNewline) {
+void Translator::output(std::string const& str, IPart ipart, bool endWithNewline) {
 	if (mCurrentPart != ipart) setIncrementalPart(ipart);
 	output(str, endWithNewline);
 }

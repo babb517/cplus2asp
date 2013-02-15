@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 
+#include "Translator.h"
 #include "Element.h"
 #include "Object.h"
 #include "Variable.h"
@@ -8,57 +9,108 @@
 
 #include "Sort.h"
 
-// Default constructor.
-Sort::Sort() : Element()
-{
-	elemType = ELEM_SORT;
-	domainObjs.clear();
-	subsorts.clear();
-	sortVar = NULL;
-}
+
+std::string const Sort::VAR_NULL_NAME = "NULL_VAR";
+
 
 // Full constructor.
-Sort::Sort(std::string _name, std::string _transName) : Element(_name, _transName)
+Sort::Sort(std::string name, Variable* sortVar)
+	: Element(name, Translator::sanitizeSortName(name), ELEM_SORT)
 {
-	elemType = ELEM_SORT;
-	domainObjs.clear();
-	subsorts.clear();
-	sortVar = NULL;
+	mSortVar = sortVar;
+	mSortVar->setDomain(this);
+	mIsNumeric = true;
+	mIsStarred = false;
 }
 
-// Generates the original full name of this element.
-std::string Sort::fullName()
-{
-	std::string tempStr = name;
-	return tempStr;
+// Gets the name of the variable associated with this sort.
+std::string const& Sort::varName() const	{
+	return (var()) ? var()->fullName() : VAR_NULL_NAME;
 }
 
-// Generates the translated full name of this element.
-std::string Sort::fullTransName()
-{
-	std::string tempStr = transName;
-	return tempStr;
+// Gets the ASP safe name of the variable associated with this sort.
+std::string const& Sort::varTransName() const	{
+	return (var()) ? var()->fullTransName() : VAR_NULL_NAME;
 }
 
 // Standard toString function.
-std::string Sort::toString()
+std::string Sort::toString() const
 {
 	// Start with the basic Element info, then add on Sort-specific stuff.
-	std::string tempStr = Element::toString();
-	tempStr += "\n  [Sort]";
+	std::string tempStr;
+	tempStr += "[Sort]";
 	tempStr += "\n  domainObjs = ";
-	tempStr += utils::elementVectorToFullNameString<Object*>(domainObjs, ", ", true);
+	tempStr += utils::elementVectorToFullNameString<Object*>(mObjs, ", ", true);
 	tempStr += "\n  subsorts = ";
-	tempStr += utils::elementVectorToFullNameString<Sort*>(subsorts, ", ", true);
+	tempStr += utils::elementVectorToFullNameString<Sort*>(mSubsorts, ", ", true);
 	tempStr += "\n  sortvar = \"";
-	tempStr += sortVar->name;
+	tempStr += mSortVar->fullName();
 	tempStr += "\"";
 	return tempStr;
 }
 
-// Destructor.
-Sort::~Sort()
-{
-	domainObjs.clear();
-	subsorts.clear();
+
+bool Sort::addObject(Object* obj, bool checkDuplicate) {
+	bool found = !checkDuplicate;
+
+
+
+	if (checkDuplicate) {
+		for (ObjectList::iterator it = mObjs.begin(); it != mObjs.end(); it++) {
+				if (*it == obj) found = true;
+		}
+	}
+
+	if (!found) {
+		mObjs.push_back(obj);
+		updateNumeric(obj->isNumeric());
+		updateStarred(obj->isStarred());
+	}
+
+	return !found;
 }
+
+/// Adds a subsort to this sort
+bool Sort::addSubsort(Sort* subsort, bool checkDuplicate) {
+	bool found = !checkDuplicate;
+
+	if (checkDuplicate) {
+		for (SortList::iterator it = mSubsorts.begin(); it != mSubsorts.end(); it++) {
+			if (*it == subsort) found = true;
+		}
+	}
+
+	if (!found) {
+		mSubsorts.push_back(subsort);
+		updateNumeric(subsort->isNumeric());
+		updateStarred(subsort->isStarred());
+		subsort->registerSupersort(this);
+	}
+
+	return !found;
+}
+
+/// Updates the running numeric calculation and notifies supersorts with the results
+void Sort::updateNumeric(bool numericComponent) {
+	if (!mIsNumeric) return;
+	mIsNumeric = mIsNumeric && numericComponent;
+	if (!mIsNumeric) {
+		// The numeric property has changed. Propagate the changes to the super sorts.
+		for (SortList::iterator it = mSupersorts.begin(); it != mSupersorts.end(); it++) {
+			(*it)->updateNumeric(false);
+		}
+	}
+}
+
+/// Updates the running starred calcuation and notifiers supersorts of the results.
+void Sort::updateStarred(bool starredComponent) {
+	if (mIsStarred) return;
+	mIsStarred = mIsStarred || starredComponent;
+	if (mIsStarred) {
+		// The numeric property has changed. Propagate the changes to the super sorts.
+		for (SortList::iterator it = mSupersorts.begin(); it != mSupersorts.end(); it++) {
+			(*it)->updateStarred(true);
+		}
+	}
+}
+

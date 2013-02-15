@@ -1,7 +1,7 @@
 #ifndef ELEMENTCOUNTER_H
 #define ELEMENTCOUNTER_H
 
-#include <vector>
+#include <map>
 
 class Element;
 
@@ -14,95 +14,50 @@ class Element;
 class ElementCounter
 {
 private:
-	/// Linear container for Element pointers.
-	std::vector<Element*> elements;
-	/// Corresponding counters for given Elements. Unique elements start at 0, subsequent duplicates get incremented counts.
-	std::vector<int> counts;
+	/// Mapping between elements and counts.
+	std::map<Element const*, size_t> mElemCount;
 public:
 	/**
 	 * Default constructor.
 	 */
-	ElementCounter();
+	inline ElementCounter() { /* Intentionally Left Blank */ }
 	
 	/**
-	 * Enhanced wrapper for container's clear.
-	 * Clears all internal data structures of their contents.
+	 * Clears all counts.
 	 */
-	void clear();
+	inline void clear()												{ mElemCount.clear(); }
 	
 	/**
-	 * Enhanced wrapper for container's pop_back.
-	 * Pops both containers' back items.
+	 * Adds an element to the counter and returns the running count.
+	 * @param elem The element to add.
+	 * @return The number of times this element has been added.
 	 */
-	void pop_back();
+	size_t add(Element const* elem);
 	
 	/**
-	 * Enhanced wrapper for container's push_back.
-	 * Adds the element, and creates an appropriate count for it.
-	 * @param elem - The element to add.
+	 * Gets the number of times the element has been added to counter.
+	 * @param elem The element to get the cardinality of.
+	 * @return The cardinality of the element.
 	 */
-	void push_back(Element* elem);
-	
-	/**
-	 * Wrapper for container's size.
-	 * @return The number of elements in the internal list.
-	 */
-	size_t size();
-	
-	/**
-	 * Retrieves the element at the specified index.
-	 * @param index - The (0-based) index of the desired element.
-	 * @return A pointer to the element at index in the internal list, or NULL if index is invalid.
-	 */
-	Element* elementAt(size_t index);
-	
-	/**
-	 * Retrieves the occurrence counter for the element at the specified index.
-	 * @param index - The (0-based) index of the desired element.
-	 * @return The value of the element at index's occurrence counter, or -1 if index is invalid.
-	 */
-	int countAt(size_t index);
-	
-	/**
-	 * Retrieves the element at the back of elements.
-	 * @return A pointer to the back Element of elements, or NULL if elements is empty.
-	 */
-	Element* elementsBack();
-	
-	/**
-	 * Retrieves the count at the back of counts.
-	 * @return The occurrence counter at the back of counts, or -1 if counts is empty.
-	 */
-	int countsBack();
+	inline size_t getCount(Element const* elem) const				{ return mElemCount.count(elem); }
 	
 	/**
 	 * Wraps the elements list's begin function.
 	 * @return A constant iterator at the begnning of elements.
 	 */
-	std::vector<Element*>::iterator elementsBegin();
+	std::map<Element const*,size_t>::const_iterator begin() const 	{ return mElemCount.begin(); }
 	
 	/**
 	 * Wraps the elements list's end function.
 	 * @return A constant iterator at the end of elements.
 	 */
-	std::vector<Element*>::iterator elementsEnd();
+	std::map<Element const*,size_t>::const_iterator end() const { return mElemCount.end(); }
 	
-	/**
-	 * Wraps the counts list's begin function.
-	 * @return A constant iterator at the begnning of counts.
-	 */
-	std::vector<int>::iterator countsBegin();
-	
-	/**
-	 * Wraps the counts list's end function.
-	 * @return A constant iterator at the end of counts.
-	 */
-	std::vector<int>::iterator countsEnd();
 	
 	/**
 	 * Destructor.
 	 */
-	virtual ~ElementCounter();
+	inline virtual ~ElementCounter() { /* Intentionally Left Blank */ }
 };
 
 #endif // ELEMENTCOUNTER_H

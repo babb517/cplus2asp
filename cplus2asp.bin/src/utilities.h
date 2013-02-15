@@ -57,22 +57,22 @@ std::string elementListToNameString(const std::list<T> &lst, bool useFullName=fa
 			{
 				if(useTransName)
 				{
-					sout << prettyPrintQuotes << (*lIter)->fullTransName() << prettyPrintQuotes;
+					sout << prettyPrintQuotes << ((Element*)(*lIter))->fullTransName() << prettyPrintQuotes;
 				}
 				else
 				{
-					sout << prettyPrintQuotes << (*lIter)->fullName() << prettyPrintQuotes;
+					sout << prettyPrintQuotes << ((Element*)(*lIter))->fullName() << prettyPrintQuotes;
 				}
 			}
 			else
 			{
 				if(useTransName)
 				{
-					sout << prettyPrintQuotes << (*lIter)->transName << prettyPrintQuotes;
+					sout << prettyPrintQuotes << ((Element*)(*lIter))->baseName() << prettyPrintQuotes;
 				}
 				else
 				{
-					sout << prettyPrintQuotes << (*lIter)->name << prettyPrintQuotes;
+					sout << prettyPrintQuotes << ((Element*)(*lIter))->baseName() << prettyPrintQuotes;
 				}
 			}
 		}
@@ -158,7 +158,7 @@ std::string elementVectorToNameString(const std::vector<T> &vec, bool useFullNam
 		// Protect from accessing a NULL pointer, inserting "NULL" in if the pointer is invalid.
 		if(vec[i] == NULL)
 		{
-			sout << "NULL";
+			sout << "_";
 		}
 		else
 		{
@@ -177,11 +177,11 @@ std::string elementVectorToNameString(const std::vector<T> &vec, bool useFullNam
 			{
 				if(useTransName)
 				{
-					sout << prettyPrintQuotes << vec[i]->transName << prettyPrintQuotes;
+					sout << prettyPrintQuotes << vec[i]->baseTransName() << prettyPrintQuotes;
 				}
 				else
 				{
-					sout << prettyPrintQuotes << vec[i]->name << prettyPrintQuotes;
+					sout << prettyPrintQuotes << vec[i]->baseName() << prettyPrintQuotes;
 				}
 			}
 		}
@@ -236,19 +236,18 @@ std::string elementVectorToFullTransNameString(const std::vector<T> &vec, const 
  * @param vec - The Element vector to extract names from.
  * @param useFullName - If true, will use the elements' full names (including any parameters) instead of just their base names. (Default: false)
  * @param useTransName - If true, will use the translated names of the elements instead of their original names. (Default: false)
- * @return A vector of strings representing the base names of each element.
+ * @param[out] out - A vector of strings representing the base names of each element.
  */
 template <class T>
-std::vector<std::string> elementVectorToNameVector(const std::vector<T> &vec, bool useFullName=false, bool useTransName=false)
+void elementVectorToNameVector(const std::vector<T> &vec, NameList& out, bool useFullName=false, bool useTransName=false)
 {
-	std::vector<std::string> tempVec;
 	// Add the name of each element to tempVec.
 	for(size_t i = 0; i < vec.size(); i++)
 	{
 		// Protect from accessing a NULL pointer, inserting "NULL" in if the pointer is invalid.
 		if(vec[i] == NULL)
 		{
-			tempVec.push_back(std::string("NULL"));
+			out.push_back(std::string("NULL"));
 		}
 		else
 		{
@@ -256,62 +255,61 @@ std::vector<std::string> elementVectorToNameVector(const std::vector<T> &vec, bo
 			{
 				if(useTransName)
 				{
-					tempVec.push_back(vec[i]->fullTransName());
+					out.push_back(vec[i]->fullTransName());
 				}
 				else
 				{
-					tempVec.push_back(vec[i]->fullName());
+					out.push_back(vec[i]->fullName());
 				}
 			}
 			else
 			{
 				if(useTransName)
 				{
-					tempVec.push_back(vec[i]->transName);
+					out.push_back(vec[i]->baseTransName());
 				}
 				else
 				{
-					tempVec.push_back(vec[i]->name);
+					out.push_back(vec[i]->baseName());
 				}
 			}
 		}
 	}
-	return tempVec;
 }
 
 /**
  * Convenience function that calls elementVectorToNameVector with useFullName set to true.
  * Passes false for useTransName.
  * @param vec - The Element vector to extract names from.
- * @return A vector of strings representing the full names of each element.
+ * @param[out] out - A vector of strings representing the full names of each element.
  */
 template <class T>
-std::vector<std::string> elementVectorToFullNameVector(const std::vector<T> &vec)
+void elementVectorToFullNameVector(const std::vector<T> &vec, NameList& out)
 {
-	return elementVectorToNameVector(vec, true, false);
+	elementVectorToNameVector(vec, out, true, false);
 }
 
 /**
  * Convenience function that calls elementVectorToNameVector with useTransName set to true.
  * Passes false for useFullName.
  * @param vec - The Element vector to extract names from.
- * @return A vector of strings representing the translated base names of each element.
+ * @param[out] out - A vector of strings representing the translated base names of each element.
  */
 template <class T>
-std::vector<std::string> elementVectorToTransNameVector(const std::vector<T> &vec)
+std::vector<std::string> elementVectorToTransNameVector(const std::vector<T> &vec, NameList& out)
 {
-	return elementVectorToNameVector(vec, false, true);
+	return elementVectorToNameVector(vec, out, false, true);
 }
 
 /**
  * Convenience function that calls elementVectorToNameVector with useFullName and useTransName set to true.
  * @param vec - The Element vector to extract names from.
- * @return A vector of strings representing the translated full names of each element.
+ * @param[out] out -  A vector of strings representing the translated full names of each element.
  */
 template <class T>
-std::vector<std::string> elementVectorToFullTransNameVector(const std::vector<T> &vec)
+std::vector<std::string> elementVectorToFullTransNameVector(const std::vector<T> &vec, NameList& out)
 {
-	return elementVectorToNameVector(vec, true, true);
+	return elementVectorToNameVector(vec, out, true, true);
 }
 
 /**

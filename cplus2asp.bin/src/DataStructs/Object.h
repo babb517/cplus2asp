@@ -3,12 +3,16 @@
 
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "datastruct_externs.h"
 
+#include "utilities.h"
 #include "Element.h"
+#include "Context.h"
 
 class Sort;
+class ElementCounter;
 
 
 /**
@@ -18,53 +22,87 @@ class Sort;
 class Object : public Element
 {
 public:
-	/// Enum to differentiate the valid kinds of objects, a basic object name ("bananas") or a numeric range (1..10).
-	enum ObjectType { OBJ_NAME, OBJ_RANGE };
-	enum ObjectType objType; ///< Used to specify which kind of object this is.
+	/// Enum to differentiate the valid kinds of objects, a basic object name ("bananas"), numeric range (1..10), or LUA call (@bananas).
+	enum ObjectType { OBJ_NAME, OBJ_RANGE, OBJ_LUA };
 	
-	std::vector<Sort*> params; ///< Vector of parameters for this object, if any, expressed as references to sorts.
+private:
+	enum ObjectType mObjType; 			///< Used to specify which kind of object this is.
+	SortList mParams; 				///< Vector of parameters for this object, if any, expressed as references to sorts.
+
+	std::string mFullName;				///< The full name of the object, with parameters.
+	std::string mFullTransName;			///< The full ASP-compatible name of the object, with parameters.
+
+public:
 	
-	bool isLua;		///< Indicates whether the object is actually a LUA call.
+	/**
+	 * Full constructor.
+	 * @param name - The C+ name of this object.
+	 * @param type - The type of object which is being instantiated.
+	 * @param params - The list of parameters that the object uses, if any. (Null will result in the object having 0 parameters.)
+	 */
+	Object(std::string const& name, ObjectType type, SortList const* params = NULL);
+	
+	/**
+	 * Full constructor with anonymous parameters (for LUA calls).
+	 * Sets the object's type to LUA.
+	 * @param name - The C+ name of this object.
+	 * @param params - The number of anonymous parameters the object has.
+	 */
+	Object(std::string const& name, size_t params);
+
+	inline virtual std::string const& fullName() const { return mFullName; }
+	inline virtual std::string const& fullTransName() const { return mFullTransName; }
+	virtual std::string toString() const;
+	inline virtual bool isNumeric() const { int tmp; return mObjType == OBJ_RANGE || mObjType == OBJ_LUA || utils::from_string(tmp, fullName()); }
+	inline virtual bool isBoolean() const { return fullName() == "true" || fullName() == "false"; }
+	inline virtual bool isStarred() const { return fullName() == "none"; }
+	
+	/// Gets the number of parameters the object uses
+	inline size_t arity() const	{ return mParams.size(); }
+
+	/// Determines the type of object being represented.
+	inline ObjectType getObjType() const { return mObjType; }
 
 	/**
-	 * Default constructor. Calls default Element constructor, sets objType to OBJ_NAME.
+	 * Determines if the element archetype resembled an external LUA call.
+	 * @return True if it does, false otherwise.
 	 */
-	Object();
-	
-	/**
-	 * Full constructor. Passes _name and _transName to the full Element constructor, sets objType to OBJ_NAME.
-	 * @param _name - The C+ name of this object.
-	 * @param _transName - The ASP-compatible name of this object.
-	 */
-	Object(std::string _name, std::string _transName, bool _isLua = false);
+	inline bool isLua() const { return mObjType == OBJ_LUA; }
+
+	/// Gets the beginning of the constant's parameter list.
+	inline SortList::const_iterator beginParams() const		{ return mParams.begin(); }
+
+	/// Gets the end of the constant's parameter list.
+	inline SortList::const_iterator endParams() const			{ return mParams.end(); }
+
+	/// Gets the ith parameter.
+	inline Sort const* param(size_t i) const						{ return mParams[i]; }
+
 
 	/**
-	 * Generates the original full name of this element, including full parameter names (if any).
-	 * @return A string representation of this element's base name plus a
-	 * parenthesized, comma-separated list of the full names of any parameters
-	 * (if it has any).
+	 * Outputs an ASP friendly declarable form for the object.
+	 * @param out The stream to output the translation to.
+	 * @param outClauses A list to append to clauses to which dynamically bind variables.
+	 * @param runningCount A running counter to ensure uniqueness of variables amongst multiple translations. passing NULL will ensure local uniqueness only.
+	 * @param matchMap The map (if any) to attempt the match the first arguments to.
+	 * While the first argument sorts match the arguments will share the same variables
+	 * as those within the map. Once the arguments begin to differ this map will be ignored
+	 * and new variables will be generated.
+	 * @param outMap The map (if any) to append the resulting ordered mappings to.
+	 * @return True if matchMap matched the prefix for the arguments completely.
 	 */
-	virtual std::string fullName();
-	
-	/**
-	 * Generates the translated full name of this element, including
-	 * translated full parameter names (if any).
-	 * @return A string representation of this element's translated base name
-	 * plus a parenthesized, comma-separated list of the full names of any 
-	 * parameters (if it has any).
-	 */
-	virtual std::string fullTransName(); 
-	
-	/**
-	 * Generates a human-readable string representation of this object.
-	 * @return Returns a string suitable for printing to a console or log.
-	 */
-	virtual std::string toString();
-	
+	bool translate(
+			std::ostream& out,
+			ClauseList& outClauses,
+			ElementCounter* runningCount = NULL,
+			std::vector<std::pair<Sort const*, std::string> >* matchMap = NULL,
+			std::vector<std::pair<Sort const*, std::string> >* outMap = NULL
+	) const;
+
 	/**
 	 * Destructor. Nothing to deallocate, so it's empty.
 	 */
-	virtual ~Object();
+	inline virtual ~Object() { /* Intentionally Left Blank */ }
 };
 
 #endif /* OBJECT_H */

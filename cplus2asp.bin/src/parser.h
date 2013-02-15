@@ -46,6 +46,7 @@
 #include <libgen.h>
 #include <string.h>
 
+#include "types.h"
 #include "Attribute.h"
 #include "ASPCode.h"
 #include "Comment.h"
@@ -69,7 +70,7 @@
 
 
 /* Line 1676 of yacc.c  */
-#line 73 "parser.h"
+#line 74 "parser.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -186,7 +187,7 @@ typedef union YYSTYPE
 {
 
 /* Line 1676 of yacc.c  */
-#line 39 "parser.y"
+#line 40 "parser.y"
 
 	/* Types returned by the lexer. */
 	int integer;	 						///< Basic integer.
@@ -205,14 +206,12 @@ typedef union YYSTYPE
 	
 	/* Containers used by the parser. */
 	std::list<Constant*>* l_constant; 				///< Pointer to a list of Constant element pointers.
-	std::list<Object*>* l_object; 					///< Pointer to a list of Object element pointers.
-	std::list<Sort*>* l_sort; 						///< Pointer to a list of Sort element pointers.
+	ObjectList* l_object; 							///< Pointer to a list of Object element pointers.
+	SortList* l_sort;		 						///< Pointer to a list of Sort element pointers.
 	std::list<Variable*>* l_variable; 				///< Pointer to a list of Variable element pointers.
-	std::vector<ParseElement*>* v_parseElement; 	///< Pointer to a list of ParseElement pointers.
-	std::list<std::pair<enum BigQuantifiers::QuantifierType, 
-			ParseElement*>* >* l_quantPair; 		///< List of pairs of QuantifierType enums and a associated ParseElement pointers.
-	std::pair<enum BigQuantifiers::QuantifierType, 
-			ParseElement*>* p_quantPair; 			///< Pair of a QuantifierType enum and an associated ParseElement pointer.
+	ParseElementList* v_parseElement; 				///< Pointer to a list of ParseElement pointers.
+	BigQuantifiers::QuantifierList* l_quantPair; 			///< List of pairs of QuantifierType enums and a associated ParseElement pointers.
+	BigQuantifiers::Quantifier* p_quantPair; 			///< Pair of a QuantifierType enum and an associated ParseElement pointer.
 			
 	/* Types specific to the parser. */
 	PT_constant_binder_t* constant_binder_t; 		///< An internal type for carrying information in a particular constant declaration grammar rule up the chain.
@@ -224,7 +223,7 @@ typedef union YYSTYPE
 
 
 /* Line 1676 of yacc.c  */
-#line 228 "parser.h"
+#line 227 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -251,7 +250,7 @@ extern YYLTYPE ltsyylloc;
 /* "%code provides" blocks.  */
 
 /* Line 1676 of yacc.c  */
-#line 74 "parser.y"
+#line 73 "parser.y"
 
 /**
  * @file parser.h
@@ -275,15 +274,6 @@ int ltsyyparse();
  * @return A new SimpleUnaryOperator "not" object, wrapping another such object, wrapping the original element (or NULL if anything is invalid).
  */
 SimpleUnaryOperator* createNotNot(ParseElement* elem);
-
-/**
- * Creates an object-like element that mirrors the contents of elem.
- * Used when a constant needs to be treated directly as an object.
- * @param elem - The constant to mirror.
- * @return A new ObjectLikeElement object whose contents mirror those of elem.
- * @note The parameters of elem are shallow copied to the new element, be sure to safely clear the new element's parameters before deallocating it!
- */
-ObjectLikeElement* createObjLikeFromConstLike(ConstantLikeElement* elem);
 
 /**
  * Deallocates a "not not" wrapper such that the original ParseElement is not deallocated.
@@ -424,4 +414,4 @@ YYLTYPE ltsyyGetLoc();
 
 
 /* Line 1676 of yacc.c  */
-#line 428 "parser.h"
+#line 418 "parser.h"

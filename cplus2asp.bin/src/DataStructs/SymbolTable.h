@@ -45,11 +45,11 @@ private:
 	/**
 	 * An internal version of findSymbol that returns an iterator instead of a pointer to the symbol (if it's found).
 	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any.
+	 * @param symParams - Parameters of the symbol, if any. NULL if none.
 	 * @param symType - The type of the symbol.
 	 * @return An iterator at the found symbol's position, or the end of the list if the symbol was not found.
 	 */
-	std::list<SymbolNode*>::iterator findSymbolIter(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType);
+	std::list<SymbolNode*>::iterator findSymbolIter(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType);
 public:
 	/**
 	 * Default Constructor. Nothing to initialize/allocate, just here
@@ -78,30 +78,30 @@ public:
 	/**
 	 * Attempts to add a new symbol to the symbol table.
 	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any.
+	 * @param symParams - Parameters of the symbol, if any. NULL if none.
 	 * @param symType - The type of the symbol.
 	 * @return A value from SymTblResult indicating the success/failure of the operation.
 	 */
-	int addSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType);
+	int addSymbol(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType);
 	
 	/**
 	 * Attempts to remove a defined symbol from the symbol table.
 	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any.
+	 * @param symParams - Parameters of the symbol, if any. NULL if none.
 	 * @param symType - The type of the symbol.
 	 * @return A value from SymTblResult indicating the success/failure of the operation.
 	 */
-	int delSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType);
+	int delSymbol(std::string const& symName, std::vector<std::string> const* symParams, SymbolNode::SymbolType symType);
 	
 	/**
 	 * Finds the requested symbol's SymbolNode object in the symbol table if
 	 * the symbol has been defined.
 	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any.
+	 * @param symParams - Parameters of the symbol, if any. NULL if none.
 	 * @param symType - The type of the symbol.
 	 * @return A pointer to the symbol's SymbolNode object, or NULL if the symbol isn't in the table.
 	 */
-	SymbolNode* findSymbol(std::string& symName, std::vector<std::string>& symParams, SymbolNode::SymbolType symType);
+	SymbolNode* findSymbol(std::string const& symName, std::vector<std::string> const* symParams, SymbolNode::SymbolType symType);
 	
 	/**
 	 * Grabs the last symbol added to the table (if any have been added).

@@ -7,82 +7,138 @@
 
 #include "Sort.h"
 #include "utilities.h"
-
+#include "Translator.h"
 #include "Object.h"
 
-// Default constructor.
-Object::Object() : Element()
-{
-	elemType = ELEM_OBJ;
-	objType = OBJ_NAME;
-	isLua = false;
-}
 
 // Full constructor.
-Object::Object(std::string _name, std::string _transName, bool _isLua) : Element(_name, _transName)
+Object::Object(std::string const& name, ObjectType type, SortList const* params)
+	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ)
 {
-	elemType = ELEM_OBJ;
-	objType = OBJ_NAME;
-	isLua = _isLua;
+	mObjType = type;
+	if (params) mParams = *params;
+
+	mFullName = baseName();
+	if(!mParams.empty())
+	{
+		mFullName += "(";
+		mFullName += utils::elementVectorToFullNameString<Sort*>(mParams);
+		mFullName += ")";
+	}
+
+	mFullTransName = baseTransName();
+	if(!mParams.empty())
+	{
+		mFullTransName += "(";
+		mFullTransName += utils::elementVectorToFullTransNameString<Sort*>(mParams);
+		mFullTransName += ")";
+	}
+
 }
 
-// Returns the full name (including parameters) of this object.
-std::string Object::fullName()
+// LUA constructor.
+Object::Object(std::string const& name, size_t params)
+	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ)
 {
-	std::string tempStr = name;
-	if(!params.empty())
-	{
-		tempStr += "(";
-		tempStr += utils::elementVectorToFullNameString<Sort*>(params);
-		tempStr += ")";
+	mObjType = OBJ_LUA;
+	for (; params > 0; params--) {
+		mParams.push_back(NULL);
 	}
-	return tempStr;
-}
-
-// Returns the full translated name (including parameters) of this object.
-std::string Object::fullTransName()
-{
-	std::string tempStr = transName;
-	if(!params.empty())
-	{
-		tempStr += "(";
-		tempStr += utils::elementVectorToFullTransNameString<Sort*>(params);
-		tempStr += ")";
-	}
-	return tempStr;
 }
 
 // Standard toString function.
-std::string Object::toString()
+std::string Object::toString() const
 {
 	std::string tempStr = "";
 	tempStr += "  [Object]";
 	tempStr += "\n  objType = ";
+
 	// Print out the English version of the possible enum values of objType.
-	if(objType == OBJ_NAME)
-	{
+	switch (mObjType) {
+	case OBJ_NAME:
 		tempStr += "OBJ_NAME";
-	}
-	else if(objType == OBJ_RANGE)
-	{
+		break;
+	case OBJ_RANGE:
 		tempStr += "OBJ_RANGE";
-	}
-	else
-	{
+		break;
+	case OBJ_LUA:
+		tempStr += "OBJ_LUA";
+		break;
+	default:
 		tempStr += "UNKNOWN";
+		break;
 	}
+
 	// If this is a "normal" object with parameters, list them.
-	if(objType == OBJ_NAME && !params.empty())
+	if(!mParams.empty())
 	{
 		tempStr += "\n  params = (";
-		tempStr += utils::elementVectorToFullNameString<Sort*>(params, ", ", true);
+		tempStr += utils::elementVectorToFullNameString<Sort*>(mParams, ", ", true);
 		tempStr += ")";
 	}
 	return tempStr;
 }
 
-// Destructor.
-Object::~Object()
-{
-	// Intentionally empty.
+
+bool Object::translate(
+		std::ostream& out,
+		ClauseList& outClauses,
+		ElementCounter* runningCount,
+		std::vector<std::pair<Sort const*, std::string> >* matchMap,
+		std::vector<std::pair<Sort const*, std::string> >* outMap) const {
+
+	bool tmpCount = !runningCount;
+	bool matchingMap = (bool)matchMap;							// Whether we are currently matching the mapped arguments.
+	size_t count;												// The number of times this sort has appeared to date.
+	std::string newVar;											// The name of the new variable to add.
+	if (tmpCount) runningCount = new ElementCounter();
+
+	// Translate the name...
+	out << baseTransName();
+
+	// Transform any parameters into sort variables.
+	if(arity())
+	{
+		out << "(";
+
+		// Use an occurrence counter to get guaranteed unique variable
+		// names representing the sorts that comprise the parameters
+		// of this constant.
+		for(size_t i = 0; i < arity(); i++)
+		{
+			// check the argument against the known parameter list
+			// Pragma: I'm fully aware that this does pointer-wise comparison.
+			if (matchingMap && i < matchMap->size() && param(i) == matchMap->at(i).first) {
+				// Everything (including this argument) has matched so far.
+				// Keep using the mapped variables.
+				if (i > 0) out << ", ";
+				out << matchMap->at(i).second;
+				if (outMap) outMap->push_back(std::pair<Sort const*, std::string>(param(i), matchMap->at(i).second));
+			} else {
+				// nope! Stop trying.
+				matchingMap = false;
+
+				newVar = param(i)->varTransName();
+				// Generate our own variable to use.
+				count = runningCount->add(param(i));
+				if (count > 1) {
+					newVar += "_" + utils::to_string(count);
+				}
+
+				// Add and register the new variable.
+				if (i > 0) out << ", ";
+				out << newVar;
+				if (outMap) outMap->push_back(std::pair<Sort const*, std::string>(param(i), newVar));
+
+				// Add the appropriate clause...
+				if (count > 1) {
+					outClauses.push_back(param(i)->fullTransName() + "(" + newVar + ")");
+				}
+			}
+		}
+	}
+
+	if (tmpCount) delete runningCount;
+
+	return !matchMap || matchingMap;
 }

@@ -530,6 +530,16 @@ public:
 	 */
 	bool setOnlyRun(Toolchain tool);
 
+	/**
+	 * Parses a maxstep specification in the form a single unsigned integer or an integer range %d..%d.
+	 * @param maxstep The maxstep specification.
+	 * @return A pair (maxstep,minstep) corresponding to the specification.
+	 * If the specification is malformed both will be UNDEFINED.
+	 * If it's a single integer, minstep will be UNDEFINED.
+	 */
+	static std::pair<unsigned int, unsigned int> parseMaxstep(std::string const& maxstep);
+
+
 protected:
 
 	/**

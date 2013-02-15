@@ -4,11 +4,14 @@
 #include <string>
 #include <vector>
 
-#include "Constant.h"
 #include "Element.h"
+#include "Constant.h"
+#include "Object.h"
+#include "Sort.h"
 
-class Object;
-class Variable;
+#include "types.h"
+
+
 
 /**
  * The Sort class defines a C+ sort (i.e., domain of objects used as arguments and values).
@@ -17,62 +20,92 @@ class Variable;
 class Sort : public Element
 {
 public:
-	std::vector<Object*> domainObjs; ///< Dynamic array to keep track of the objects specific to this sort.
-	std::vector<Sort*> subsorts; ///< Dynamic array to track any subsorts of this sort.
-	Variable* sortVar; ///< The default Variable associated with this sort.
-	/**
-	 * Default constructor. Calls Element's default constructor and initializes variables to blank (or equivalent).
-	 */
-	Sort();
+	static std::string const VAR_NULL_NAME;		///< Concrete string to return in the event a variable is NULL.
+
+private:
+	ObjectList mObjs; 					///< Dynamic array to keep track of the objects specific to this sort.
+	SortList mSubsorts; 				///< Dynamic array to track any subsorts of this sort.
+	SortList mSupersorts;				///< A list of sorts which have registered this sort as a subsort.
+	Variable* mSortVar; 				///< The default Variable associated with this sort.
+
+	bool mIsNumeric;					///< Running calculation determining whether or not this sort is numeric.
+	bool mIsStarred;					///< Running calculation determining if the value 'none' appears in the sort's domain.
+
+public:
 	
 	/**
 	 * Full constructor. Calls Element's full constructor, saves the given varName, and initializes the domainObjs and subsorts vectors.
-	 * @param _name - The C+ name of the sort.
-	 * @param _transName - The ASP-compatible name of the sort.
+	 * @param name - The C+ name of the sort.
+	 * @param sortVar - The variable to use as the default internal variable for this sort. This variable will be automatically attached to the sort.
 	 */
-	Sort(std::string _name, std::string _transName);
-	
+	Sort(std::string name, Variable* sortVar);
+
+	inline virtual std::string const& fullName() const 				{ return baseName(); }
+	inline virtual std::string const& fullTransName() const 		{ return baseTransName(); }
+	virtual std::string toString() const;
+	inline virtual bool isNumeric() const 							{ return mIsNumeric; }
+	virtual bool isBoolean() const 									{ return isBooleanSort(); }
+	virtual bool isStarred() const 									{ return mIsStarred; }
+
+	/// Gets the variable associated with this sort.
+	inline Variable const* var() const								{ return mSortVar; }
+
+	/// Gets the name of the variable associated with this sort.
+	std::string const& varName() const;
+
+	/// Gets the ASP safe name of the variable associated with this sort.
+	std::string const& varTransName() const;
+
+
 	/**
 	 * Examines its own name and determines if it is any of the special
 	 * "internal" sorts for tracking action constants.
 	 * @return True if it is an action sort, false otherwise.
 	 */
-	inline bool isActionSort() const { return Constant::isActionType(getConstantType()); }
+	inline bool isActionSort() const 								{ return Constant::isActionType(getConstantType()); }
 	
 	/**
 	 * Examines its own name and determines if it is any of the special
 	 * "internal" sorts for tracking fluent constants.
 	 * @return True if it is a fluent sort, false otherwise.
 	 */
-	inline bool isFluentSort() const { return Constant::isFluentType(getConstantType()); }
+	inline bool isFluentSort() const 								{ return Constant::isFluentType(getConstantType()); }
+
+	/**
+	 * Examines its own name and determines if it's the special
+	 * "internal" sort for tracking rigid constants.
+	 * @return True if it is the rigid sort, false otherwise.
+	 */
+	inline bool isRigidSort() const 								{ return getConstantType() == Constant::CONST_RIGID; }
+
 
 	/**
 	 * Examines its own name and determines if it is the special internal
 	 * sort used to track static abnormalities.
 	 * @return True if it is the static abnormality sort.
 	 */
-	inline bool isStaticAbnormalitySort() const { return Constant::constTypeToString(Constant::CONST_STATICAB) == name; }
+	inline bool isStaticAbnormalitySort() const 					{ return Constant::constTypeToString(Constant::CONST_STATICAB) == baseName(); }
 
 	/**
 	 * Examines its own name and determines if it is the special internal
 	 * sort used to track dynamic abnormalities.
 	 * @return True if it is the dynamic abnormality sort.
 	 */
-	inline bool isDynamicAbnormalitySort() const { return Constant::constTypeToString(Constant::CONST_DYNAMICAB) == name; }
+	inline bool isDynamicAbnormalitySort() const 					{ return Constant::constTypeToString(Constant::CONST_DYNAMICAB) == baseName(); }
 
 	/**
 	 * Examines its own name and determines if it is the special sort used to
 	 * denote boolean values.
 	 * @return True if it is the special boolean sort.
 	 */
-	inline bool isBooleanSort() const { return name == "boolean"; }
+	inline bool isBooleanSort() const 								{ return baseName() == "boolean"; }
 
 	/**
 	 * Examines its own name and determines if it is a special internal
 	 * sort used to track a type of constant.
 	 * @return True if it is a special internal constant sort.
 	 */
-	inline bool isConstantSort() const { return getConstantType() != Constant::CONST_UNKNOWN; }
+	inline bool isConstantSort() const 								{ return getConstantType() != Constant::CONST_UNKNOWN; }
 
 	/**
 	 * Determines the type of constant that this sort tracks.
@@ -80,36 +113,69 @@ public:
 	 * used to track constants.
 	 * @return The type of constant the sort tracks or CONST_UNKNOWN.
 	 */
-	inline Constant::ConstantType getConstantType() const { return Constant::stringToConstType(name.c_str()); }
+	inline Constant::ConstantType getConstantType() const 			{ return Constant::stringToConstType(baseName().c_str()); }
+	
+	/**
+	 * Adds an object to the sort.
+	 * @param obj The object to add.
+	 * @param checkExistence whether we should check if the object has already been added or not prior to adding it.
+	 * @return True if the object was added, false otherwise.
+	 */
+	bool addObject(Object* obj, bool checkDuplicate = false);
+
+	/**
+	 * Adds a subsort to the sort.
+	 * @param subsort The subsort to add.
+	 * @param checkDuplicate whether we should check if the subsort has already been added or not prior to adding it.
+	 * @return True if the subsort was added, false if it was a duplicate.
+	 */
+	bool addSubsort(Sort* subsort, bool checkDuplicate = false);
+
+	/// Determines the number of subsorts associated with this sort.
+	inline size_t numSubsorts() const								{ return mSubsorts.size(); }
+
+
+	/// Gets an iterate for the beginning of the subsort list.
+	inline SortList::const_iterator beginSubsorts() const			{ return mSubsorts.begin(); }
+
+	/// Gets an iterator for the end of the subsort list.
+	inline SortList::const_iterator endSubsorts() const				{ return mSubsorts.end(); }
+
+	/// Determines the number of supersorts associated with this sort.
+	inline size_t numSupersorts() const								{ return mSupersorts.size(); }
+
+	/// Gets an iterate for the beginning of the subsort list.
+	inline SortList::const_iterator beginSupersorts() const			{ return mSupersorts.begin(); }
+
+	/// Gets an iterator for the end of the subsort list.
+	inline SortList::const_iterator endSupersorts() const			{ return mSupersorts.end(); }
+
+	/**
+	 * Destructor. Does nothing.
+	 */
+	inline virtual ~Sort() { /* Intentionally Left Blank */ }
+
+protected:
+	/**
+	 * Internal helper used to update whether the sort is numeric or not and notify supersorts.
+	 * @param numericComponent whether the newly added component is numeric.
+	 */
+	void updateNumeric(bool numericComponent);
+
+	/**
+	 * Internal helper used to update whether the sort is starred or not and notify supersorts.
+	 * @param numericComponent whether the newly added component contains 'none'.
+	 */
+	void updateStarred(bool starredComponent);
 
 
 	/**
-	 * Generates the original full name of this element, including full parameter names (if any).
-	 * @return A string representation of this element's base name plus a
-	 * parenthesized, comma-separated list of the full names of any parameters
-	 * (if it has any).
+	 * Helper method called by supersorts to register themselves as such to this sort.
+	 * @param supersort The supersort registering itself.
 	 */
-	virtual std::string fullName();
-	
-	/**
-	 * Generates the translated full name of this element, including
-	 * translated full parameter names (if any).
-	 * @return A string representation of this element's translated base name
-	 * plus a parenthesized, comma-separated list of the full names of any 
-	 * parameters (if it has any).
-	 */
-	virtual std::string fullTransName(); 
-	
-	/**
-	 * Generates a human-readable string representation of this object.
-	 * @return A string suitable for printing to a console or log.
-	 */
-	virtual std::string toString();
-	
-	/**
-	 * Destructor. Clears domainObjs and subsorts, but does not deallocate memory associated with the pointers in those lists.
-	 */
-	virtual ~Sort();
+	inline void registerSupersort(Sort* supersort)	{ mSupersorts.push_back(supersort); }
+
+
 };
 
 #endif // SORT_H

@@ -22,12 +22,17 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/ASPCode.cpp.o
  ltsglobals.h
  parser.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Attribute.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Attribute.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Attribute.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Context.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ DataStructs/ElementCounter.h
+ types.h
+ utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Comment.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Comment.h
@@ -49,26 +54,44 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Comment.cpp.o
  ltsglobals.h
  parser.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Constant.cpp.o
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Attribute.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Context.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/ElementCounter.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Object.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Sort.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Variable.h
- DataStructs/ElementCounter.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/SymbolTable.h
+ Translator.h
+ parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Context.cpp.o
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Context.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Context.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Object.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Sort.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/ElementCounter.h
+ types.h
+ utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Element.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/ElementCounter.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/ElementCounter.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/ElementCounter.h
+ types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Macro.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Macro.h
@@ -92,13 +115,18 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Macro.cpp.o
  ltsglobals.h
  parser.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/NumberRange.cpp.o
- /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Context.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/NumberRange.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/NumberRange.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Object.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/Element.h
+ DataStructs/ElementCounter.h
+ types.h
+ utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
@@ -106,7 +134,13 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Object.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Object.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Sort.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/Context.h
  DataStructs/ElementCounter.h
+ DataStructs/SymbolTable.h
+ DataStructs/Variable.h
+ Translator.h
+ parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Query.cpp
@@ -115,9 +149,12 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Query.cpp.o
  DataStructs/Context.h
  DataStructs/Element.h
  DataStructs/ElementCounter.h
+ DataStructs/Object.h
  DataStructs/Sort.h
  DataStructs/Variable.h
+ DataStructs/datastruct_externs.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
@@ -127,12 +164,18 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Sort.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Sort.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Variable.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/Context.h
  DataStructs/ElementCounter.h
+ DataStructs/SymbolTable.h
+ Translator.h
+ parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/SymbolTable.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/SymbolTable.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/SymbolTable.h
+ types.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/ASPCode.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Comment.h
@@ -155,6 +198,7 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/Token.cpp.o
  ltsglobals.h
  parser.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Token.h
@@ -179,14 +223,23 @@ CMakeFiles/cplus2asp.bin.dir/DataStructs/TokenStream.cpp.o
  ltsglobals.h
  parser.h
  parser_types.h
+ types.h
  utilities.h
 CMakeFiles/cplus2asp.bin.dir/DataStructs/Variable.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Constant.h
- /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Element.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Object.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Sort.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Variable.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/Variable.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/DataStructs/datastruct_externs.h
+ DataStructs/Context.h
+ DataStructs/Element.h
+ DataStructs/ElementCounter.h
+ DataStructs/SymbolTable.h
+ Translator.h
+ parser_types.h
+ types.h
+ utilities.h
 CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/IncludeHandler.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/IncludeHandler.h
@@ -196,6 +249,7 @@ CMakeFiles/cplus2asp.bin.dir/IncludeHandler.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/ltsglobals.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -222,6 +276,7 @@ CMakeFiles/cplus2asp.bin.dir/MacroParser.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/lexerTokenStream.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -249,6 +304,7 @@ CMakeFiles/cplus2asp.bin.dir/Translator.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/ltsglobals.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -271,6 +327,7 @@ CMakeFiles/cplus2asp.bin.dir/flexer.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/ltsglobals.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -293,6 +350,7 @@ CMakeFiles/cplus2asp.bin.dir/lexerTokenStream.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/ltsglobals.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -317,6 +375,7 @@ CMakeFiles/cplus2asp.bin.dir/ltsglobals.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/ltsglobals.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -345,6 +404,7 @@ CMakeFiles/cplus2asp.bin.dir/main.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/main.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -369,6 +429,7 @@ CMakeFiles/cplus2asp.bin.dir/parser.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/parser_types.h
+ /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/types.h
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/ASPCode.h
  DataStructs/Attribute.h
@@ -407,8 +468,10 @@ CMakeFiles/cplus2asp.bin.dir/parser_types.cpp.o
  DataStructs/SymbolTable.h
  DataStructs/Variable.h
  DataStructs/datastruct_externs.h
+ types.h
 CMakeFiles/cplus2asp.bin.dir/utilities.cpp.o
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.cpp
  /home/joseph/workspace/cplus2asp/cplus2asp.bin/src/utilities.h
  DataStructs/Element.h
  DataStructs/ElementCounter.h
+ types.h

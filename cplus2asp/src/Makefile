@@ -53,7 +53,7 @@ realclean:
 	-rm -f $(EXECUTABLE)
 
 .PHONY : install
-install:
+install: $(EXECUTABLE) $(ADDITIVE_ASP_FILE) $(ADDITIVE_ASP_DYNAMIC_FILE) $(STD_ASP_FILE) $(STD_ASP_DYNAMIC_FILE)
 	@cd $(INSTALL_LIBLOC) 2>/dev/null || mkdir $(INSTALL_LIBLOC)
 	@-rm $(INSTALL_LIBLOC)$(EXECUTABLE) 2>/dev/null || true
 	cp $(EXECUTABLE) $(INSTALL_LIBLOC)

@@ -10,52 +10,46 @@
  */
 class NumberRange : public Object
 {
+private:
+	std::string mMin; 		///< The lower bound of the range.
+	std::string mMax; 		///< The upper bound of the range.
+
 public:
-	std::string min; ///< The lower bound of the range.
-	std::string max; ///< The upper bound of the range.
+
 	/**
-	 * Default constructor. Sets min and max to 0, calls the default Object 
-	 * constructor, and sets the inherited objType to OBJ_RANGE.
+	 * Full constructor.
+	 * @param name - The C+ raw name of the range.
 	 */
-	NumberRange();
+	NumberRange(std::string const& name);
 	
 	/**
-	 * Full constructor. Sets min and max to given values, calls the full 
-	 * Object constructor, and sets the inherited objType to OBJ_RANGE.
-	 * @param _name - The C+ raw name of the range.
-	 * @param _transName - The ASP-compatible raw name of the range.
-	 * @param _min - The lower bound of the range.
-	 * @param _max - The upper bound of the range.
+	 * Full constructor.
+	 * @param min - The minimum value of the number range.
+	 * @param max - The maximum value of the number range.
 	 */
-	NumberRange(std::string _name, std::string _transName, std::string _min, std::string _max);
+	inline NumberRange(std::string const& min, std::string const& max)
+			: Object(min + ".." + max, Object::OBJ_RANGE, NULL), mMin(min), mMax(max)
+	{ /* Intentionally Left Blank */ }
+
+	virtual std::string toString() const;
 	
-	/**
-	 * Generates the original full name of this element, including full parameter names (if any).
-	 * @return A string representation of this element's base name plus a
-	 * parenthesized, comma-separated list of the full names of any parameters
-	 * (if it has any).
-	 */
-	virtual std::string fullName();
+	/// Gets the lower bound of the range.
+	inline std::string const& min() const { return mMin; }
 	
-	/**
-	 * Generates the translated full name of this element, including
-	 * translated full parameter names (if any).
-	 * @return A string representation of this element's translated base name
-	 * plus a parenthesized, comma-separated list of the full names of any 
-	 * parameters (if it has any).
-	 */
-	virtual std::string fullTransName();
-	
-	/**
-	 * Generates a human-readable string representation of this object.
-	 * @return Returns a string suitable for printing to a console or log.
-	 */
-	virtual std::string toString();
+	/// Gets the upper bound of the range
+	inline std::string const& max() const { return mMax; }
+
+	/// Sets the lower bound of the range.
+	inline void min(std::string const& min) { mMin = min; }
+
+	/// Sets the upper bond of the rnage
+	inline void max(std::string const& max) { mMax = max; }
+
 	
 	/**
 	 * Destructor. Left empty, as there's nothing to do.
 	 */
-	virtual ~NumberRange();
+	inline virtual ~NumberRange() { /* Intentionally Left Blank */ }
 };
 
 #endif /* NUMBERRANGE_H */

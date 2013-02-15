@@ -28,11 +28,11 @@ State 326 conflicts: 1 shift/reduce
 State 327 conflicts: 1 shift/reduce
 State 351 conflicts: 1 shift/reduce
 State 369 conflicts: 1 shift/reduce
-State 433 conflicts: 6 shift/reduce
 State 434 conflicts: 6 shift/reduce
-State 467 conflicts: 6 shift/reduce
+State 435 conflicts: 6 shift/reduce
 State 468 conflicts: 6 shift/reduce
-State 483 conflicts: 1 shift/reduce
+State 469 conflicts: 6 shift/reduce
+State 484 conflicts: 1 shift/reduce
 
 
 Grammar
@@ -332,8 +332,8 @@ Grammar
   201                       | query_expression_tuple T_SEMICOLON query_expression_tuple
 
   202 query_expression: T_LABEL T_DBL_COLON T_INTEGER
-  203                 | T_MAXSTEP T_DBL_COLON T_INTEGER
-  204                 | T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER
+  203                 | T_MAXSTEP T_DBL_COLON num_range
+  204                 | T_MAXSTEP T_DBL_COLON extended_integer
   205                 | query_body_formula
 
   206 query_body_formula: query_body_formula_inner
@@ -445,7 +445,7 @@ Terminals, with rules where they appear
 
 "end of file" (0) 0
 error (256) 13
-T_INTEGER (258) 202 203 204 249
+T_INTEGER (258) 202 249
 T_IDENTIFIER (259) 29 30 31 32 54 55 80 101 102 197 198 223 224
 T_STRING (260)
 T_ASP (261)
@@ -534,7 +534,7 @@ T_NOT_EQ (341) 268
 T_DBL_EQ (342) 271
 T_EQ (343) 62 190 267
 T_NOT (344) 266
-T_DBL_PERIOD (345) 204 248
+T_DBL_PERIOD (345) 248
 T_PLUS (346) 79 239 256
 T_DASH (347) 240 252 257 265
 T_DBL_GTHAN (348) 69
@@ -772,9 +772,9 @@ extended_math_expr_inner (206)
 extended_math_term (207)
     on left: 246 247, on right: 238
 num_range (208)
-    on left: 248, on right: 57 76
+    on left: 248, on right: 57 76 203
 extended_integer (209)
-    on left: 249 250 251 252, on right: 246 252 255
+    on left: 249 250 251 252, on right: 204 246 252 255
 extended_integer_outer_expression (210)
     on left: 253 254, on right: 39 56 248 256 257 258 259 260
 extended_integer_expression (211)
@@ -3568,8 +3568,8 @@ state 198
 
 state 199
 
-  203 query_expression: T_MAXSTEP . T_DBL_COLON T_INTEGER
-  204                 | T_MAXSTEP . T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER
+  203 query_expression: T_MAXSTEP . T_DBL_COLON num_range
+  204                 | T_MAXSTEP . T_DBL_COLON extended_integer
   251 extended_integer: T_MAXSTEP .
 
     T_DBL_COLON  shift, and go to state 323
@@ -5125,10 +5125,19 @@ state 322
 
 state 323
 
-  203 query_expression: T_MAXSTEP T_DBL_COLON . T_INTEGER
-  204                 | T_MAXSTEP T_DBL_COLON . T_INTEGER T_DBL_PERIOD T_INTEGER
+  203 query_expression: T_MAXSTEP T_DBL_COLON . num_range
+  204                 | T_MAXSTEP T_DBL_COLON . extended_integer
 
-    T_INTEGER  shift, and go to state 426
+    T_INTEGER      shift, and go to state 2
+    T_MAXADDITIVE  shift, and go to state 10
+    T_MAXSTEP      shift, and go to state 11
+    T_PAREN_L      shift, and go to state 357
+    T_DASH         shift, and go to state 90
+
+    num_range                          go to state 426
+    extended_integer                   go to state 427
+    extended_integer_outer_expression  go to state 389
+    extended_integer_expression        go to state 197
 
 
 state 324
@@ -5137,7 +5146,7 @@ state 324
   196                     | expr_big_quantifiers . expr_big_disj
   222 expr_big_query_expression: T_BRACKET_L expr_big_quantifiers . T_PIPE query_body_formula T_BRACKET_R
 
-    T_PIPE      shift, and go to state 427
+    T_PIPE      shift, and go to state 428
     T_BIG_CONJ  shift, and go to state 92
     T_BIG_DISJ  shift, and go to state 93
 
@@ -5153,7 +5162,7 @@ state 325
   213                         | query_body_formula . T_EQUIV query_body_formula
   214                         | query_body_formula . T_IMPL query_body_formula
 
-    T_PAREN_R   shift, and go to state 428
+    T_PAREN_R   shift, and go to state 429
     T_COMMA     shift, and go to state 117
     T_EQUIV     shift, and go to state 330
     T_IMPL      shift, and go to state 331
@@ -5170,7 +5179,7 @@ state 326
   215 query_body_term: query_body_term_inner .
   216                | T_PAREN_L query_body_term_inner . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 429
+    T_PAREN_R  shift, and go to state 430
 
     T_PAREN_R  [reduce using rule 215 (query_body_term)]
     $default   reduce using rule 215 (query_body_term)
@@ -5216,7 +5225,7 @@ state 329
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_expression_tuple     go to state 430
+    query_expression_tuple     go to state 431
     query_expression           go to state 203
     query_body_formula         go to state 204
     query_body_formula_inner   go to state 205
@@ -5252,7 +5261,7 @@ state 330
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_body_formula         go to state 431
+    query_body_formula         go to state 432
     query_body_formula_inner   go to state 205
     query_body_term            go to state 206
     query_body_term_inner      go to state 207
@@ -5286,7 +5295,7 @@ state 331
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_body_formula         go to state 432
+    query_body_formula         go to state 433
     query_body_formula_inner   go to state 205
     query_body_term            go to state 206
     query_body_term_inner      go to state 207
@@ -5320,7 +5329,7 @@ state 332
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_body_formula         go to state 433
+    query_body_formula         go to state 434
     query_body_formula_inner   go to state 205
     query_body_term            go to state 206
     query_body_term_inner      go to state 207
@@ -5354,7 +5363,7 @@ state 333
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_body_formula         go to state 434
+    query_body_formula         go to state 435
     query_body_formula_inner   go to state 205
     query_body_term            go to state 206
     query_body_term_inner      go to state 207
@@ -5388,7 +5397,7 @@ state 334
 
     constant_expr              go to state 60
     lua_indicator              go to state 61
-    extended_value_expression  go to state 435
+    extended_value_expression  go to state 436
     extended_math_expression   go to state 63
     extended_math_expr_inner   go to state 64
     extended_math_term         go to state 65
@@ -5414,7 +5423,7 @@ state 335
 
     constant_expr              go to state 60
     lua_indicator              go to state 61
-    extended_value_expression  go to state 436
+    extended_value_expression  go to state 437
     extended_math_expression   go to state 63
     extended_math_expr_inner   go to state 64
     extended_math_term         go to state 65
@@ -5440,7 +5449,7 @@ state 336
 
     constant_expr              go to state 60
     lua_indicator              go to state 61
-    extended_value_expression  go to state 437
+    extended_value_expression  go to state 438
     extended_math_expression   go to state 63
     extended_math_expr_inner   go to state 64
     extended_math_term         go to state 65
@@ -5466,7 +5475,7 @@ state 337
 
     $default  reduce using rule 225 (lua_indicator)
 
-    query_body_formula         go to state 438
+    query_body_formula         go to state 439
     query_body_formula_inner   go to state 205
     query_body_term            go to state 206
     query_body_term_inner      go to state 207
@@ -5510,7 +5519,7 @@ state 340
 
     $default  reduce using rule 225 (lua_indicator)
 
-    atomic_formula  go to state 439
+    atomic_formula  go to state 440
     constant_expr   go to state 214
     lua_indicator   go to state 61
 
@@ -5534,7 +5543,7 @@ state 341
 
     constant_expr              go to state 60
     lua_indicator              go to state 61
-    extended_value_expression  go to state 440
+    extended_value_expression  go to state 441
     extended_math_expression   go to state 63
     extended_math_expr_inner   go to state 64
     extended_math_term         go to state 65
@@ -5553,7 +5562,7 @@ state 343
    64 sort_spec_outer_tuple: sort_spec_tuple .
    65                      | T_PAREN_L sort_spec_tuple . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 441
+    T_PAREN_R  shift, and go to state 442
 
     $default  reduce using rule 64 (sort_spec_outer_tuple)
 
@@ -5581,7 +5590,7 @@ state 345
     T_SIMPLEFLUENT     shift, and go to state 224
     T_PAREN_L          shift, and go to state 225
 
-    sort_spec_outer_tuple     go to state 442
+    sort_spec_outer_tuple     go to state 443
     sort_spec_tuple           go to state 227
     sort_spec                 go to state 228
     sort_identifier_no_range  go to state 229
@@ -5605,7 +5614,7 @@ state 346
     T_SIMPLEFLUENT     shift, and go to state 224
     T_PAREN_L          shift, and go to state 225
 
-    sort_spec_outer_tuple     go to state 443
+    sort_spec_outer_tuple     go to state 444
     sort_spec_tuple           go to state 227
     sort_spec                 go to state 228
     sort_identifier_no_range  go to state 229
@@ -5617,7 +5626,7 @@ state 347
 
    79 sort_identifier_no_range: sort_identifier_name T_PLUS . T_NONE
 
-    T_NONE  shift, and go to state 444
+    T_NONE  shift, and go to state 445
 
 
 state 348
@@ -5633,9 +5642,9 @@ state 349
   100 variable_outer_list: T_PAREN_L . variable_list T_PAREN_R
 
     T_IDENTIFIER  shift, and go to state 232
-    T_PAREN_L     shift, and go to state 445
+    T_PAREN_L     shift, and go to state 446
 
-    variable_spec        go to state 446
+    variable_spec        go to state 447
     variable_outer_list  go to state 238
     variable_list        go to state 352
 
@@ -5644,7 +5653,7 @@ state 350
 
    93 variable_spec_outer_tuple: T_PAREN_L variable_spec_tuple . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 447
+    T_PAREN_R  shift, and go to state 448
 
 
 state 351
@@ -5652,7 +5661,7 @@ state 351
    96 variable_outer_spec: variable_spec .
    97                    | T_PAREN_L variable_spec . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 448
+    T_PAREN_R  shift, and go to state 449
 
     T_PAREN_R  [reduce using rule 96 (variable_outer_spec)]
     $default   reduce using rule 96 (variable_outer_spec)
@@ -5664,7 +5673,7 @@ state 352
   100                    | T_PAREN_L variable_list . T_PAREN_R
   102 variable_list: variable_list . T_COMMA T_IDENTIFIER
 
-    T_PAREN_R  shift, and go to state 449
+    T_PAREN_R  shift, and go to state 450
     T_COMMA    shift, and go to state 356
 
     $default  reduce using rule 99 (variable_outer_list)
@@ -5684,7 +5693,7 @@ state 354
     T_IDENTIFIER  shift, and go to state 232
     T_PAREN_L     shift, and go to state 233
 
-    variable_spec_outer_tuple  go to state 450
+    variable_spec_outer_tuple  go to state 451
     variable_spec_tuple        go to state 235
     variable_outer_spec        go to state 236
     variable_spec              go to state 237
@@ -5712,12 +5721,12 @@ state 355
     T_PAREN_L          shift, and go to state 415
     T_DASH             shift, and go to state 90
 
-    sort_outer_identifier              go to state 451
+    sort_outer_identifier              go to state 452
     sort_identifier                    go to state 404
     sort_identifier_no_range           go to state 386
     sort_identifier_name               go to state 230
     sort_constant_name                 go to state 231
-    variable_binding                   go to state 452
+    variable_binding                   go to state 453
     num_range                          go to state 388
     extended_integer                   go to state 195
     extended_integer_outer_expression  go to state 389
@@ -5728,7 +5737,7 @@ state 356
 
   102 variable_list: variable_list T_COMMA . T_IDENTIFIER
 
-    T_IDENTIFIER  shift, and go to state 453
+    T_IDENTIFIER  shift, and go to state 454
 
 
 state 357
@@ -5742,7 +5751,7 @@ state 357
     T_DASH         shift, and go to state 90
 
     extended_integer                   go to state 195
-    extended_integer_outer_expression  go to state 454
+    extended_integer_outer_expression  go to state 455
     extended_integer_expression        go to state 311
 
 
@@ -5755,7 +5764,7 @@ state 358
   259                            | extended_integer_outer_expression . T_INT_DIV extended_integer_outer_expression
   260                            | extended_integer_outer_expression . T_MOD extended_integer_outer_expression
 
-    T_PERIOD   shift, and go to state 455
+    T_PERIOD   shift, and go to state 456
     T_PLUS     shift, and go to state 317
     T_DASH     shift, and go to state 318
     T_MOD      shift, and go to state 319
@@ -5771,7 +5780,7 @@ state 359
 
     $default  reduce using rule 112 (cl_when_clause)
 
-    cl_when_clause  go to state 456
+    cl_when_clause  go to state 457
 
 
 state 360
@@ -5790,7 +5799,7 @@ state 360
 
     constant_expr             go to state 60
     lua_indicator             go to state 61
-    extended_math_expression  go to state 457
+    extended_math_expression  go to state 458
     extended_math_expr_inner  go to state 64
     extended_math_term        go to state 65
     extended_integer          go to state 66
@@ -5812,7 +5821,7 @@ state 361
 
     constant_expr             go to state 60
     lua_indicator             go to state 61
-    extended_math_expression  go to state 458
+    extended_math_expression  go to state 459
     extended_math_expr_inner  go to state 64
     extended_math_term        go to state 65
     extended_integer          go to state 66
@@ -5826,7 +5835,7 @@ state 362
 
     $default  reduce using rule 112 (cl_when_clause)
 
-    cl_when_clause  go to state 459
+    cl_when_clause  go to state 460
 
 
 state 363
@@ -5834,8 +5843,8 @@ state 363
   224 constant_expr: lua_indicator T_IDENTIFIER T_PAREN_L parameter_list . T_PAREN_R
   228 parameter_list: parameter_list . T_COMMA parameter_general
 
-    T_PAREN_R  shift, and go to state 460
-    T_COMMA    shift, and go to state 461
+    T_PAREN_R  shift, and go to state 461
+    T_COMMA    shift, and go to state 462
 
 
 state 364
@@ -5869,7 +5878,7 @@ state 366
   195 expr_big_quantifiers: expr_big_quantifiers . expr_big_conj
   196                     | expr_big_quantifiers . expr_big_disj
 
-    T_PIPE      shift, and go to state 462
+    T_PIPE      shift, and go to state 463
     T_BIG_CONJ  shift, and go to state 92
     T_BIG_DISJ  shift, and go to state 93
 
@@ -5900,7 +5909,7 @@ state 368
   172 cl_body_formula_bool: cl_body_formula_bool_inner .
   173                     | T_PAREN_L cl_body_formula_bool_inner . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 463
+    T_PAREN_R  shift, and go to state 464
 
     $default  reduce using rule 172 (cl_body_formula_bool)
 
@@ -5910,7 +5919,7 @@ state 369
   180 cl_body_term_bool: cl_body_term_bool_inner .
   181                  | T_PAREN_L cl_body_term_bool_inner . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 464
+    T_PAREN_R  shift, and go to state 465
 
     T_PAREN_R  [reduce using rule 180 (cl_body_term_bool)]
     $default   reduce using rule 180 (cl_body_term_bool)
@@ -5928,7 +5937,7 @@ state 370
 
     $default  reduce using rule 225 (lua_indicator)
 
-    cl_body_formula_bool        go to state 465
+    cl_body_formula_bool        go to state 466
     cl_body_formula_bool_inner  go to state 269
     cl_body_term_bool           go to state 270
     cl_body_term_bool_inner     go to state 271
@@ -5950,7 +5959,7 @@ state 371
 
     $default  reduce using rule 225 (lua_indicator)
 
-    cl_body_formula_bool        go to state 466
+    cl_body_formula_bool        go to state 467
     cl_body_formula_bool_inner  go to state 269
     cl_body_term_bool           go to state 270
     cl_body_term_bool_inner     go to state 271
@@ -5972,7 +5981,7 @@ state 372
 
     $default  reduce using rule 225 (lua_indicator)
 
-    cl_body_formula_bool        go to state 467
+    cl_body_formula_bool        go to state 468
     cl_body_formula_bool_inner  go to state 269
     cl_body_term_bool           go to state 270
     cl_body_term_bool_inner     go to state 271
@@ -5994,7 +6003,7 @@ state 373
 
     $default  reduce using rule 225 (lua_indicator)
 
-    cl_body_formula_bool        go to state 468
+    cl_body_formula_bool        go to state 469
     cl_body_formula_bool_inner  go to state 269
     cl_body_term_bool           go to state 270
     cl_body_term_bool_inner     go to state 271
@@ -6047,7 +6056,7 @@ state 376
 
     $default  reduce using rule 110 (cl_unless_clause)
 
-    cl_unless_clause  go to state 469
+    cl_unless_clause  go to state 470
 
 
 state 377
@@ -6061,22 +6070,22 @@ state 378
 
   135 cl_constraint_forms: T_IMPOSSIBLE cl_body_formula cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 471
+    cl_following_clause  go to state 472
 
 
 state 379
 
   134 cl_constraint_forms: T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 472
+    cl_following_clause  go to state 473
 
 
 state 380
@@ -6087,18 +6096,18 @@ state 380
 
     $default  reduce using rule 110 (cl_unless_clause)
 
-    cl_unless_clause  go to state 473
+    cl_unless_clause  go to state 474
 
 
 state 381
 
   136 cl_constraint_forms: T_NEVER cl_body_formula cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 474
+    cl_following_clause  go to state 475
 
 
 state 382
@@ -6116,7 +6125,7 @@ state 383
 
     $default  reduce using rule 110 (cl_unless_clause)
 
-    cl_unless_clause  go to state 475
+    cl_unless_clause  go to state 476
 
 
 state 384
@@ -6145,8 +6154,8 @@ state 387
    30 constant_schema: T_IDENTIFIER T_PAREN_L sort_identifier_list . T_PAREN_R
   231 sort_identifier_list: sort_identifier_list . T_COMMA sort_identifier
 
-    T_PAREN_R  shift, and go to state 476
-    T_COMMA    shift, and go to state 477
+    T_PAREN_R  shift, and go to state 477
+    T_COMMA    shift, and go to state 478
 
 
 state 388
@@ -6208,9 +6217,9 @@ state 394
    28 constant_outer_schema: T_PAREN_L . constant_schema T_PAREN_R
 
     T_IDENTIFIER  shift, and go to state 174
-    T_PAREN_L     shift, and go to state 478
+    T_PAREN_L     shift, and go to state 479
 
-    constant_spec               go to state 479
+    constant_spec               go to state 480
     constant_schema_outer_list  go to state 180
     constant_schema_list        go to state 299
     constant_outer_schema       go to state 182
@@ -6229,8 +6238,8 @@ state 396
    37 constant_binder: T_ATTRIBUTE . T_OF constant_schema_nodecl
    38                | T_ATTRIBUTE . T_PAREN_L sort_identifier T_PAREN_R T_OF constant_schema_nodecl
 
-    T_OF       shift, and go to state 480
-    T_PAREN_L  shift, and go to state 481
+    T_OF       shift, and go to state 481
+    T_PAREN_L  shift, and go to state 482
 
 
 state 397
@@ -6272,10 +6281,10 @@ state 399
     T_PAREN_L          shift, and go to state 415
     T_DASH             shift, and go to state 90
 
-    constant_binder                    go to state 482
+    constant_binder                    go to state 483
     sort_identifier_with_ab            go to state 402
     sort_outer_identifier              go to state 403
-    sort_identifier                    go to state 483
+    sort_identifier                    go to state 484
     sort_identifier_no_range           go to state 386
     sort_identifier_name               go to state 230
     sort_constant_name                 go to state 405
@@ -6325,7 +6334,7 @@ state 405
    36 constant_binder: sort_constant_name . T_PAREN_L sort_identifier T_PAREN_R
    81 sort_identifier_name: sort_constant_name .
 
-    T_PAREN_L  shift, and go to state 484
+    T_PAREN_L  shift, and go to state 485
 
     $default  reduce using rule 81 (sort_identifier_name)
 
@@ -6336,7 +6345,7 @@ state 406
 
     T_IDENTIFIER  shift, and go to state 174
 
-    constant_schema  go to state 485
+    constant_schema  go to state 486
 
 
 state 407
@@ -6351,8 +6360,8 @@ state 408
    55 object_schema: T_IDENTIFIER T_PAREN_L sort_identifier_list . T_PAREN_R
   231 sort_identifier_list: sort_identifier_list . T_COMMA sort_identifier
 
-    T_PAREN_R  shift, and go to state 486
-    T_COMMA    shift, and go to state 477
+    T_PAREN_R  shift, and go to state 487
+    T_COMMA    shift, and go to state 478
 
 
 state 409
@@ -6421,7 +6430,7 @@ state 415
     T_PAREN_L          shift, and go to state 357
     T_DASH             shift, and go to state 90
 
-    sort_identifier                    go to state 487
+    sort_identifier                    go to state 488
     sort_identifier_no_range           go to state 386
     sort_identifier_name               go to state 230
     sort_constant_name                 go to state 231
@@ -6450,7 +6459,7 @@ state 417
     T_PAREN_L      shift, and go to state 357
     T_DASH         shift, and go to state 90
 
-    object_schema                      go to state 488
+    object_schema                      go to state 489
     num_range                          go to state 194
     extended_integer                   go to state 195
     extended_integer_outer_expression  go to state 196
@@ -6559,15 +6568,22 @@ state 425
 
 state 426
 
-  203 query_expression: T_MAXSTEP T_DBL_COLON T_INTEGER .
-  204                 | T_MAXSTEP T_DBL_COLON T_INTEGER . T_DBL_PERIOD T_INTEGER
-
-    T_DBL_PERIOD  shift, and go to state 489
+  203 query_expression: T_MAXSTEP T_DBL_COLON num_range .
 
     $default  reduce using rule 203 (query_expression)
 
 
 state 427
+
+  204 query_expression: T_MAXSTEP T_DBL_COLON extended_integer .
+  255 extended_integer_expression: extended_integer .
+
+    T_PERIOD     reduce using rule 204 (query_expression)
+    T_SEMICOLON  reduce using rule 204 (query_expression)
+    $default     reduce using rule 255 (extended_integer_expression)
+
+
+state 428
 
   222 expr_big_query_expression: T_BRACKET_L expr_big_quantifiers T_PIPE . query_body_formula T_BRACKET_R
 
@@ -6601,21 +6617,21 @@ state 427
     NOT                        go to state 211
 
 
-state 428
+state 429
 
   207 query_body_formula: T_PAREN_L query_body_formula T_PAREN_R .
 
     $default  reduce using rule 207 (query_body_formula)
 
 
-state 429
+state 430
 
   216 query_body_term: T_PAREN_L query_body_term_inner T_PAREN_R .
 
     $default  reduce using rule 216 (query_body_term)
 
 
-state 430
+state 431
 
   201 query_expression_tuple: query_expression_tuple . T_SEMICOLON query_expression_tuple
   201                       | query_expression_tuple T_SEMICOLON query_expression_tuple .
@@ -6625,7 +6641,7 @@ state 430
     $default  reduce using rule 201 (query_expression_tuple)
 
 
-state 431
+state 432
 
   211 query_body_formula_inner: query_body_formula . AND query_body_formula
   212                         | query_body_formula . OR query_body_formula
@@ -6645,7 +6661,7 @@ state 431
     OR   go to state 333
 
 
-state 432
+state 433
 
   211 query_body_formula_inner: query_body_formula . AND query_body_formula
   212                         | query_body_formula . OR query_body_formula
@@ -6664,7 +6680,7 @@ state 432
     OR   go to state 333
 
 
-state 433
+state 434
 
   211 query_body_formula_inner: query_body_formula . AND query_body_formula
   211                         | query_body_formula AND query_body_formula .
@@ -6691,7 +6707,7 @@ state 433
     OR   go to state 333
 
 
-state 434
+state 435
 
   211 query_body_formula_inner: query_body_formula . AND query_body_formula
   212                         | query_body_formula . OR query_body_formula
@@ -6718,28 +6734,28 @@ state 434
     OR   go to state 333
 
 
-state 435
+state 436
 
   218 query_body_term_inner: extended_value_expression EQUALS extended_value_expression .
 
     $default  reduce using rule 218 (query_body_term_inner)
 
 
-state 436
+state 437
 
   219 query_body_term_inner: extended_value_expression NOT_EQUALS extended_value_expression .
 
     $default  reduce using rule 219 (query_body_term_inner)
 
 
-state 437
+state 438
 
   220 query_body_term_inner: extended_value_expression COMPARISON extended_value_expression .
 
     $default  reduce using rule 220 (query_body_term_inner)
 
 
-state 438
+state 439
 
   208 query_body_formula: extended_math_expr_inner T_COLON query_body_formula .
   211 query_body_formula_inner: query_body_formula . AND query_body_formula
@@ -6760,28 +6776,28 @@ state 438
     OR   go to state 333
 
 
-state 439
+state 440
 
    60 atomic_formula_list: atomic_formula_list T_SEMICOLON atomic_formula .
 
     $default  reduce using rule 60 (atomic_formula_list)
 
 
-state 440
+state 441
 
    62 atomic_formula: constant_expr T_EQ extended_value_expression .
 
     $default  reduce using rule 62 (atomic_formula)
 
 
-state 441
+state 442
 
    65 sort_spec_outer_tuple: T_PAREN_L sort_spec_tuple T_PAREN_R .
 
     $default  reduce using rule 65 (sort_spec_outer_tuple)
 
 
-state 442
+state 443
 
    67 sort_spec_tuple: sort_spec_outer_tuple . T_SEMICOLON sort_spec_outer_tuple
    67                | sort_spec_outer_tuple T_SEMICOLON sort_spec_outer_tuple .
@@ -6791,7 +6807,7 @@ state 442
     $default  reduce using rule 67 (sort_spec_tuple)
 
 
-state 443
+state 444
 
    67 sort_spec_tuple: sort_spec_outer_tuple . T_SEMICOLON sort_spec_outer_tuple
    69 sort_spec: sort_identifier_no_range T_DBL_GTHAN sort_spec_outer_tuple .
@@ -6799,14 +6815,14 @@ state 443
     $default  reduce using rule 69 (sort_spec)
 
 
-state 444
+state 445
 
    79 sort_identifier_no_range: sort_identifier_name T_PLUS T_NONE .
 
     $default  reduce using rule 79 (sort_identifier_no_range)
 
 
-state 445
+state 446
 
   100 variable_outer_list: T_PAREN_L . variable_list T_PAREN_R
 
@@ -6815,63 +6831,63 @@ state 445
     variable_list  go to state 491
 
 
-state 446
+state 447
 
    97 variable_outer_spec: T_PAREN_L variable_spec . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 448
+    T_PAREN_R  shift, and go to state 449
 
 
-state 447
+state 448
 
    93 variable_spec_outer_tuple: T_PAREN_L variable_spec_tuple T_PAREN_R .
 
     $default  reduce using rule 93 (variable_spec_outer_tuple)
 
 
-state 448
+state 449
 
    97 variable_outer_spec: T_PAREN_L variable_spec T_PAREN_R .
 
     $default  reduce using rule 97 (variable_outer_spec)
 
 
-state 449
+state 450
 
   100 variable_outer_list: T_PAREN_L variable_list T_PAREN_R .
 
     $default  reduce using rule 100 (variable_outer_list)
 
 
-state 450
+state 451
 
    95 variable_spec_tuple: variable_outer_spec T_SEMICOLON variable_spec_outer_tuple .
 
     $default  reduce using rule 95 (variable_spec_tuple)
 
 
-state 451
+state 452
 
   103 variable_binding: sort_outer_identifier .
 
     $default  reduce using rule 103 (variable_binding)
 
 
-state 452
+state 453
 
    98 variable_spec: variable_outer_list T_DBL_COLON variable_binding .
 
     $default  reduce using rule 98 (variable_spec)
 
 
-state 453
+state 454
 
   102 variable_list: variable_list T_COMMA T_IDENTIFIER .
 
     $default  reduce using rule 102 (variable_list)
 
 
-state 454
+state 455
 
   256 extended_integer_expression: extended_integer_outer_expression . T_PLUS extended_integer_outer_expression
   257                            | extended_integer_outer_expression . T_DASH extended_integer_outer_expression
@@ -6886,14 +6902,14 @@ state 454
     T_STAR     shift, and go to state 321
 
 
-state 455
+state 456
 
    39 maxadditive_statement: T_COLON_DASH T_MAXADDITIVE T_DBL_COLON extended_integer_outer_expression T_PERIOD .
 
     $default  reduce using rule 39 (maxadditive_statement)
 
 
-state 456
+state 457
 
   144 cl_causes_forms: cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_when_clause . cl_where_clause
 
@@ -6904,7 +6920,7 @@ state 456
     cl_where_clause  go to state 492
 
 
-state 457
+state 458
 
   148 cl_increment_forms: cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression . cl_if_clause cl_when_clause cl_where_clause
   239 extended_math_expr_inner: extended_math_expression . T_PLUS extended_math_expression
@@ -6925,7 +6941,7 @@ state 457
     cl_if_clause  go to state 493
 
 
-state 458
+state 459
 
   147 cl_increment_forms: cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression . cl_if_clause cl_when_clause cl_where_clause
   239 extended_math_expr_inner: extended_math_expression . T_PLUS extended_math_expression
@@ -6946,7 +6962,7 @@ state 458
     cl_if_clause  go to state 494
 
 
-state 459
+state 460
 
   143 cl_may_cause_forms: cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clause cl_when_clause . cl_where_clause
 
@@ -6957,14 +6973,14 @@ state 459
     cl_where_clause  go to state 495
 
 
-state 460
+state 461
 
   224 constant_expr: lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R .
 
     $default  reduce using rule 224 (constant_expr)
 
 
-state 461
+state 462
 
   228 parameter_list: parameter_list T_COMMA . parameter_general
 
@@ -6987,7 +7003,7 @@ state 461
     extended_integer          go to state 66
 
 
-state 462
+state 463
 
   192 expr_big_expression_bool: T_BRACKET_L expr_big_quantifiers T_PIPE . cl_body_formula_bool T_BRACKET_R
 
@@ -7009,21 +7025,21 @@ state 462
     NOT                         go to state 274
 
 
-state 463
+state 464
 
   173 cl_body_formula_bool: T_PAREN_L cl_body_formula_bool_inner T_PAREN_R .
 
     $default  reduce using rule 173 (cl_body_formula_bool)
 
 
-state 464
+state 465
 
   181 cl_body_term_bool: T_PAREN_L cl_body_term_bool_inner T_PAREN_R .
 
     $default  reduce using rule 181 (cl_body_term_bool)
 
 
-state 465
+state 466
 
   176 cl_body_formula_bool_inner: cl_body_formula_bool . AND cl_body_formula_bool
   177                           | cl_body_formula_bool . OR cl_body_formula_bool
@@ -7043,7 +7059,7 @@ state 465
     OR   go to state 373
 
 
-state 466
+state 467
 
   176 cl_body_formula_bool_inner: cl_body_formula_bool . AND cl_body_formula_bool
   177                           | cl_body_formula_bool . OR cl_body_formula_bool
@@ -7062,7 +7078,7 @@ state 466
     OR   go to state 373
 
 
-state 467
+state 468
 
   176 cl_body_formula_bool_inner: cl_body_formula_bool . AND cl_body_formula_bool
   176                           | cl_body_formula_bool AND cl_body_formula_bool .
@@ -7089,7 +7105,7 @@ state 467
     OR   go to state 373
 
 
-state 468
+state 469
 
   176 cl_body_formula_bool_inner: cl_body_formula_bool . AND cl_body_formula_bool
   177                           | cl_body_formula_bool . OR cl_body_formula_bool
@@ -7116,7 +7132,7 @@ state 468
     OR   go to state 373
 
 
-state 469
+state 470
 
   150 causal_law_basic_forms: T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause . cl_when_clause cl_following_clause cl_where_clause
 
@@ -7127,7 +7143,7 @@ state 469
     cl_when_clause  go to state 498
 
 
-state 470
+state 471
 
   115 cl_following_clause: T_FOLLOWING . cl_following_expr
 
@@ -7150,7 +7166,7 @@ state 470
     NOT                         go to state 274
 
 
-state 471
+state 472
 
   135 cl_constraint_forms: T_IMPOSSIBLE cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
@@ -7161,7 +7177,7 @@ state 471
     cl_where_clause  go to state 501
 
 
-state 472
+state 473
 
   134 cl_constraint_forms: T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
@@ -7172,7 +7188,7 @@ state 472
     cl_where_clause  go to state 502
 
 
-state 473
+state 474
 
   137 cl_default_forms: T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause . cl_when_clause cl_following_clause cl_where_clause
 
@@ -7183,7 +7199,7 @@ state 473
     cl_when_clause  go to state 503
 
 
-state 474
+state 475
 
   136 cl_constraint_forms: T_NEVER cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
@@ -7194,7 +7210,7 @@ state 474
     cl_where_clause  go to state 504
 
 
-state 475
+state 476
 
   142 cl_possibly_caused_forms: T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause . cl_when_clause cl_following_clause cl_where_clause
 
@@ -7205,14 +7221,14 @@ state 475
     cl_when_clause  go to state 505
 
 
-state 476
+state 477
 
    30 constant_schema: T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R .
 
     $default  reduce using rule 30 (constant_schema)
 
 
-state 477
+state 478
 
   231 sort_identifier_list: sort_identifier_list T_COMMA . sort_identifier
 
@@ -7242,13 +7258,13 @@ state 477
     extended_integer_expression        go to state 197
 
 
-state 478
+state 479
 
    24 constant_schema_outer_list: T_PAREN_L . constant_schema_list T_PAREN_R
    28 constant_outer_schema: T_PAREN_L . constant_schema T_PAREN_R
 
     T_IDENTIFIER  shift, and go to state 174
-    T_PAREN_L     shift, and go to state 478
+    T_PAREN_L     shift, and go to state 479
 
     constant_schema_outer_list  go to state 507
     constant_schema_list        go to state 299
@@ -7256,14 +7272,14 @@ state 478
     constant_schema             go to state 300
 
 
-state 479
+state 480
 
    21 constant_outer_spec: T_PAREN_L constant_spec . T_PAREN_R
 
     T_PAREN_R  shift, and go to state 391
 
 
-state 480
+state 481
 
    37 constant_binder: T_ATTRIBUTE T_OF . constant_schema_nodecl
 
@@ -7272,7 +7288,7 @@ state 480
     constant_schema_nodecl  go to state 509
 
 
-state 481
+state 482
 
    38 constant_binder: T_ATTRIBUTE T_PAREN_L . sort_identifier T_PAREN_R T_OF constant_schema_nodecl
 
@@ -7302,14 +7318,14 @@ state 481
     extended_integer_expression        go to state 197
 
 
-state 482
+state 483
 
    34 constant_outer_binder: T_PAREN_L constant_binder . T_PAREN_R
 
     T_PAREN_R  shift, and go to state 511
 
 
-state 483
+state 484
 
    73 sort_outer_identifier: sort_identifier .
    74                      | T_PAREN_L sort_identifier . T_PAREN_R
@@ -7319,7 +7335,7 @@ state 483
     T_PAREN_R  [reduce using rule 73 (sort_outer_identifier)]
 
 
-state 484
+state 485
 
    36 constant_binder: sort_constant_name T_PAREN_L . sort_identifier T_PAREN_R
 
@@ -7349,39 +7365,32 @@ state 484
     extended_integer_expression        go to state 197
 
 
-state 485
+state 486
 
    28 constant_outer_schema: T_PAREN_L constant_schema . T_PAREN_R
 
     T_PAREN_R  shift, and go to state 393
 
 
-state 486
+state 487
 
    55 object_schema: T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R .
 
     $default  reduce using rule 55 (object_schema)
 
 
-state 487
+state 488
 
    74 sort_outer_identifier: T_PAREN_L sort_identifier . T_PAREN_R
 
     T_PAREN_R  shift, and go to state 512
 
 
-state 488
+state 489
 
    53 object_outer_schema: T_PAREN_L object_schema . T_PAREN_R
 
     T_PAREN_R  shift, and go to state 412
-
-
-state 489
-
-  204 query_expression: T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD . T_INTEGER
-
-    T_INTEGER  shift, and go to state 514
 
 
 state 490
@@ -7392,7 +7401,7 @@ state 490
   214                         | query_body_formula . T_IMPL query_body_formula
   222 expr_big_query_expression: T_BRACKET_L expr_big_quantifiers T_PIPE query_body_formula . T_BRACKET_R
 
-    T_BRACKET_R  shift, and go to state 515
+    T_BRACKET_R  shift, and go to state 514
     T_COMMA      shift, and go to state 117
     T_EQUIV      shift, and go to state 330
     T_IMPL       shift, and go to state 331
@@ -7409,7 +7418,7 @@ state 491
   100 variable_outer_list: T_PAREN_L variable_list . T_PAREN_R
   102 variable_list: variable_list . T_COMMA T_IDENTIFIER
 
-    T_PAREN_R  shift, and go to state 449
+    T_PAREN_R  shift, and go to state 450
     T_COMMA    shift, and go to state 356
 
 
@@ -7428,7 +7437,7 @@ state 493
 
     $default  reduce using rule 112 (cl_when_clause)
 
-    cl_when_clause  go to state 516
+    cl_when_clause  go to state 515
 
 
 state 494
@@ -7439,7 +7448,7 @@ state 494
 
     $default  reduce using rule 112 (cl_when_clause)
 
-    cl_when_clause  go to state 517
+    cl_when_clause  go to state 516
 
 
 state 495
@@ -7464,7 +7473,7 @@ state 497
   179                           | cl_body_formula_bool . T_IMPL cl_body_formula_bool
   192 expr_big_expression_bool: T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula_bool . T_BRACKET_R
 
-    T_BRACKET_R  shift, and go to state 518
+    T_BRACKET_R  shift, and go to state 517
     T_COMMA      shift, and go to state 117
     T_EQUIV      shift, and go to state 370
     T_IMPL       shift, and go to state 371
@@ -7480,11 +7489,11 @@ state 498
 
   150 causal_law_basic_forms: T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 519
+    cl_following_clause  go to state 518
 
 
 state 499
@@ -7533,11 +7542,11 @@ state 503
 
   137 cl_default_forms: T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 520
+    cl_following_clause  go to state 519
 
 
 state 504
@@ -7551,11 +7560,11 @@ state 505
 
   142 cl_possibly_caused_forms: T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause . cl_following_clause cl_where_clause
 
-    T_FOLLOWING  shift, and go to state 470
+    T_FOLLOWING  shift, and go to state 471
 
     $default  reduce using rule 114 (cl_following_clause)
 
-    cl_following_clause  go to state 521
+    cl_following_clause  go to state 520
 
 
 state 506
@@ -7577,7 +7586,7 @@ state 508
    31 constant_schema_nodecl: T_IDENTIFIER .
    32                       | T_IDENTIFIER . T_PAREN_L sort_identifier_list T_PAREN_R
 
-    T_PAREN_L  shift, and go to state 522
+    T_PAREN_L  shift, and go to state 521
 
     $default  reduce using rule 31 (constant_schema_nodecl)
 
@@ -7593,7 +7602,7 @@ state 510
 
    38 constant_binder: T_ATTRIBUTE T_PAREN_L sort_identifier . T_PAREN_R T_OF constant_schema_nodecl
 
-    T_PAREN_R  shift, and go to state 523
+    T_PAREN_R  shift, and go to state 522
 
 
 state 511
@@ -7614,26 +7623,30 @@ state 513
 
    36 constant_binder: sort_constant_name T_PAREN_L sort_identifier . T_PAREN_R
 
-    T_PAREN_R  shift, and go to state 524
+    T_PAREN_R  shift, and go to state 523
 
 
 state 514
-
-  204 query_expression: T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER .
-
-    $default  reduce using rule 204 (query_expression)
-
-
-state 515
 
   222 expr_big_query_expression: T_BRACKET_L expr_big_quantifiers T_PIPE query_body_formula T_BRACKET_R .
 
     $default  reduce using rule 222 (expr_big_query_expression)
 
 
-state 516
+state 515
 
   148 cl_increment_forms: cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause . cl_where_clause
+
+    T_WHERE  shift, and go to state 160
+
+    $default  reduce using rule 116 (cl_where_clause)
+
+    cl_where_clause  go to state 524
+
+
+state 516
+
+  147 cl_increment_forms: cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause . cl_where_clause
 
     T_WHERE  shift, and go to state 160
 
@@ -7644,7 +7657,14 @@ state 516
 
 state 517
 
-  147 cl_increment_forms: cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause . cl_where_clause
+  192 expr_big_expression_bool: T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula_bool T_BRACKET_R .
+
+    $default  reduce using rule 192 (expr_big_expression_bool)
+
+
+state 518
+
+  150 causal_law_basic_forms: T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
     T_WHERE  shift, and go to state 160
 
@@ -7653,16 +7673,9 @@ state 517
     cl_where_clause  go to state 526
 
 
-state 518
-
-  192 expr_big_expression_bool: T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula_bool T_BRACKET_R .
-
-    $default  reduce using rule 192 (expr_big_expression_bool)
-
-
 state 519
 
-  150 causal_law_basic_forms: T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
+  137 cl_default_forms: T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
     T_WHERE  shift, and go to state 160
 
@@ -7673,7 +7686,7 @@ state 519
 
 state 520
 
-  137 cl_default_forms: T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
+  142 cl_possibly_caused_forms: T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
 
     T_WHERE  shift, and go to state 160
 
@@ -7683,17 +7696,6 @@ state 520
 
 
 state 521
-
-  142 cl_possibly_caused_forms: T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause . cl_where_clause
-
-    T_WHERE  shift, and go to state 160
-
-    $default  reduce using rule 116 (cl_where_clause)
-
-    cl_where_clause  go to state 529
-
-
-state 522
 
    32 constant_schema_nodecl: T_IDENTIFIER T_PAREN_L . sort_identifier_list T_PAREN_R
 
@@ -7717,88 +7719,88 @@ state 522
     sort_identifier_no_range           go to state 386
     sort_identifier_name               go to state 230
     sort_constant_name                 go to state 231
-    sort_identifier_list               go to state 530
+    sort_identifier_list               go to state 529
     num_range                          go to state 388
     extended_integer                   go to state 195
     extended_integer_outer_expression  go to state 389
     extended_integer_expression        go to state 197
 
 
-state 523
+state 522
 
    38 constant_binder: T_ATTRIBUTE T_PAREN_L sort_identifier T_PAREN_R . T_OF constant_schema_nodecl
 
-    T_OF  shift, and go to state 531
+    T_OF  shift, and go to state 530
 
 
-state 524
+state 523
 
    36 constant_binder: sort_constant_name T_PAREN_L sort_identifier T_PAREN_R .
 
     $default  reduce using rule 36 (constant_binder)
 
 
-state 525
+state 524
 
   148 cl_increment_forms: cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause .
 
     $default  reduce using rule 148 (cl_increment_forms)
 
 
-state 526
+state 525
 
   147 cl_increment_forms: cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause .
 
     $default  reduce using rule 147 (cl_increment_forms)
 
 
-state 527
+state 526
 
   150 causal_law_basic_forms: T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause .
 
     $default  reduce using rule 150 (causal_law_basic_forms)
 
 
-state 528
+state 527
 
   137 cl_default_forms: T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause .
 
     $default  reduce using rule 137 (cl_default_forms)
 
 
-state 529
+state 528
 
   142 cl_possibly_caused_forms: T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause .
 
     $default  reduce using rule 142 (cl_possibly_caused_forms)
 
 
-state 530
+state 529
 
    32 constant_schema_nodecl: T_IDENTIFIER T_PAREN_L sort_identifier_list . T_PAREN_R
   231 sort_identifier_list: sort_identifier_list . T_COMMA sort_identifier
 
-    T_PAREN_R  shift, and go to state 532
-    T_COMMA    shift, and go to state 477
+    T_PAREN_R  shift, and go to state 531
+    T_COMMA    shift, and go to state 478
 
 
-state 531
+state 530
 
    38 constant_binder: T_ATTRIBUTE T_PAREN_L sort_identifier T_PAREN_R T_OF . constant_schema_nodecl
 
     T_IDENTIFIER  shift, and go to state 508
 
-    constant_schema_nodecl  go to state 533
+    constant_schema_nodecl  go to state 532
 
 
-state 532
+state 531
 
    32 constant_schema_nodecl: T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R .
 
     $default  reduce using rule 32 (constant_schema_nodecl)
 
 
-state 533
+state 532
 
    38 constant_binder: T_ATTRIBUTE T_PAREN_L sort_identifier T_PAREN_R T_OF constant_schema_nodecl .
 

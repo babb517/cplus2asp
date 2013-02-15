@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "types.h"
 #include "Macro.h"
 #include "Token.h"
 #include "lexerTokenStream.h"
@@ -318,7 +319,7 @@ std::list<Macro*> MacroParser::parser_def_macro_tuple()
 					}
 					ossMaxAdd << "]";
 					std::string maxAddOut = ossMaxAdd.str();
-					mainTrans.output(maxAddOut, Context::NONE, true);
+					mainTrans.output(maxAddOut, IPART_NONE, true);
 					ossMaxAdd.str("");
 					delete tempMacro;
 				}
