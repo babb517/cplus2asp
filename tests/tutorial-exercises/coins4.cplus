@@ -1,0 +1,23 @@
+:- sorts
+	people;
+	coins.
+
+:- objects
+	john, mary :: people.
+
+:- constants
+	owner(coins) :: inertialFluent(people*);
+	give(coins) :: exogenousAction;
+	throw(coins) :: exogenousAction.
+
+:- variables
+	P :: people;
+	C :: coins.
+
+give(C) causes owner(C)=mary if owner(C)=john.
+give(C) causes owner(C)=john if owner(C)=mary.
+
+throw(C) causes owner(C)=none.
+
+
+

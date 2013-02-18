@@ -1,0 +1,8 @@
+:- constants
+ p :: inertialFluent;
+ a :: exogenousAction.
+
+a causes p.
+
+
+	

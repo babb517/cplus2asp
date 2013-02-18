@@ -1,0 +1,10 @@
+:- constants
+	loaded, alive :: inertialFluent;
+	load, shoot :: exogenousAction.
+
+
+load causes loaded.
+shoot may cause -alive.
+nonexecutable shoot if -loaded.
+nonexecutable load & shoot.
+

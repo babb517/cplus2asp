@@ -1,0 +1,17 @@
+
+:- include 'shooting3.cplus'.
+
+:- objects
+	mygun, hisgun :: guns;
+	buffalo, deer, fox :: animals.
+
+
+% Exercise 3.2
+% Initially the guns are loaded but not aimed. Find a plan to kill all animals.
+% Command: cplus2asp e3_2.query -q 0
+:- query
+	label :: 0;
+	0: alive(A);
+	0: loaded(G), target(G)=none;
+	maxstep: -alive(A).
+

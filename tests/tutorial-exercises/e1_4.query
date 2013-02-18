@@ -1,0 +1,15 @@
+
+:- macros
+	n -> 11.
+
+:- include 'coins2.cplus'.
+
+
+
+% Exercise 1.4
+% Determine the shortest path from c=10 to c=4.
+% Command: cplus2asp e1_4.query -q 0
+:- query
+	label :: 0;
+	0: c=10;
+	maxstep: c=4.

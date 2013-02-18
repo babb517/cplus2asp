@@ -1,0 +1,20 @@
+% Debug: Parsing Options...
+% Debug: Parsing option 'clique'.
+% Debug: The option isn't a recognized flag. Checking other possibilities.
+% Debug: Parsing option '--solver-warnings'.
+% Debug: Parsing option '-nodel'.
+% Debug: Parsing option '--mode=static-auto'.
+% Debug: Handling input files...
+% Debug: Adding input file 'clique'.
+% Debug: The command line options are sane.
+% Debug: Beginning translator subroutine.
+% Debug: Running the translator with command: cplus2asp.bin  clique  --symbol-table ".cplus2asp_trans.symtab" --expressive-return --static > ".cplus2asp_trans.out"
+% Debug: Translation done. Performing intermediate processing and final configuration.
+% Debug: The maxstep is unspecified. Registering the deficiency.
+% Debug: The query is unspecified. Registering the deficiency.
+% Debug: Starting with the translator output file...
+The following queries are available to run:
+none: No Query
+sat: Satisfiability Check - maxstep=0
+exit: Exit the program.
+Please select a query to run: 

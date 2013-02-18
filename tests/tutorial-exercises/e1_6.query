@@ -1,0 +1,13 @@
+:- macros
+ n -> 3.
+
+:- include 'coins.cplus'.
+
+% Exercise 1.6
+% Calculate all edges in the transition system.
+% Command: cplus2asp e1_6.query -q 0 0
+:- query
+	label :: 0;
+	maxstep :: 1.
+
+

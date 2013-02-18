@@ -1,0 +1,395 @@
+
+
+Causal Calculator: Version 2.0 Beta 9.
+Type 'help.' for online help.
+
+
+--- 'zoo-test1' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test1'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test1
+% in transition mode...
+% 380 atoms, 7192 rules, 10351 clauses (734 new atoms)
+% Grounding time: 20.47 seconds
+% Completion time: 2.13 seconds
+% Total time: 22.60 seconds
+
+|? - set(num,all).
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.01 seconds)
+% After shifting: 2132 atoms (including new atoms), 24475 clauses
+% Writing input clauses... done.  (0.83 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.43 seconds (prep 0.40 seconds, search 0.03 seconds)
+
+No solution with maxstep 3.
+
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2641 atoms (including new atoms), 31537 clauses
+% Writing input clauses... done.  (1.10 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.6 seconds (prep 0.54 seconds, search 0.06 seconds)
+
+0:  pos(homer)=6  pos(jumbo)=3  
+
+ACTIONS:  move(homer,7)  
+
+1:  pos(homer)=7  pos(jumbo)=3  
+
+ACTIONS:  open(homer,gateAO)  
+
+2:  opened(gateAO)  pos(homer)=7  pos(jumbo)=3  
+
+ACTIONS:  move(homer,4)  
+
+3:  opened(gateAO)  pos(homer)=4  pos(jumbo)=3  
+
+ACTIONS:  mount(homer,jumbo)  
+
+4:  opened(gateAO)  mounted(homer,jumbo)  pos(homer)=3  pos(jumbo)=3  
+
+
+
+
+
+--- 'zoo-test2' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test2'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test2
+% in transition mode...
+% 338 atoms, 3699 rules, 5889 clauses (498 new atoms)
+% Grounding time: 5.27 seconds
+% Completion time: 1.29 seconds
+% Total time: 6.56 seconds
+
+|? - set(num,all).
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1088 atoms (including new atoms), 8679 clauses
+% Writing input clauses... done.  (0.19 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.13 seconds (prep 0.11 seconds, search 0.02 seconds)
+
+0:  pos(homer)=7  
+
+ACTIONS:  open(homer,gateAO)  
+
+1:  opened(gateAO)  pos(homer)=7  
+
+ACTIONS:  move(homer,4)  
+
+2:  opened(gateAO)  pos(homer)=4  
+
+
+
+
+
+--- 'zoo-test3' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test3'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test3
+% in transition mode...
+% 380 atoms, 7200 rules, 10351 clauses (734 new atoms)
+% Grounding time: 20.60 seconds
+% Completion time: 2.18 seconds
+% Total time: 22.78 seconds
+
+|? - set(num,1).
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1114 atoms (including new atoms), 10351 clauses
+% Writing input clauses... done.  (0.30 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.18 seconds (prep 0.17 seconds, search 0.01 seconds)
+
+No solution with maxstep 1.
+
+% Shifting atoms and clauses... done. (0.01 seconds)
+% After shifting: 1623 atoms (including new atoms), 17413 clauses
+% Writing input clauses... done.  (0.56 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.34 seconds (prep 0.30 seconds, search 0.04 seconds)
+
+0:  pos(homer)=7  pos(snoopy)=2  
+
+ACTIONS:  move(snoopy,4)  open(homer,gateAO)  
+
+1:  opened(gateAO)  pos(homer)=7  pos(snoopy)=4  
+
+ACTIONS:  move(homer,4)  move(snoopy,7)  
+
+2:  opened(gateAO)  pos(homer)=4  pos(snoopy)=7  
+
+
+
+
+
+--- 'zoo-test4' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test4'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test4
+% in transition mode...
+% 380 atoms, 7200 rules, 10351 clauses (734 new atoms)
+% Grounding time: 20.57 seconds
+% Completion time: 2.10 seconds
+% Total time: 22.67 seconds
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2132 atoms (including new atoms), 24475 clauses
+% Writing input clauses... done.  (0.83 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.48 seconds (prep 0.41 seconds, search 0.07 seconds)
+
+No solution with maxstep 3.
+
+% Shifting atoms and clauses... done. (0.01 seconds)
+% After shifting: 2641 atoms (including new atoms), 31537 clauses
+% Writing input clauses... done.  (1.08 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.77 seconds (prep 0.53 seconds, search 0.24 seconds)
+
+0:  pos(homer)=7  pos(jumbo)=3  
+
+ACTIONS:  move(jumbo,4)  open(homer,gateAO)  
+
+1:  opened(gateAO)  pos(homer)=7  pos(jumbo)=4  
+
+ACTIONS:  mount(homer,jumbo)  
+
+2:  opened(gateAO)  mounted(homer,jumbo)  pos(homer)=4  pos(jumbo)=4  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+3:  opened(gateAO)  pos(homer)=3  pos(jumbo)=4  
+
+ACTIONS:  move(homer,1)  move(jumbo,7)  
+
+4:  opened(gateAO)  pos(homer)=1  pos(jumbo)=7  
+
+
+
+|? - query 1.
+% Shifting atoms and clauses... done. (0.01 seconds)
+% After shifting: 2641 atoms (including new atoms), 31537 clauses
+% Writing input clauses... done.  (1.07 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.66 seconds (prep 0.56 seconds, search 0.10 seconds)
+
+No solution with maxstep 4.
+
+% Shifting atoms and clauses... done. (0.02 seconds)
+% After shifting: 3150 atoms (including new atoms), 38599 clauses
+% Writing input clauses... done.  (1.35 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.78 seconds (prep 0.67 seconds, search 0.11 seconds)
+
+0:  pos(homer)=7  pos(jumbo)=2  
+
+ACTIONS:  open(homer,gateAO)  
+
+1:  opened(gateAO)  pos(homer)=7  pos(jumbo)=2  
+
+ACTIONS:  move(homer,4)  move(jumbo,1)  
+
+2:  opened(gateAO)  pos(homer)=4  pos(jumbo)=1  
+
+ACTIONS:  move(homer,3)  
+
+3:  opened(gateAO)  pos(homer)=3  pos(jumbo)=1  
+
+ACTIONS:  move(homer,2)  move(jumbo,4)  
+
+4:  opened(gateAO)  pos(homer)=2  pos(jumbo)=4  
+
+ACTIONS:  move(jumbo,7)  
+
+5:  opened(gateAO)  pos(homer)=2  pos(jumbo)=7  
+
+
+
+
+
+--- 'zoo-test5' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test5'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test5
+% in transition mode...
+% 422 atoms, 13408 rules, 17984 clauses (1042 new atoms)
+% Grounding time: 58.41 seconds
+% Completion time: 3.48 seconds
+% Total time: 61.89 seconds
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1464 atoms (including new atoms), 17984 clauses
+% Writing input clauses... done.  (0.61 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.37 seconds (prep 0.34 seconds, search 0.03 seconds)
+
+0:  opened(gateAO)  mounted(homer,silver)  pos(homer)=8  pos(jumbo)=6  pos(silver)=8  
+
+ACTIONS:  move(jumbo,7)  throwOff(silver,homer)  
+
+1:  opened(gateAO)  pos(homer)=6  pos(jumbo)=7  pos(silver)=8  
+
+
+
+|? - query 1.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1464 atoms (including new atoms), 17984 clauses
+% Writing input clauses... done.  (0.59 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.38 seconds (prep 0.35 seconds, search 0.03 seconds)
+
+0:  opened(gateAO)  pos(homer)=8  pos(jumbo)=6  pos(silver)=2  
+
+ACTIONS:  move(jumbo,7)  move(silver,4)  mount(homer,jumbo)  
+
+1:  opened(gateAO)  pos(homer)=6  pos(jumbo)=7  pos(silver)=4  
+
+
+
+|? - query 2.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1464 atoms (including new atoms), 17984 clauses
+% Writing input clauses... done.  (0.59 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.38 seconds (prep 0.35 seconds, search 0.03 seconds)
+
+No solution with maxstep 1.
+
+
+
+
+--- 'zoo-test6' ---
+
+|? - loadf ['zoo','zoo-example','zoo-test6'].
+% loading file /stage/projects1/vl/tag/ccalc/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-landscape
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-animals
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-movement
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-actions
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-example
+% loading file /v/filer1a/v0q031/appsmurf/examples-0804/zoo-test6
+% in transition mode...
+% 380 atoms, 7200 rules, 10351 clauses (734 new atoms)
+% Grounding time: 22.48 seconds
+% Completion time: 3.11 seconds
+% Total time: 25.59 seconds
+
+|? - set(num,all).
+
+|? - query 0.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1114 atoms (including new atoms), 10351 clauses
+% Writing input clauses... done.  (0.29 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.2 seconds (prep 0.17 seconds, search 0.03 seconds)
+
+Solution 1:
+
+0:  opened(gateAO)  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  opened(gateAO)  pos(homer)=4  pos(jumbo)=1  
+
+
+Solution 2:
+
+0:  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  pos(homer)=4  pos(jumbo)=1  
+
+
+Solution 3:
+
+0:  opened(gateAO)  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  opened(gateAO)  pos(homer)=2  pos(jumbo)=1  
+
+
+Solution 4:
+
+0:  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  pos(homer)=2  pos(jumbo)=1  
+
+
+Solution 5:
+
+0:  opened(gateAO)  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  opened(gateAO)  pos(homer)=3  pos(jumbo)=1  
+
+
+Solution 6:
+
+0:  mounted(homer,jumbo)  pos(homer)=1  pos(jumbo)=1  
+
+ACTIONS:  throwOff(jumbo,homer)  
+
+1:  pos(homer)=3  pos(jumbo)=1  
+
+

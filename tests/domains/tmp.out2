@@ -1,0 +1,107 @@
+% WARNING: F2LP arrow '<-' found. Treating '-' as classical negation. Please use the option -d if you would like '-' to be treated as default negation.
+% File "graph"
+% File 'graph': Description of the graph
+
+%                                _________________________
+%                                |                       |
+%                                v         		 |
+%       -4 -> -3 -> -2 -> -1 ->  0 ->  1 ->  2 ->  3 ->  4
+%       ^                        |
+%       |________________________|
+%
+% To find the edges of the graph, type
+%
+% | ?- loadf 'graph'
+%
+% and then
+%
+% | ?- sat
+%
+% See Section B6 of the tutorial for discussion
+
+
+sort(node) :- true.
+#domain node(V_node).
+sort_object(node,V_node) :- true.
+#hide node(V_node).
+
+
+node(-4..4).
+
+rigid(edge(V_node,V_node_2)) :- node(V_node_2).
+constant_sort(edge(V_node,V_node_2),boolean) :- node(V_node_2).
+
+#domain node(X).
+#domain node(Y).
+
+h(eql(edge(X,X+1),true)) :- X<4.
+h(eql(edge(4,0),true)) :- true.
+h(eql(edge(0,-4),true)) :- true.
+
+h(eql(edge(X,Y),false)) :- {not h(eql(edge(X,Y),false))}0,true.
+% File "/home/joseph/workspace/cplus2asp/tests/domains/clique"
+% File 'clique'
+% Find a clique of size 3 in the given graph
+
+
+sort(index) :- true.
+#domain index(V_index).
+sort_object(index,V_index) :- true.
+#hide index(V_index).
+
+
+index(1..3).
+
+rigid(member(V_index)) :- true.
+constant_sort(member(V_index),node) :- true.
+
+#domain index(I).
+#domain index(J).
+
+% members of the clique are arbitrary
+exogenous(member(I)) :- true.
+
+% except that they should be pairwise distinct neighbors
+
+#domain node(X_Value_0).
+#domain node(_NV_1).
+false :- {not h(eql(member(J),_NV_1))}0,{not h(eql(member(I),_NV_1))}0,I!=J.
+#domain node(X_Value_1).
+#domain node(X_Value_2).
+#domain node(X_Value_3).
+#domain node(X_Value_4).
+#hide _new_pred_1(I,J).
+#hide _new_pred_2(J,I).
+false :- not _new_pred_1(I,J),not _new_pred_2(J,I),I!=J.
+
+%constraint [\/X \/Y | member(I)=X & member(I)=Y 
+%                        & edge(X,Y) ++ edge(Y,X) ++ I=J]
+
+#hide _new_pred_3(I,J).
+false :- not _new_pred_3(I,J).
+
+
+
+#base.
+
+_new_pred_1(I,J) :- h(eql(edge(X_Value_1,X_Value_2),true)),h(eql(member(I),X_Value_1)),h(eql(member(J),X_Value_2)).
+
+
+_new_pred_2(J,I) :- h(eql(edge(X_Value_3,X_Value_4),true)),h(eql(member(J),X_Value_3)),h(eql(member(I),X_Value_4)).
+
+
+#domain node(_NV_2).
+_new_pred_3(I,J) :- not h(eql(member(I),X)).
+_new_pred_3(I,J) :- not h(eql(member(I),_NV_2)).
+_new_pred_3(I,J) :- h(eql(edge(X,_NV_2),true)).
+_new_pred_3(I,J) :- h(eql(edge(_NV_2,X),true)).
+_new_pred_3(I,J) :- I==J.
+_new_pred_3(I,J)|h(eql(member(I),X)) :- {not h(eql(edge(X,_NV_2),true))}0,true.
+_new_pred_3(I,J)|h(eql(member(I),X)) :- {not h(eql(edge(_NV_2,X),true))}0,true.
+_new_pred_3(I,J)|h(eql(member(I),X)) :- I==J,true.
+_new_pred_3(I,J)|h(eql(member(I),_NV_2)) :- {not h(eql(edge(X,_NV_2),true))}0,true.
+_new_pred_3(I,J)|h(eql(member(I),_NV_2)) :- {not h(eql(edge(_NV_2,X),true))}0,true.
+_new_pred_3(I,J)|h(eql(member(I),_NV_2)) :- I==J,true.
+true.
+:- false.
+#hide true/0.

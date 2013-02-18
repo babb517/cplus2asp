@@ -1,0 +1,205 @@
+--- 'scenario1' ---
+
+yes
+
+|? - loadf 'scenario1'.
+
+yes
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/scenario1
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/traffic
+% in transition mode...
+% 144 atoms, 1208 rules, 5337 clauses (815 new atoms)
+% Grounding time: 1.63 seconds
+% Completion time: 0.70 seconds
+% Total time: 2.33 seconds
+
+yes
+
+|? - set(num,all).
+
+yes
+
+yes
+
+|? - query 1.
+
+yes
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 1869 atoms (including new atoms), 10775 clauses
+% Writing input clauses... done.  (0.22 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.15 seconds (prep 0.13 seconds, search 0.02 seconds)
+
+No solution with maxstep 3.
+
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2324 atoms (including new atoms), 13494 clauses
+% Writing input clauses... done.  (0.29 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.19 seconds (prep 0.16 seconds, search 0.03 seconds)
+
+0:  distance(car1)=0  segment(car1)=seg_ab  speed(car1)=2  node(car1)=a  
+
+1:  distance(car1)=2  segment(car1)=seg_ab  speed(car1)=2  
+
+ACTIONS:  chooseSegment(car1,seg_bc1)  
+
+2:  willLeave(car1)  distance(car1)=4  segment(car1)=seg_ab  nextSegment(car1)=seg_bc1  speed(car1)=2  node(car1)=b  
+
+3:  distance(car1)=2  segment(car1)=seg_bc1  speed(car1)=2  
+
+ACTIONS:  chooseSegment(car1,seg_bc2)  
+
+4:  willLeave(car1)  distance(car1)=4  segment(car1)=seg_bc1  nextSegment(car1)=seg_bc2  speed(car1)=1  node(car1)=c  
+
+
+
+yes
+
+|? - query 2.
+
+yes
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2779 atoms (including new atoms), 16213 clauses
+% Writing input clauses... done.  (0.34 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.23 seconds (prep 0.19 seconds, search 0.04 seconds)
+
+0:  distance(car1)=0  segment(car1)=seg_ab  speed(car1)=2  node(car1)=a  
+
+1:  distance(car1)=2  segment(car1)=seg_ab  speed(car1)=2  
+
+ACTIONS:  chooseSegment(car1,seg_bc2)  
+
+2:  willLeave(car1)  distance(car1)=4  segment(car1)=seg_ab  nextSegment(car1)=seg_bc2  speed(car1)=1  node(car1)=b  
+
+3:  distance(car1)=1  segment(car1)=seg_bc2  speed(car1)=1  
+
+4:  distance(car1)=2  segment(car1)=seg_bc2  speed(car1)=1  
+
+ACTIONS:  chooseSegment(car1,seg_bc1)  
+
+5:  willLeave(car1)  distance(car1)=3  segment(car1)=seg_bc2  nextSegment(car1)=seg_bc1  speed(car1)=2  node(car1)=c  
+
+
+
+yes
+
+
+
+--- 'scenario2' ---
+
+yes
+
+|? - loadf 'scenario2'.
+
+yes
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/scenario2
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/traffic
+% in transition mode...
+% 453 atoms, 9830 rules, 54613 clauses (8517 new atoms)
+% Grounding time: 20.73 seconds
+% Completion time: 7.09 seconds
+% Total time: 27.82 seconds
+
+yes
+
+|? - query 0.
+
+yes
+% Shifting atoms and clauses... done. (0.01 seconds)
+% After shifting: 17994 atoms (including new atoms), 110155 clauses
+% Writing input clauses... done.  (2.51 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 1.67 seconds (prep 1.43 seconds, search 0.24 seconds)
+
+0:  distance(car1)=0  distance(car2)=2  distance(car3)=5  speed(car1)=3  speed(car2)=2  speed(car3)=1  
+
+1:  distance(car1)=3  distance(car2)=4  distance(car3)=6  speed(car1)=2  speed(car2)=2  speed(car3)=1  
+
+2:  distance(car1)=5  distance(car2)=6  distance(car3)=7  speed(car1)=1  speed(car2)=1  speed(car3)=1  
+
+3:  distance(car1)=6  distance(car2)=7  distance(car3)=8  speed(car1)=1  speed(car2)=1  speed(car3)=1  
+
+
+
+yes
+
+
+
+--- 'scenario3' ---
+
+yes
+
+|? - loadf 'scenario3'.
+
+yes
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/scenario3
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/traffic/traffic
+% in transition mode...
+% 258 atoms, 4590 rules, 18278 clauses (2686 new atoms)
+% Grounding time: 7.91 seconds
+% Completion time: 2.28 seconds
+% Total time: 10.19 seconds
+
+yes
+
+|? - set(num,all).
+
+yes
+
+yes
+
+|? - query 0.
+
+yes
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 8792 atoms (including new atoms), 56206 clauses
+% Writing input clauses... done.  (1.29 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.9 seconds (prep 0.70 seconds, search 0.20 seconds)
+
+Solution 1:
+
+0:  distance(car1)=1  distance(car2)=1  segment(car1)=seg_ac  segment(car2)=seg_bc  speed(car1)=1  speed(car2)=1  
+
+1:  distance(car1)=2  distance(car2)=2  segment(car1)=seg_ac  segment(car2)=seg_bc  speed(car1)=1  speed(car2)=1  
+
+ACTIONS:  chooseSegment(car1,seg_cd)  chooseSegment(car2,seg_cd)  
+
+2:  willLeave(car1)  distance(car1)=3  distance(car2)=3  segment(car1)=seg_ac  segment(car2)=seg_bc  nextSegment(car1)=seg_cd  nextSegment(car2)=seg_cd  speed(car1)=1  speed(car2)=0  node(car1)=c  node(car2)=c  
+
+3:  distance(car1)=1  distance(car2)=3  segment(car1)=seg_cd  segment(car2)=seg_bc  nextSegment(car2)=seg_cd  speed(car1)=1  speed(car2)=0  node(car2)=c  
+
+4:  willLeave(car2)  distance(car1)=2  distance(car2)=3  segment(car1)=seg_cd  segment(car2)=seg_bc  nextSegment(car2)=seg_cd  speed(car1)=1  speed(car2)=1  node(car2)=c  
+
+5:  distance(car1)=3  distance(car2)=1  segment(car1)=seg_cd  segment(car2)=seg_cd  speed(car1)=1  speed(car2)=1  
+
+
+Solution 2:
+
+0:  distance(car1)=1  distance(car2)=1  segment(car1)=seg_ac  segment(car2)=seg_bc  speed(car1)=1  speed(car2)=1  
+
+1:  distance(car1)=2  distance(car2)=2  segment(car1)=seg_ac  segment(car2)=seg_bc  speed(car1)=1  speed(car2)=1  
+
+ACTIONS:  chooseSegment(car1,seg_cd)  chooseSegment(car2,seg_cd)  
+
+2:  willLeave(car2)  distance(car1)=3  distance(car2)=3  segment(car1)=seg_ac  segment(car2)=seg_bc  nextSegment(car1)=seg_cd  nextSegment(car2)=seg_cd  speed(car1)=0  speed(car2)=1  node(car1)=c  node(car2)=c  
+
+3:  distance(car1)=3  distance(car2)=1  segment(car1)=seg_ac  segment(car2)=seg_cd  nextSegment(car1)=seg_cd  speed(car1)=0  speed(car2)=1  node(car1)=c  
+
+4:  willLeave(car1)  distance(car1)=3  distance(car2)=2  segment(car1)=seg_ac  segment(car2)=seg_cd  nextSegment(car1)=seg_cd  speed(car1)=1  speed(car2)=1  node(car1)=c  
+
+5:  distance(car1)=1  distance(car2)=3  segment(car1)=seg_cd  segment(car2)=seg_cd  speed(car1)=1  speed(car2)=1  
+
+
+
+yes

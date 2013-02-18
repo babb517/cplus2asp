@@ -1,0 +1,37 @@
+:- sorts
+	guns;
+	animals.
+
+
+:- constants
+	loaded(guns)	:: inertialFluent;
+	alive(animals)	:: inertialFluent;
+	target(guns)	:: inertialFluent(animals*);
+	load(guns)	:: exogenousAction;
+	shoot(guns)	:: exogenousAction;
+	aim(guns)	:: exogenousAction(animals*).
+
+:- variables
+	G :: guns;
+	A :: animals.
+
+
+% Aiming
+aim(G)=A causes target(G)=A.
+
+% Loading
+load(G) causes loaded(G).
+load(G) causes target(G)=none.
+
+% Shooting
+shoot(G) causes -alive(A) if target(G)=A.
+shoot(G) causes -loaded(G).
+nonexecutable shoot(G) if -loaded(G).
+
+% Concurrency Restrictions
+nonexecutable shoot(G) & load(G).
+nonexecutable aim(G)=A & shoot(G).
+nonexecutable aim(G)=A & load(G).
+
+
+

@@ -1,0 +1,6 @@
+:- include 'bw-serializable'.
+
+:- constants
+  cost            :: additiveFluent(0..maxAdditive). 
+
+move(B) increments cost by 1.NOOP

@@ -1,0 +1,16 @@
+:- sorts
+	people.
+
+:- objects
+	mary, john :: people.
+
+:- constants
+	owner :: inertialFluent(people);
+	a :: exogenousAction.
+
+
+a causes owner=mary if owner=john.
+a causes owner=john if owner=mary.
+
+
+

@@ -1,0 +1,33 @@
+% File 'intro5': "Nonmonotonic Causal Theories," formulas (10), (12), (13)
+%
+% To find a model, type
+%
+% | ?- loadf 'intro5'.
+%
+% and then
+%
+% | ?- sat.
+
+:- macros
+  n -> 4.
+
+:- sorts
+  numbers.
+
+:- objects
+  1..n          :: numbers.
+
+:- constants
+  c		:: numbers.
+
+:- variables
+  X         :: numbers.
+
+default c=X
+  where X<3.
+
+false  <= [ \/ X | c=X & X mod 2 = 0 ].
+
+
+
+
