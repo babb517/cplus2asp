@@ -1773,19 +1773,26 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 }
 							;
 
-cl_trivial_forms:					cl_body_formula
+cl_trivial_forms:					cl_body_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
 	// This is a law of the form c=v.
 	// Which is really just a lazy shortcut for
 	// caused c=v.
 
-	mainTrans.translateCausalLaw($1, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+	mainTrans.translateCausalLaw($1, $2, $3, $4, $5, $6, $7, $8);
 	deallocateItem($1);
+	deallocateItem($2);
+	deallocateItem($3);
+	deallocateItem($4);
+	deallocateItem($5);
+	deallocateItem($6);
+	deallocateItem($7);
+	deallocateItem($8);
 	$$ = PARSERULE_NOT_USED;
 }
 							;
 
-causal_law_basic_forms:		  T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
 	mainTrans.translateCausalLaw($2, $3, $4, $5, $6, $7, $8, $9);
 	deallocateItem($2);

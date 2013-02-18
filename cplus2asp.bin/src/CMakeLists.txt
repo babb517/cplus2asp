@@ -3,7 +3,6 @@ SET(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS_DEBUG "-g3 -Wall -O0 -DDEBUG")
 set(CMAKE_C_FLAGS_DEBUG "-g3 -Wall -O0 -DDEBUG")
 
-
 # General variables.
 set(MAIN_SOURCE_DIR "${CMAKE_HOME_DIRECTORY}")
 set(DATASTRUCTS_DIR "${MAIN_SOURCE_DIR}/DataStructs")

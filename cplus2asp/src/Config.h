@@ -31,6 +31,7 @@
 #define DEF_SUPPRESS_INTERACTION			false								///< Whether to suppress user interaction by default.
 #define DEF_SQUELCH_SOLVER					true								///< Whether we should suppress warnings from the solver by default.
 #define DEF_NONE_HACK						true								///< Whether we should simulate none being an integral type by default.
+#define DEF_SHIFT						true								///< Whether we should assert the --shift flag, which shifts disjunction into the body of the rules.
 
 #define DEF_NUM_SOLN						1									///< Default # of solutions to find.
 #define DEF_INTERNAL_PORT					35981								///< Default port # to use to communicate w/ oClingo.
@@ -138,19 +139,20 @@ public:
 		OPT_SUPPRESS_INTERACTION = 0x04,		///< Whether we should operate in silent mode.
 		OPT_SQUELCH_SOLVER = 0x05,				///< Whether we should silence the solver's warnings
 		OPT_NONE_HACK = 0x06,					///< Whether we should simulate none as an integral type to circumvent a gringo bug that prevents grounding otherwise.
+		OPT_SHIFT = 0X07,					///< Whether we should assert the '--shift' flag, which tells gringo to shift disjunction into the body of the rules.
 
 
 		// integer
-		OPT_MINSTEP = 0x07,						///< The currently configured minimum step, or UNDEFINED.
-		OPT_MAXSTEP = 0x08,						///< The currently configured maximum step, or UNDEFINED.
-		OPT_QUERY = 0x09,						///< The currently configured query, or UNDEFINED.
-		OPT_MAXADDITIVE = 0x0A,					///< The currently configured maximum additive, or UNDEFINED.
-		OPT_NUM_SOLN = 0x0B,					///< The currently configured # of solutions to find.
-		OPT_EXT_PORT = 0x0C,					///< The port that we should make available for the user.
-		OPT_INT_PORT = 0x0D,					///< The port which we should use internally to communicate with oClingo.
+		OPT_MINSTEP = 0x08,						///< The currently configured minimum step, or UNDEFINED.
+		OPT_MAXSTEP = 0x09,						///< The currently configured maximum step, or UNDEFINED.
+		OPT_QUERY = 0x0A,						///< The currently configured query, or UNDEFINED.
+		OPT_MAXADDITIVE = 0x0B,					///< The currently configured maximum additive, or UNDEFINED.
+		OPT_NUM_SOLN = 0x0C,					///< The currently configured # of solutions to find.
+		OPT_EXT_PORT = 0x0D,					///< The port that we should make available for the user.
+		OPT_INT_PORT = 0x0E,					///< The port which we should use internally to communicate with oClingo.
 
-		OPT_LENGTH = 0x0E,						///< Dummy constant to provide the number configuration options.
-		OPT_END = 0x0E							///< Dummy constant to mark the end of the configuration list.
+		OPT_LENGTH = 0x0F,						///< Dummy constant to provide the number configuration options.
+		OPT_END = 0x0F							///< Dummy constant to mark the end of the configuration list.
 	};
 
 	/// A flag-type used to specify multiple modes simultaneously

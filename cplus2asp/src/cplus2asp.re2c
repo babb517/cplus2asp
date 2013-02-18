@@ -82,6 +82,7 @@ enum Option {
 	OPT_MODE_INCREMENTAL,
 	OPT_MODE_REACTIVE,
 	OPT_NO_DEL,
+	OPT_NO_SHIFT,
 	OPT_NO_STD,
 	OPT_GRINGO_NONE_HACK,
 	OPT_PORT_INTERNAL,
@@ -1023,6 +1024,13 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			break;
 
 
+		case OPT_NO_SHIFT:
+			// Don't asser the '--shift' flag on the solver.
+			if (outConf.boolConfigOpt(Config::OPT_SHIFT, false)) {
+				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+			}
+			break;
+
 		case OPT_NO_STD:
 			// Don't include standard files in the final product.
 			if (outConf.boolConfigOpt(Config::OPT_INCL_STD, false)) {
@@ -1379,6 +1387,7 @@ Option parseOption(char const* opt) {
 			"-min"|"--minstep"						{ return OPT_MINSTEP; }
 			"-nodel"|"--no-delete"					{ return OPT_NO_DEL; }
 			"-nostd"|"--no-standard"				{ return OPT_NO_STD; }
+			"-ns"|"--no-shift"					{ return OPT_NO_SHIFT; }
 			"-p"|"--port"							{ return OPT_PORT_EXTERNAL; }
 			"-post"|"--post-processor"				{ return OPT_POSTPROC; }
 			"-postopt"|"--post-processor-opts"		{ return OPT_POSTPROC_OPTS; }
@@ -1513,6 +1522,11 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          type. This is helpful for circumventing a bug in Gringo 3.0.4 that " << endl
 		  << "                          sometimes prevents domains from properly grounding due to " << endl
 		  << "                          unification issues." << endl
+		  << endl
+		  << " -ns" << endl
+		  << " --no-shift ------------- Prevents the solver from shifting disjunction from the head of a rule " << endl
+		  << "                          into the body of that rule. Useful if you're using a disjunctive solver " << endl
+		  << "                          that doesn't require/support this." << endl
 		  << endl
 		  << "Extra Program Options:" << endl
 		  << "  Options with [PROG] or [PROGRAM] in their name affect individual" << endl

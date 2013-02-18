@@ -173,7 +173,7 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 		// All three "operators" do the same thing, it's just a matter of what name to use.
 		if(postOp()->getType() == PELEM_CONSTLIKE)
 		{
-			localContext = context.mkPos(Context::POS_BODY);
+			localContext = context.mkPos(Context::POS_INTERNAL);
 			out << translateOpType(opType()) << "(";
 			postOp()->translate(out, localContext);
 			out << ")";
@@ -227,13 +227,13 @@ bool SimpleUnaryOperator::isSingleAtom() const
 	if (!postOp()) return false;
 
 	// case 1
-	if (opType() == UOP_NOT || opType() == UOP_EXOGENOUS) {
+	if (opType() == UOP_NOT) {
 		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
 				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
 	}
 
 	// case 2
-	if (opType() == UOP_INERTIAL || opType() == UOP_RIGID) {
+	if (opType() == UOP_INERTIAL || opType() == UOP_RIGID || opType() == UOP_EXOGENOUS) {
 		return postOp()->getType() == ParseElement::PELEM_CONSTLIKE
 				|| (postOp()->getType() == ParseElement::PELEM_VARLIKE);
 	}

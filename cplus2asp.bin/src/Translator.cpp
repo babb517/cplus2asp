@@ -1515,7 +1515,7 @@ bool Translator::translateConstraintLaw(
 		// constraint has to be a fluent formula or the law is malformed. Soft warn if we can't tell what it is (i.e., not a fluent or action formula).
 		if(!constraint->hasConstants(ParseElement::MASK_ACTION))
 		{
-			if(!constraint->hasConstants(ParseElement::MASK_FLUENT))
+			if(!constraint->hasConstants(ParseElement::MASK_FLUENT|ParseElement::MASK_RIGID))
 			{
 				warn("Cannot determine if \"" + constraint->fullName() + "\" is a fluent formula or not, it might not work as F in a \"constraint F\" style law.", true, true);
 			}

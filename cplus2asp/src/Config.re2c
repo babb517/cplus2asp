@@ -44,6 +44,7 @@ Config::Config() {
 	mConfigOpts[OPT_EXT_PORT] = UNDEFINED;
 	mConfigOpts[OPT_INT_PORT] = DEF_INTERNAL_PORT;
 	mConfigOpts[OPT_NONE_HACK] = DEF_NONE_HACK;
+	mConfigOpts[OPT_SHIFT] = DEF_SHIFT;
 
 	memset(mCustomConfig,0,OPT_LENGTH);
 
@@ -182,8 +183,8 @@ bool Config::intConfigOpt(ConfigOption opt, unsigned int val) {
 // Sets a command option to the provided value.
 bool Config::command(Toolchain tool, std::string const& val) {
 	bool ret = mCustomCmd[tool]++;
-	if (mCommands[tool] == val) return run(tool, val == "");
-	ret |= run(tool, val == "");
+	if (mCommands[tool] == val) return run(tool, val != "");
+	ret |= run(tool, val != "");
 	mCommands[tool] = val;
 	return ret;
 }
@@ -405,6 +406,10 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 			if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
+			// The '--shift' flag signals that gringo should shift disjunction into the body of a rule.
+			if (boolConfigOpt(OPT_SHIFT)) out << " --shift";
+
+
 			for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 				out << " -c " << it->first << "=" << it->second;
 			}
@@ -420,6 +425,7 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 					out << " --ibase";
 			}
 		}
+
 
 		// The solver should be directed to the temp solver location if:
 		// We are running in reactive mode, or
@@ -445,6 +451,9 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 		if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
+		// The '--shift' flag signals that gringo should shift disjunction into the body of a rule.
+		if (boolConfigOpt(OPT_SHIFT)) out << " --shift";
+		
 		for (ConstantMap::const_iterator it = beginConstants(); it != endConstants(); it++) {
 			out << " -c " << it->first << "=" << it->second;
 		}
