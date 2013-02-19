@@ -478,7 +478,19 @@ int ltsyyLexer::nextToken()
 		}
 	}
 	else
-	{	// Failed the sanity check, fill the globals with EOF/bad values.
+	{
+		// Bug fix: ensure that we print out the last comments!
+		std::list<Comment*>* cList = getFileComments(tempToken->tokenFileName);
+		std::list<Comment*>::iterator* cIter = getFileCommentIterator(tempToken->tokenFileName);
+
+		while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
+		{
+			std::string tempStr = (*(*cIter))->output();
+			mainTrans.output(tempStr, IPART_NONE, true);
+			++(*cIter);
+		}
+
+		// Failed the sanity check, fill the globals with EOF/bad values.
 		retVal = 0;
 		std::string tempString = "EOF";
 		ltsyyleng = tempString.length();
