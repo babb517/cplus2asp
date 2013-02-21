@@ -1030,6 +1030,32 @@ void Translator::translateCausalLaw(
 	// Do some basic checking on the structure of the law. This includes determining the type of law we're working with
 	// and performing some basic sanity checking on each of the components...
 
+	// Step 0, check to ensure that there are no undefined identifiers (outside the unless clause).
+	BaseElementList undefined;
+	if (head) head->aggregateUndefined(undefined);
+	if (ifBody) ifBody->aggregateUndefined(undefined);
+	if (assumingBody) assumingBody->aggregateUndefined(undefined);
+	if (afterBody) afterBody->aggregateUndefined(undefined);
+	if (whenBody) whenBody->aggregateUndefined(undefined);
+	if (followingBody) followingBody->aggregateUndefined(undefined);
+	if (whereBody) whereBody->aggregateUndefined(undefined);
+
+	if (undefined.size()) {
+		// One or more undefined elements.
+		// Throw an error
+		std::ostringstream tmpErr;
+		tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
+		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
+			tmpErr << "\"";
+			(*it)->fullName(tmpErr);
+			tmpErr << "\"";
+			if (++it != undefined.end()) tmpErr << ", ";
+		}
+		tmpErr << ".";
+		error(tmpErr.str(),true);
+		malformed = true;
+	}
+
 
 	// step 1: ensure the head is non-null and in the correct form
 	if (!head || !head->isSingleAtom()) {
@@ -1139,48 +1165,28 @@ void Translator::translateCausalLaw(
 			ifNotNot = true;
 	}
 
-	// Step 5, check to ensure that there are no undefined identifiers (outside the unless clause).
-	BaseElementList undefined;
-	head->aggregateUndefined(undefined);
-	if (ifBody) ifBody->aggregateUndefined(undefined);
-	if (assumingBody) assumingBody->aggregateUndefined(undefined);
-	if (afterBody) afterBody->aggregateUndefined(undefined);
-	if (whenBody) whenBody->aggregateUndefined(undefined);
-	if (followingBody) followingBody->aggregateUndefined(undefined);
-	if (whereBody) whereBody->aggregateUndefined(undefined);
 
-	if (undefined.size()) {
-		// One or more undefined elements.
-		// Throw an error
-		std::ostringstream tmpErr;
-		tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
-		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
-			tmpErr << "\"";
-			(*it)->fullName(tmpErr);
-			tmpErr << "\"";
-			if (++it != undefined.end()) tmpErr << ", ";
-		}
-		tmpErr << ".";
-		error(tmpErr.str(),true);
-		malformed = true;
-	}
+	// Step 5, declare undefined identifiers in the unless clause.
 	undefined.clear();
-
-	// Step 5b, declare undefined identifiers in the unless clause.
 	if (unlessBody) {
 		unlessBody->aggregateUndefined(undefined);
 
 		ConstSortList tmpParamSorts;
-		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
+		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); it++) {
 			tmpParamSorts.clear();
 			bool success = (*it)->guessParamSorts(tmpParamSorts);
 
 			if (success) {
+				Constant::ConstantType abType =
+						(type == RULE_STATIC || type == RULE_RIGID)
+						? Constant::CONST_ABFLUENT
+						: Constant::CONST_ABACTION;
+
 				// We successfully guessed every sort that was required. Finish the declaration.
 				Constant* newConst = new Constant(
 						(*it)->baseName(),
 						getSort("boolean"),
-						(type == RULE_STATIC || type == RULE_RIGID) ? Constant::CONST_ABFLUENT : Constant::CONST_ABACTION,
+						abType,
 						&tmpParamSorts
 				);
 
@@ -1189,7 +1195,6 @@ void Translator::translateCausalLaw(
 
 				// Make sure we update the declaration.
 				(*it)->ref(newConst);
-
 			} else {
 				// Unable to dynamically declare the constant.
 				// Tell the user.
@@ -1197,6 +1202,13 @@ void Translator::translateCausalLaw(
 				malformed = true;
 			}
 		}
+	}
+
+
+	// Step 6: Check that SDFluents don't occur in the head of dynamic laws.
+	if (type == RULE_FLUENTDYNAMIC && head->hasConstants(ParseElement::MASK_SDFLUENT)) {
+		error("An sdFluent cannot occur in the head of a dynamic law.", true);
+		malformed = true;
 	}
 
 	// catch malformed rules and don't translate them.
@@ -1216,6 +1228,7 @@ void Translator::translateCausalLaw(
 			head,
 			ifBody,
 			assumingBody,
+			unlessBody,
 			afterBody,
 			whenBody,
 			followingBody,
@@ -1237,6 +1250,7 @@ void Translator::translateCausalLaw(
 			head,
 			ifBody,
 			assumingBody,
+			unlessBody,
 			afterBody,
 			whenBody,
 			followingBody,
@@ -1262,6 +1276,7 @@ std::ostream& Translator::makeCausalTranslation(
 	ParseElement* head,
 	ParseElement* ifBody,
 	ParseElement* assumingBody,
+	ParseElement* unlessBody,
 	ParseElement* afterBody,
 	ParseElement* whenBody,
 	ParseElement* followingBody,
@@ -1285,6 +1300,7 @@ std::ostream& Translator::makeCausalTranslation(
 	// The body, if there is one.
 	if(ifBody
 			|| assumingBody
+			|| unlessBody
 			|| afterBody
 			|| whenBody
 			|| followingBody
@@ -1323,6 +1339,23 @@ std::ostream& Translator::makeCausalTranslation(
 			// Translate the "assuming" body exactly as the if body, except that it doesn't have "not not" in front.
 			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, false, false, &extraStmts);
 			assumingBody->translate(output, localContext);
+		}
+
+		// "unless" part of body, if there is one.
+		if(unlessBody)
+		{
+			// add a connective if necessary.
+			if(bodyContent)	output << " & ";
+			else bodyContent = true;
+
+			// Translate the unless body wrapped in negation.
+			output << "not (";
+			localContext = Context(Context::POS_BODY, ipart,
+					unlessBody->hasConstants(ParseElement::MASK_ACTION)
+							? actionTimeStamp
+							: baseTimeStamp, NULL, NULL, true, false, &extraStmts);
+			bindAndTranslate(output, unlessBody, localContext, false, true);
+			output << ")";
 		}
 
 		// "after" part of body, if there is one.
@@ -1733,6 +1766,7 @@ bool Translator::translateCausesLaw(
 	ParseElement* causer,
 	ParseElement* causee,
 	ParseElement* ifBody,
+	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody
 	)
@@ -1751,12 +1785,12 @@ bool Translator::translateCausesLaw(
 			// Where causer and ifBody end up in the basic form depend on what's in causee.
 			if((causee->hasConstants(ParseElement::MASK_ACTION) && !causee->hasConstants(ParseElement::MASK_FLUENT)) || causee->getType() == ParseElement::PELEM_OBJLIKE)
 			{	// Causee is an action formula, this is "caused F if G".
-				translateCausalLaw(causee, tempPE, NULL, NULL, NULL, NULL, whenBody, whereBody);
+				translateCausalLaw(causee, tempPE, NULL, NULL, unlessBody, NULL, whenBody, whereBody);
 				retVal = true;
 			}
 			else if(!causee->hasConstants(ParseElement::MASK_ACTION) && causee->hasConstants(ParseElement::MASK_FLUENT))
 			{	// Causee is a fluent formula, this is "caused F after G".
-				translateCausalLaw(causee, NULL, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+				translateCausalLaw(causee, NULL, NULL, tempPE, unlessBody, NULL, whenBody, whereBody);
 				retVal = true;
 			}
 			else

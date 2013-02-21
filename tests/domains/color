@@ -29,6 +29,7 @@ constraint -(edge(X,Y) & col(X)=col(Y)).
 
 :- show col(X)=C.
 
+
 /*
 | ?- loadf 'color'.
 % loading file /stage/projects3/tag/ccalc/macros.std

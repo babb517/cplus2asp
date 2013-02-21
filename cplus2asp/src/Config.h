@@ -31,7 +31,7 @@
 #define DEF_SUPPRESS_INTERACTION			false								///< Whether to suppress user interaction by default.
 #define DEF_SQUELCH_SOLVER					true								///< Whether we should suppress warnings from the solver by default.
 #define DEF_NONE_HACK						true								///< Whether we should simulate none being an integral type by default.
-#define DEF_SHIFT						true								///< Whether we should assert the --shift flag, which shifts disjunction into the body of the rules.
+#define DEF_SHIFT							false								///< Whether we should assert the --shift flag, which shifts disjunction into the body of the rules.
 
 #define DEF_NUM_SOLN						1									///< Default # of solutions to find.
 #define DEF_INTERNAL_PORT					35981								///< Default port # to use to communicate w/ oClingo.

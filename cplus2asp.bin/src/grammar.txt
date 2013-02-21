@@ -79,9 +79,14 @@ object_schema:				  T_IDENTIFIER
 							| extended_integer_outer_expression
 							| num_range
 							;
-show_statement:				  T_COLON_DASH T_SHOW error T_PERIOD
+show_statement:				  		T_COLON_DASH T_SHOW atomic_formula_list T_PERIOD
+atomic_formula_list:					atomic_formula
+							| atomic_formula_list T_SEMICOLON atomic_formula
 							;
-sort_statement:				  T_COLON_DASH T_SORTS sort_spec_outer_tuple T_PERIOD
+atomic_formula:		  			constant_expr
+							| constant_expr T_EQ extended_value_expression
+							 ;
+sort_statement:				  		T_COLON_DASH T_SORTS sort_spec_outer_tuple T_PERIOD
 							;
 sort_spec_outer_tuple:		  sort_spec_tuple
 							| T_PAREN_L sort_spec_tuple T_PAREN_R
@@ -206,11 +211,11 @@ cl_noconcurrency_forms:		  			T_NOCONCURRENCY
 cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
 							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
 							;
-cl_trivial_forms:					cl_head_formula
+cl_trivial_forms:					cl_body_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 							;
-causal_law_basic_forms:		  T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 							;
-cl_head_formula:			  		literal_assign_conj
+cl_head_formula:			literal_assign_conj
 							| T_TRUE
 							| T_FALSE
 							;
@@ -278,60 +283,62 @@ expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
 							;
 expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 							;
-query_statement:			  T_COLON_DASH T_QUERY query_expression_tuple T_PERIOD
+query_statement:			  		T_COLON_DASH T_QUERY query_expression_tuple T_PERIOD
 							;
-query_expression_tuple:		  query_expression
+query_expression_tuple:		  			query_expression
 							| query_expression_tuple T_SEMICOLON query_expression_tuple
 							;
-query_expression:			  T_LABEL T_DBL_COLON T_INTEGER
+query_expression:			  		T_LABEL T_DBL_COLON T_INTEGER
 							| T_MAXSTEP T_DBL_COLON T_INTEGER
 							| T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER
+							| T_MAXSTEP T_DBL_COLON num_range
+							| T_MAXSTEP T_DBL_COLON extended_integer
 							| query_body_formula
 							;
-query_body_formula:			  query_body_formula_inner
+query_body_formula:			 		 query_body_formula_inner
 							| T_PAREN_L query_body_formula T_PAREN_R
 							| extended_math_expr_inner T_COLON query_body_formula
 							;
-query_body_formula_inner:	  query_body_term
+query_body_formula_inner:	  			query_body_term
 							| NOT query_body_formula %prec T_UMINUS
 							| query_body_formula AND query_body_formula
 							| query_body_formula OR query_body_formula
 							| query_body_formula T_EQUIV query_body_formula
 							| query_body_formula T_IMPL query_body_formula
 							;
-query_body_term:			  query_body_term_inner
+query_body_term:			  		query_body_term_inner
 							| T_PAREN_L query_body_term_inner T_PAREN_R
 							;
-query_body_term_inner:		  extended_value_expression
+query_body_term_inner:		  			extended_value_expression
 							| extended_value_expression EQUALS extended_value_expression
 							| extended_value_expression NOT_EQUALS extended_value_expression
 							| extended_value_expression COMPARISON extended_value_expression
 							| expr_big_query_expression
 							;
-expr_big_query_expression:		  T_BRACKET_L expr_big_quantifiers T_PIPE query_body_formula T_BRACKET_R
+expr_big_query_expression:		  		T_BRACKET_L expr_big_quantifiers T_PIPE query_body_formula T_BRACKET_R
 							;
-constant_expr:				  lua_indicator T_IDENTIFIER
+constant_expr:				  		lua_indicator T_IDENTIFIER
 							| lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R
 							;
 lua_indicator:				/* empty */
 							| T_AT
-parameter_list:				  parameter_general
+parameter_list:				  		parameter_general
 							| parameter_list T_COMMA parameter_general
 							;
-parameter_general:			  extended_math_expression
+parameter_general:			 		extended_math_expression
 							;
-sort_identifier_list:		  sort_identifier
+sort_identifier_list:		  			sort_identifier
 							| sort_identifier_list T_COMMA sort_identifier
 							;
-extended_value_expression:	  T_TRUE
+extended_value_expression:	 			T_TRUE
 							| T_FALSE
 							| T_NONE
 							| extended_math_expression
 							;
-extended_math_expression:	  extended_math_expr_inner
+extended_math_expression:	  			extended_math_expr_inner
 							| T_PAREN_L extended_math_expr_inner T_PAREN_R
 							;
-extended_math_expr_inner:	  extended_math_term
+extended_math_expr_inner:	  			extended_math_term
 							| extended_math_expression T_PLUS extended_math_expression
 							| extended_math_expression T_DASH extended_math_expression
 							| extended_math_expression T_STAR extended_math_expression
@@ -345,22 +352,22 @@ extended_math_term:			  		extended_integer
 							;
 num_range:					  	extended_integer_outer_expression T_DBL_PERIOD extended_integer_outer_expression
 							;
-extended_integer:			  T_INTEGER
+extended_integer:			  		T_INTEGER
 							| T_MAXADDITIVE
 							| T_MAXSTEP
 							| T_DASH extended_integer %prec T_UMINUS
 							;
-extended_integer_outer_expression: extended_integer_expression
+extended_integer_outer_expression: 			extended_integer_expression
 							| T_PAREN_L extended_integer_expression T_PAREN_R
 							;
-extended_integer_expression:  extended_integer
+extended_integer_expression:  				extended_integer
 							| extended_integer_outer_expression T_PLUS extended_integer_outer_expression
 							| extended_integer_outer_expression T_DASH extended_integer_outer_expression
 							| extended_integer_outer_expression T_STAR extended_integer_outer_expression
 							| extended_integer_outer_expression T_INT_DIV extended_integer_outer_expression
 							| extended_integer_outer_expression T_MOD extended_integer_outer_expression
 							;
-AND:						  T_AMP
+AND:						  	T_AMP
 							| T_DBL_AMP
 							| T_COMMA
 							;

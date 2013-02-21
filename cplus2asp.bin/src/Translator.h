@@ -577,6 +577,7 @@ public:
 	 * @param causer - The causing action formula.
 	 * @param causee - The formula being caused.
 	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param unlessBody - Optional atom to be dynamically declared as an default-false constant.
 	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
 	 * @param whereBody - Another conditional formula to govern when the law applies.
 	 * @return True if everything translates properly, false if anything goes wrong.
@@ -585,6 +586,7 @@ public:
 		ParseElement* causer,
 		ParseElement* causee,
 		ParseElement* ifBody,
+		ParseElement* unlessBody,
 		ParseElement* whenBody,
 		ParseElement* whereBody
 	);
@@ -797,6 +799,7 @@ protected:
 	 * @param head - The head portion of the causal law ("caused head...").
 	 * @param ifBody - The part of the law's body associated with the if keyword ("...if ifBody...").
 	 * @param assumingBody - The part of the law's body associated with the if keyword ("...assuming ifBody...").
+	 * @param unlessBody - The part of the law's body associated with the unless keyword ("...unless unlessBody...").
 	 * @param afterBody - The part of the law's body associated with the after keyword ("...after afterBody...").
 	 * @param whenBody - The part of the law's body associated with the when keyword ("...when whenBody...").
 	 * @param followingBody - The part of the law's body associated with the following keyword ("...following followingBody...").
@@ -813,6 +816,7 @@ protected:
 		ParseElement* head,
 		ParseElement* ifBody,
 		ParseElement* assumingBody,
+		ParseElement* unlessBody,
 		ParseElement* afterBody,
 		ParseElement* whenBody,
 		ParseElement* followingBody,

@@ -408,6 +408,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 				}
 			}
 			/* no break */
+		case BOP_DBL_EQ:
 		case BOP_NEQ:
 		case BOP_PLUS:
 		case BOP_MINUS:
@@ -881,6 +882,7 @@ bool ConstantLikeElement::hasConstants(unsigned int types) const {
 
 	if (types & MASK_ACTION) 		ret |= Constant::isActionType(type);
 	if (types & MASK_FLUENT) 		ret |= Constant::isFluentType(type, false);
+	if (types & MASK_SDFLUENT)		ret |= type == Constant::CONST_SDFLUENT;
 	if (types & MASK_RIGID)  		ret |= type == Constant::CONST_RIGID || type == Constant::CONST_UNKNOWN;
 	if (types & MASK_STATIC_AB)		ret |= type == Constant::CONST_STATICAB;
 	if (types & MASK_DYNAMIC_AB)	ret |= type == Constant::CONST_DYNAMICAB;

@@ -24,7 +24,8 @@
 :- constants
   c		:: numbers.
 
-default c=1, c=2.
+default c=1.
+default c=2.
 
 
 

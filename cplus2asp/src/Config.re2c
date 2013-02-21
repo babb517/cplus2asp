@@ -278,11 +278,11 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (Toolchain i = tool; i >= TC_BEGIN; i = (Toolchain)((int)i + 1)) {
+	for (Toolchain i = tool; i >= TC_BEGIN; i = (Toolchain)((int)i - 1)) {
 		// Only include files which haven't been included by a previous tool.
 		if (i != tool && run(i)) break;
 
-		for (InputList::const_iterator it = beginInput(tool); it != endInput(tool); it++) {
+		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
 			count++;
 		}
 	}
@@ -611,11 +611,11 @@ std::string Config::compileInputCommand(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (int i = (int)tool; i >= (int)TC_BEGIN; i++) {
+	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
 		// Only include files which haven't been included by a previous tool.
 		if (i != (int)tool && run((Toolchain)i)) break;
 
-		for (InputList::const_iterator it = beginInput(tool); it != endInput(tool); it++) {
+		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
 			out << " " << *it;
 		}
 	}

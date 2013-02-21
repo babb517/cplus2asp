@@ -46,28 +46,36 @@ maxstep :: 1;
 label :: 3;
 maxstep :: 1;
 0: climbOn(david);
-(0: loc(box))\= (1: loc(box)).
+%(0: loc(box))\= (1: loc(box)).
+0: loc(box)=l1;
+1: loc(box)=l2.
 
 % Can the box be moved when goliath is climing the box? - no
 :- query
 label :: 4;
 maxstep :: 1;
 0: climbOn(goliath);
-(0: loc(box))\= (1: loc(box)).
+%(0: loc(box))\= (1: loc(box)).
+0: loc(box)=l1;
+1: loc(box)=l2.
 
 % Can the box be moved when david is climing off the box? - yes
 :- query
 label :: 5;
 maxstep :: 1;
 0: climbOff(david);
-(0: loc(box))\= (1: loc(box)).
+%(0: loc(box))\= (1: loc(box)).
+0: loc(box)=l1;
+1: loc(box)=l2.
 
 % Can the box be moved when goliath is climing off the box? - no
 :- query
 label :: 6;
 maxstep :: 1;
 0: climbOff(goliath);
-(0: loc(box))\= (1: loc(box)).
+%(0: loc(box))\= (1: loc(box)).
+0: loc(box)=l1;
+1: loc(box)=l2.
 
 % Can david walk and climon together while the box is moved if the concurrency
 % is not disallowed explicitly? - yes

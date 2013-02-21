@@ -21,6 +21,7 @@ nonexecutable fight(P,P,S).
   left, me, right           :: person;
   apple, carrot, banana     :: snack.
 
+/*
 :- nmquery
 label :: 1;
 maxstep :: 2;
@@ -32,10 +33,13 @@ constraint 0:
   [/\S | -possible_owner(right,S)];
 0: fight(left, me, apple);
 1: fight(right, me, banana).
-
+*/
 
 :- sorts
    truth.
+
+:- objects
+  yes, no, maybe            :: truth.
 
 :- constants
   has(person,snack)		:: sdFluent(truth).
@@ -46,5 +50,3 @@ caused has(P,S)=yes if possible_owner(P,S)
 caused has(P,S)=maybe if possible_owner(P,S)
 			&& possible_owner(P1,S) && P\=P1.
 
-:- objects
-  yes, no, maybe            :: truth.

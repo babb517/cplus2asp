@@ -91,6 +91,10 @@ sort(sdFluent).
 #domain sdFluent(V_sdFluent). 
 sort_object(sdFluent,V_sdFluent). 
 
+sort(abFluent).
+#domain abFluent(V_abFluent).
+sort_object(abFluent,V_abFluent).
+
 %---
 
 % Action-based constants.
@@ -143,6 +147,7 @@ constant(V_abnormality).
 fluent(V_simpleFluent). 
 simpleFluent(V_inertialFluent). 
 fluent(V_sdFluent).
+sdFluent(V_abFluent).
 action(V_exogenousAction). 
 action(V_abAction). 
 action(V_attribute). 
@@ -197,6 +202,10 @@ false <- not 1{ h(eql(V_rigid,Object1)) : constant_object(V_rigid,Object1) }1.
 
 % abActions default to false.
 {occ(eql(V_abAction,false),V_astep-1)}. 
+
+% Default false for abFluents
+{h(eql(V_abFluent,X),V_step)} <- constant_negobject(V_abFluent,X).
+
 
 % Restriction that attributes must take on the value "none" if and only if their linked action does not execute.
 false <- 
@@ -272,6 +281,7 @@ false <- not 1{ occ(eql(V_action,Object1),V_astep-1) : constant_object(V_action,
 #hide simpleFluent/1.
 #hide inertialFluent/1.
 #hide sdFluent/1.
+#hide abFluent/1.
 #hide action/1.
 #hide exogenousAction/1.
 #hide abAction/1.

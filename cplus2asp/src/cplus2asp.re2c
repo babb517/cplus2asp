@@ -82,9 +82,13 @@ enum Option {
 	OPT_MODE_INCREMENTAL,
 	OPT_MODE_REACTIVE,
 	OPT_NO_DEL,
-	OPT_NO_SHIFT,
+	OPT_SHIFT,
+	OPT_SHIFT_TRUE,
+	OPT_SHIFT_FALSE,
 	OPT_NO_STD,
 	OPT_GRINGO_NONE_HACK,
+	OPT_GRINGO_NONE_HACK_TRUE,
+	OPT_GRINGO_NONE_HACK_FALSE,
 	OPT_PORT_INTERNAL,
 	OPT_PORT_EXTERNAL,
 	OPT_POSTPROC,
@@ -890,6 +894,31 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			break;
 
 		case OPT_GRINGO_NONE_HACK:
+			// Specifying a none_hack value.
+			if (++i < argc) {
+
+				bool val;
+				if (!strcmp(argv[i], "true")) {
+					val = true;
+				} else if (!strcmp(argv[i], "false")) {
+					val = false;
+				} else {
+					error("Expected a boolean value 'true' or 'false' following the '%s' flag. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+
+				if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, val)) {
+					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+				}
+
+			} else {
+				// setup for a command but they didn't deliver.
+				error("Expected a boolean value 'true' or 'false following the '%s' flag. Exiting.",true,0,argv[i-1]);
+				return OPT_STAT_BAD_ARG;
+			}
+			break;
+
+		case OPT_GRINGO_NONE_HACK_TRUE:
 			// They want us to treat none as an integral type to circumvent a
 			// bug in gringo that prevents grounding of certain domains otherwise.
 			if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, true)) {
@@ -897,6 +926,14 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			}
 			break;
 			
+		case OPT_GRINGO_NONE_HACK_FALSE:
+			// They want us NOT to treat none as an integral type to circumvent a
+			// bug in gringo that prevents grounding of certain domains otherwise.
+			if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, false)) {
+				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+			}
+			break;
+
 
 		case OPT_JUST_GRD:
 			// Just call the grounder program, no others.
@@ -1024,9 +1061,42 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			break;
 
 
-		case OPT_NO_SHIFT:
-			// Don't asser the '--shift' flag on the solver.
+		case OPT_SHIFT:
+
+			// Specifying a shift value.
+			if (++i < argc) {
+
+				bool val;
+				if (!strcmp(argv[i], "true")) {
+					val = true;
+				} else if (!strcmp(argv[i], "false")) {
+					val = false;
+				} else {
+					error("Expected a boolean value 'true' or 'false' following the '%s' flag. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+
+				if (outConf.boolConfigOpt(Config::OPT_SHIFT, val)) {
+					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+				}
+
+			} else {
+				// setup for a command but they didn't deliver.
+				error("Expected a boolean value 'true' or 'false following the '%s' flag. Exiting.",true,0,argv[i-1]);
+				return OPT_STAT_BAD_ARG;
+			}
+			break;
+
+		case OPT_SHIFT_FALSE:
+			// Allow the solver to shift disjunction into the body.
 			if (outConf.boolConfigOpt(Config::OPT_SHIFT, false)) {
+				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+			}
+			break;
+
+		case OPT_SHIFT_TRUE:
+			// Do not allow the solve to shift disjunction into the body.
+			if (outConf.boolConfigOpt(Config::OPT_SHIFT, true)) {
 				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
 			}
 			break;
@@ -1371,7 +1441,10 @@ Option parseOption(char const* opt) {
 			"-fromtrans"|"--from-translator"		{ return OPT_FROM_TRAN; }
 			"-gr"|"--grounder"						{ return OPT_GRD; }
 			"-gropt"|"--grounder-opts"				{ return OPT_GRD_OPTS; }
-			"-nh"|"--none-hack"					{ return OPT_GRINGO_NONE_HACK; }
+			"-nh"									{ return OPT_GRINGO_NONE_HACK_TRUE; }
+			"--none-hack"							{ return OPT_GRINGO_NONE_HACK_TRUE; }
+			"--none-hack=true"						{ return OPT_GRINGO_NONE_HACK_TRUE; }
+			"--none-hack=false"						{ return OPT_GRINGO_NONE_HACK_FALSE; }
 			"-i"|"--internal-port"					{ return OPT_PORT_INTERNAL; }
 			"-justgr"|"--just-grounder"				{ return OPT_JUST_GRD; }
 			"-justpre"|"--just-pre-processor"		{ return OPT_JUST_PRE; }
@@ -1387,7 +1460,10 @@ Option parseOption(char const* opt) {
 			"-min"|"--minstep"						{ return OPT_MINSTEP; }
 			"-nodel"|"--no-delete"					{ return OPT_NO_DEL; }
 			"-nostd"|"--no-standard"				{ return OPT_NO_STD; }
-			"-ns"|"--no-shift"					{ return OPT_NO_SHIFT; }
+			"-s"									{ return OPT_SHIFT_TRUE; }
+			"--shift"								{ return OPT_SHIFT_TRUE; }
+			"--shift=true"							{ return OPT_SHIFT_TRUE; }
+			"--shift=false"							{ return OPT_SHIFT_FALSE; }
 			"-p"|"--port"							{ return OPT_PORT_EXTERNAL; }
 			"-post"|"--post-processor"				{ return OPT_POSTPROC; }
 			"-postopt"|"--post-processor-opts"		{ return OPT_POSTPROC_OPTS; }
@@ -1518,15 +1594,16 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          reactive mode." << endl
 		  << endl
 		  << " -nh" << endl
-		  << " --none-hack ------------ Indicates that we should simulate the 'none' value as a integral " << endl
+		  << " --none-hack={true,false} Indicates that we should simulate the 'none' value as a integral " << endl
 		  << "                          type. This is helpful for circumventing a bug in Gringo 3.0.4 that " << endl
 		  << "                          sometimes prevents domains from properly grounding due to " << endl
 		  << "                          unification issues." << endl
 		  << endl
-		  << " -ns" << endl
-		  << " --no-shift ------------- Prevents the solver from shifting disjunction from the head of a rule " << endl
-		  << "                          into the body of that rule. Useful if you're using a disjunctive solver " << endl
-		  << "                          that doesn't require/support this." << endl
+		  << " -s" << endl
+		  << " --shift={true,false} --- Allows the sovler to shift disjunction in the head of a rule generated by the" << endl
+		  << "                          pre-processor into the body. This is useful when the preprocessor generates" << endl
+		  << "                          disjunctive rules and a disjunctive solver isn't available. May not be" << endl
+		  << "                          guaranteed to preserve stable models." << endl
 		  << endl
 		  << "Extra Program Options:" << endl
 		  << "  Options with [PROG] or [PROGRAM] in their name affect individual" << endl

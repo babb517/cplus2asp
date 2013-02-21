@@ -4,18 +4,14 @@
 # Additive Domains
 # --------------------------------------------------------------------------------------------------------------------
 
-# Double check the output directory
-mkdir output -p
-
 # ------------------------------------------------------ Buying ------------------------------------------------------
 echo "% ------------------------------------------------------ Buying ------------------------------------------------------" 
 
 # ------------------------- Query 1 -------------------------
 echo "% ------------------------- Query 1 -------------------------" 
 
-# Define none to be 1000 as a hack to circumvent a bug in Gringo's unification checking.
-echo "$ cplus2asp domains/buying-test -q 1 -c none=1000 " 
-cplus2asp domains/buying-test -q 1 -c none=1000 
+echo "$ cplus2asp domains/buying-test -q 1  " 
+cplus2asp domains/buying-test -q 1  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -42,9 +38,8 @@ cplus2asp domains/buying-test -q 1 -c none=1000
 # ------------------------- Query 2 -------------------------
 echo "% ------------------------- Query 2 -------------------------" 
 
-# Define none to be 1000 as a hack to circumvent a bug in Gringo's unification checking.
-echo "$ cplus2asp domains/buying-test -q 2 -c none=1000 " 
-cplus2asp domains/buying-test -q 2 -c none=1000 
+echo "$ cplus2asp domains/buying-test -q 2  " 
+cplus2asp domains/buying-test -q 2  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -67,9 +62,8 @@ echo "% ---------------------------------------------------- Spacecraft --------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-# Define none to be 1000 as a hack to circumvent a bug in Gringo's unification checking.
-echo "$ cplus2asp domains/spacecraft-test -q 0 0 -c none=1000 " 
-cplus2asp domains/spacecraft-test -q 0 0 -c none=1000 
+echo "$ cplus2asp domains/spacecraft-test -q 0 0  " 
+cplus2asp domains/spacecraft-test -q 0 0  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -170,9 +164,8 @@ echo "% -------------------------------------------------------- MCP -----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-# Define none to be 1000 as a hack to circumvent a bug in Gringo's unification checking.
-echo "$ cplus2asp domains/mcp-test -q 0 -c none=1000 " 
-cplus2asp domains/mcp-test -q 0 -c none=1000 
+echo "$ cplus2asp domains/mcp-test -q 0  " 
+cplus2asp domains/mcp-test -q 0  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '3'.
@@ -227,9 +220,8 @@ echo "% ------------------------------------------------------ BW-Cost ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-# Define none to be 1000 as a hack to circumvent a bug in Gringo's unification checking.
-echo "$ cplus2asp domains/bw-cost-test -q 0 -c none=1000 " 
-cplus2asp domains/bw-cost-test -q 0 -c none=1000 
+echo "$ cplus2asp domains/bw-cost-test -q 0  " 
+cplus2asp domains/bw-cost-test -q 0  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '19'.

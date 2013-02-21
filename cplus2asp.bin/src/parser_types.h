@@ -65,6 +65,8 @@ public:
 		MASK_DYNAMIC_AB	= 0x10,
 		MASK_TRUE_FALSE = 0x20,
 
+		MASK_SDFLUENT = 0x40,			// NOTE: sdFluent's are also contained within the FLUENT group.
+
 		MASK_AB = MASK_STATIC_AB | MASK_DYNAMIC_AB,
 		MASK_NON_TRIVIAL = ~MASK_TRUE_FALSE,
 		MASK_NON_RIGID = MASK_NON_TRIVIAL & ~MASK_RIGID,

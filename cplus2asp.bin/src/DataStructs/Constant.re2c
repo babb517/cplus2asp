@@ -203,6 +203,7 @@ bool Constant::isFluentType(ConstantType _constType, bool includeRigid)
 	case CONST_SDFLUENT:
 	case CONST_SIMPLEFLUENT:
 	case CONST_ADDITIVEFLUENT:
+	case CONST_ABFLUENT:
 		return true;
 	case CONST_RIGID:
 		return includeRigid;
@@ -242,6 +243,7 @@ std::string Constant::translatePrefix(ConstantType constType)
 	case CONST_RIGID:
 	case CONST_SDFLUENT:
 	case CONST_SIMPLEFLUENT:
+	case CONST_ABFLUENT:
 	case CONST_ADDITIVEFLUENT:
 	default:
 		return "h(eql(";
@@ -254,8 +256,6 @@ std::string Constant::translatePostfix(ConstantType constType, Context const& co
 	if (Constant::isAbnormalityType(constType)) {
 		return ", " + context.getTimestamp() + ")";
 	} else {
-		context.getNegated();
-
 		out << ", "
 		// make sure we handle the case where the context is blind to this being an atom.
 		// Default the value to "true".

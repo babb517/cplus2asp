@@ -283,4 +283,4 @@ constraint willLeave(C) & willLeave(C1) & node(C)=node(C1)
 constraint nextSegment(C)=Sg & 
            -[\/C1 | varsigmaAhead(C1,C) & distance(C1)<varsigma]
     ->> [\/C1 | node(C1)=node(C) & nextSegment(C1)=Sg 
-                & willLeave(C1)].
+                & willLeave(C1)].NOOP

@@ -29,6 +29,12 @@ constraint edge(member(I),member(J)) ++ edge(member(J),member(I)) ++ I=J.
  constraint [\/X \/Y | member(I)=X & member(I)=Y ->>
                         edge(X,Y) ++ edge(Y,X) ++ I=J].
 
+
+% symmetry breaking
+constraint member(I)=X & member(J)=Y & I < J ->> X<Y.
+
+:- show member(I).
+
 /*
 | ?- loadf 'clique'.
 % loading file /stage/projects3/tag/ccalc/macros.std

@@ -32,7 +32,7 @@ constraint loc(D)=DS ->> size(D)<size(DS).
 
 nonexecutable move(p(P),p(P1)) if top(p(P))=none.
 
-/*
+
 % effects
 
 % top(Pi) := loc(top(Pi))    
@@ -48,18 +48,18 @@ noconcurrency.
 
 :- query
 maxstep :: 7;
-0: size(none)=3, size(d1)=2, size(d2)=1, size(d3)=0,
-   loc(d1)=none,  loc(d2)=d1,  loc(d3)=d2,
-   top(p1)=d3, top(p2)=none, top(p3)=none;
+0: size(none)=3, size(d(1))=2, size(d(2))=1, size(d(3))=0,
+   loc(d(1))=none,  loc(d(2))=d(1),  loc(d(3))=d(2),
+   top(p(1))=d(3), top(p(2))=none, top(p(3))=none;
 maxstep:
-   loc(d1)=none, loc(d2)=d1, loc(d3)=d2, top(p3)=d3.
+   loc(d(1))=none, loc(d(2))=d(1), loc(d(3))=d(2), top(p(3))=d(3).
 
 :- query
-label :: 2;
+label :: 1;
 maxstep :: 1;
-0: size(none)=3, size(d1)=2, size(d2)=1, size(d3)=0,
-   loc(d1)=none,  loc(d2)=d1,  loc(d3)=d2,
-   top(p1)=d3, top(p2)=none, top(p3)=none;
-0: move(p3,p1).
+0: size(none)=3, size(d(1))=2, size(d(2))=1, size(d(3))=0,
+   loc(d(1))=none,  loc(d(2))=d(1),  loc(d(3))=d(2),
+   top(p(1))=d(3), top(p(2))=none, top(p(3))=none;
+0: move(p(3),p(1)).
 
-*/
+

@@ -4,19 +4,14 @@
 # NMCT Domains
 # --------------------------------------------------------------------------------------------------------------------
 
-# Double check the output directory
-mkdir output -p
-
-
-
 # ------------------------------------------------ Monkeys & Bananas -------------------------------------------------
-echo "% ------------------------------------------------ Monkeys & Bananas -------------------------------------------------" > output/nmct.out
+echo "% ------------------------------------------------ Monkeys & Bananas -------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 0 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/monkey -q 0 0 >> output/nmct.out
+echo "$ cplus2asp domains/monkey -q 0 0 " 
+cplus2asp domains/monkey -q 0 0 
 
 # Output:
 
@@ -35,10 +30,10 @@ cplus2asp domains/monkey -q 0 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ------------------------- Query 1 -------------------------
-echo "% ------------------------- Query 1 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 1 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 1 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/monkey -q 1 0 >> output/nmct.out
+echo "$ cplus2asp domains/monkey -q 1 0 " 
+cplus2asp domains/monkey -q 1 0 
 
 # Output:
 
@@ -57,10 +52,10 @@ cplus2asp domains/monkey -q 1 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ------------------------- Query 2 -------------------------
-echo "% ------------------------- Query 2 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 2 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 2 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/monkey -q 2 0 >> output/nmct.out
+echo "$ cplus2asp domains/monkey -q 2 0 " 
+cplus2asp domains/monkey -q 2 0 
 
 # Output:
 
@@ -97,13 +92,13 @@ cplus2asp domains/monkey -q 2 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ----------------------------------------------------- Shooting -----------------------------------------------------
-echo "% ----------------------------------------------------- Shooting -----------------------------------------------------" >> output/nmct.out
+echo "% ----------------------------------------------------- Shooting -----------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/shooting -q 0 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/shooting -q 0 0 >> output/nmct.out
+echo "$ cplus2asp domains/shooting -q 0 0 " 
+cplus2asp domains/shooting -q 0 0 
 
 # Output:
 
@@ -177,13 +172,13 @@ cplus2asp domains/shooting -q 0 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ------------------------------------------------------ Going -------------------------------------------------------
-echo "% ------------------------------------------------------ Going -------------------------------------------------------" >> output/nmct.out
+echo "% ------------------------------------------------------ Going -------------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/going -q 0 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/going -q 0 0 >> output/nmct.out
+echo "$ cplus2asp domains/going -q 0 0 " 
+cplus2asp domains/going -q 0 0 
 
 # Output: 
 
@@ -225,13 +220,13 @@ cplus2asp domains/going -q 0 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ----------------------------------------------------- Lifting ------------------------------------------------------
-echo "% ----------------------------------------------------- Lifting ------------------------------------------------------" >> output/nmct.out
+echo "% ----------------------------------------------------- Lifting ------------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/lifting -q 0 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/lifting -q 0 0 >> output/nmct.out
+echo "$ cplus2asp domains/lifting -q 0 0 " 
+cplus2asp domains/lifting -q 0 0 
 
 
 # Output:
@@ -270,13 +265,13 @@ cplus2asp domains/lifting -q 0 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ----------------------------------------------------- Pendulum -----------------------------------------------------
-echo "% ----------------------------------------------------- Pendulum -----------------------------------------------------" >> output/nmct.out
+echo "% ----------------------------------------------------- Pendulum -----------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/pendulum -q 0 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/pendulum -q 0 0 >> output/nmct.out
+echo "$ cplus2asp domains/pendulum -q 0 0 " 
+cplus2asp domains/pendulum -q 0 0 
 
 # Output:
 
@@ -345,13 +340,13 @@ cplus2asp domains/pendulum -q 0 0 >> output/nmct.out
 # Solving   : 0.000
 
 # ---------------------------------------------------- Publishing ----------------------------------------------------
-echo "% ---------------------------------------------------- Publishing ----------------------------------------------------" >> output/nmct.out
+echo "% ---------------------------------------------------- Publishing ----------------------------------------------------" 
 
 # ------------------------- Query 0 -------------------------
-echo "% ------------------------- Query 0 -------------------------" >> output/nmct.out
+echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/publishing -q 0 >> output/nmct.out" >> output/nmct.out
-cplus2asp domains/publishing -q 0 >> output/nmct.out
+echo "$ cplus2asp domains/publishing -q 0 " 
+cplus2asp domains/publishing -q 0 
 
 # Output:
 

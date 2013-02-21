@@ -1709,14 +1709,15 @@ cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clau
 }
 							;
 
-cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_when_clause cl_where_clause
+cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6);
+	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6, $7);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
 	deallocateItem($5);
 	deallocateItem($6);
+	deallocateItem($7);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1807,7 +1808,7 @@ causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_
 }
 							;
 
-cl_head_formula:			  		literal_assign_conj
+cl_head_formula:			literal_assign_conj
 {
 	$$ = $1;
 }
@@ -2574,8 +2575,9 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 				
 				$$ = new ConstantLikeElement(*$2, NULL);
 			
+			} else { 
+				$$ = new ObjectLikeElement(*$2, objRef);
 			}
-			$$ = new ObjectLikeElement(*$2, objRef);
 		}
 		else
 		{
@@ -2606,9 +2608,10 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 			
 			$$ = new ConstantLikeElement(*$2, NULL, $4);
 		
-		}
+		} else {
 		
-		$$ = new ObjectLikeElement(*$2, objRef, $4);
+			$$ = new ObjectLikeElement(*$2, objRef, $4);
+		}
 	}
 	else
 	{
@@ -2645,7 +2648,7 @@ parameter_list:				  		parameter_general
 }
 							;
 
-parameter_general:			 		extended_math_expression
+parameter_general:			 		extended_value_expression
 {
 	$$ = $1;
 }
