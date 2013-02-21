@@ -20,7 +20,7 @@
 fightFor(N,S) may cause owner(S)=N.
 nonexecutable fightFor(N,S) if owner(S)\=i.
 
-
+/*
 :- nmquery
 maxstep :: 2;
 anyFluentValues;
@@ -28,7 +28,14 @@ cwaActions;
 constraint 0: owner(S)=i;
 0: fightFor(left,apple);
 1: fightFor(right,banana).
-  
+*/
+
+:- query
+maxstep :: 2;
+0: owner(S)=i;
+0: fightFor(left,apple), -fightFor(right,apple), -fightFor(left,banana), -fightFor(right,banana), -fightFor(left,carrot), -fightFor(right,carrot);
+1: -fightFor(left,apple), -fightFor(right,apple), -fightFor(left,banana), fightFor(right,banana), -fightFor(left,carrot), -fightFor(right,carrot).
+
 
 /*
 | ?- loadf snack.

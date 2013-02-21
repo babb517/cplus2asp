@@ -10,8 +10,8 @@ echo "% ------------------------------------------------------ Buying ----------
 # ------------------------- Query 1 -------------------------
 echo "% ------------------------- Query 1 -------------------------" 
 
-echo "$ cplus2asp domains/buying-test -q 1  " 
-cplus2asp domains/buying-test -q 1  
+echo "$ cplus2asp domains/buying-test query=1  " 
+cplus2asp domains/buying-test query=1  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -38,8 +38,8 @@ cplus2asp domains/buying-test -q 1
 # ------------------------- Query 2 -------------------------
 echo "% ------------------------- Query 2 -------------------------" 
 
-echo "$ cplus2asp domains/buying-test -q 2  " 
-cplus2asp domains/buying-test -q 2  
+echo "$ cplus2asp domains/buying-test query=2  " 
+cplus2asp domains/buying-test query=2  
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -62,8 +62,8 @@ echo "% ---------------------------------------------------- Spacecraft --------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/spacecraft-test -q 0 0  " 
-cplus2asp domains/spacecraft-test -q 0 0  
+echo "$ cplus2asp domains/spacecraft-test query=0 0 --none-hack=true" 
+cplus2asp domains/spacecraft-test query=0 0 --none-hack=true 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -164,8 +164,8 @@ echo "% -------------------------------------------------------- MCP -----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/mcp-test -q 0  " 
-cplus2asp domains/mcp-test -q 0  
+echo "$ cplus2asp domains/mcp-test query=0 --none-hack=true" 
+cplus2asp domains/mcp-test query=0 --none-hack=true 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '3'.
@@ -220,8 +220,8 @@ echo "% ------------------------------------------------------ BW-Cost ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/bw-cost-test -q 0  " 
-cplus2asp domains/bw-cost-test -q 0  
+echo "$ cplus2asp domains/bw-cost-test query=0 --none-hack=true" 
+cplus2asp domains/bw-cost-test query=0 --none-hack=true 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '19'.

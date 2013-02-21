@@ -10,8 +10,8 @@ echo "% ------------------------------------------------ Monkeys & Bananas -----
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 0 0 " 
-cplus2asp domains/monkey -q 0 0 
+echo "$ cplus2asp domains/monkey query=0 0 " 
+cplus2asp domains/monkey query=0 0 
 
 # Output:
 
@@ -32,8 +32,8 @@ cplus2asp domains/monkey -q 0 0
 # ------------------------- Query 1 -------------------------
 echo "% ------------------------- Query 1 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 1 0 " 
-cplus2asp domains/monkey -q 1 0 
+echo "$ cplus2asp domains/monkey query=1 0 " 
+cplus2asp domains/monkey query=1 0 
 
 # Output:
 
@@ -54,8 +54,8 @@ cplus2asp domains/monkey -q 1 0
 # ------------------------- Query 2 -------------------------
 echo "% ------------------------- Query 2 -------------------------" 
 
-echo "$ cplus2asp domains/monkey -q 2 0 " 
-cplus2asp domains/monkey -q 2 0 
+echo "$ cplus2asp domains/monkey query=2 0 " 
+cplus2asp domains/monkey query=2 0 
 
 # Output:
 
@@ -97,8 +97,8 @@ echo "% ----------------------------------------------------- Shooting ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/shooting -q 0 0 " 
-cplus2asp domains/shooting -q 0 0 
+echo "$ cplus2asp domains/shooting query=0 0 " 
+cplus2asp domains/shooting query=0 0 
 
 # Output:
 
@@ -177,8 +177,8 @@ echo "% ------------------------------------------------------ Going -----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/going -q 0 0 " 
-cplus2asp domains/going -q 0 0 
+echo "$ cplus2asp domains/going query=0 0 " 
+cplus2asp domains/going query=0 0 
 
 # Output: 
 
@@ -225,8 +225,8 @@ echo "% ----------------------------------------------------- Lifting ----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/lifting -q 0 0 " 
-cplus2asp domains/lifting -q 0 0 
+echo "$ cplus2asp domains/lifting query=0 0 " 
+cplus2asp domains/lifting query=0 0 
 
 
 # Output:
@@ -270,8 +270,8 @@ echo "% ----------------------------------------------------- Pendulum ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/pendulum -q 0 0 " 
-cplus2asp domains/pendulum -q 0 0 
+echo "$ cplus2asp domains/pendulum query=0 0 " 
+cplus2asp domains/pendulum query=0 0 
 
 # Output:
 
@@ -345,8 +345,8 @@ echo "% ---------------------------------------------------- Publishing --------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp domains/publishing -q 0 " 
-cplus2asp domains/publishing -q 0 
+echo "$ cplus2asp domains/publishing query=0 " 
+cplus2asp domains/publishing query=0 
 
 # Output:
 

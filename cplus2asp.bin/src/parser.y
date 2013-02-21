@@ -2417,24 +2417,20 @@ query_body_formula:			 		 query_body_formula_inner
 							| extended_math_expr_inner T_COLON query_body_formula
 {
 	// Turn the time stamp into a plain, translated string representation, then propogate it through the body formula.
-	std::string tempTimeStamp = "UNKNOWN";
-	if($1 != NULL)
+	if($1 != NULL && $3 != NULL)
 	{
-		ClauseList throwaway;
-		tempTimeStamp =  Translator::sanitizeObjectName(((ObjectLikeElement*)$1)->baseName());
-		deallocateItem($1);
-	}
-	if($3 != NULL)
+		$$ = new SimpleBinaryOperator($1, SimpleBinaryOperator::BOP_BIND_STEP, $3);
+	} 
+	else if ($3 != NULL) 
 	{
-		$3->setQueryTimeStamp(tempTimeStamp);
+		$$ = $3;
 	}
 	else
 	{
 		ltsyystartWarning(ltsyylloc);
-		ltsyyossErr << "Query body formula with time stamp \"" << tempTimeStamp << "\" is NULL!";
+		ltsyyossErr << "Query body formula is NULL!";
 		ltsyyreportWarning();
 	}
-	$$ = $3;
 }
 							;
 

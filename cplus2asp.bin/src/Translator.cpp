@@ -944,7 +944,8 @@ void Translator::translateQuery(Query const* transQuery)
 		// For each item in queryConditions, output an ASP-style constraint for it.
 		for(ParseElementList::const_iterator lIter = transQuery->queryConditions.begin(); lIter != transQuery->queryConditions.end(); ++lIter)
 		{
-			bool isDynamic = false, alteredTimestamp = false;
+			IPart part = IPART_BASE;
+			bool alteredTimestamp = false;
 			bool malformed = false;
 			int tmpLoc;
 			std::string tmpQueryTimeStamp;
@@ -954,17 +955,7 @@ void Translator::translateQuery(Query const* transQuery)
 
 			// Transform 'maxstep' to the appropriate timestamp
 			if (!blnStaticTrans) {
-				tmpQueryTimeStamp = utils::trimWhitespace((*lIter)->getQueryTimeStamp());
-				// A query statement is dynamic if it's not regarding t=0 or contains actions.
-				if (tmpQueryTimeStamp != "0" || (*lIter)->hasConstants(ParseElement::MASK_ACTION)){
-					isDynamic = true;
-				}
-				while ((tmpLoc = tmpQueryTimeStamp.find("maxstep")) != std::string::npos) {
-					// we have a 'maxstep' occurrence in the string
-					alteredTimestamp = true;
-					tmpQueryTimeStamp.replace(tmpLoc, 7, dynamicTimeStamp);
-				}
-				if (alteredTimestamp) (*lIter)->setQueryTimeStamp(tmpQueryTimeStamp);
+				part = (*lIter)->determineQueryIPart();
 			}
 
 			// Quick checking for undeclared identifiers....
@@ -992,7 +983,30 @@ void Translator::translateQuery(Query const* transQuery)
 			if (malformed) continue;
 
 
-			(*lIter)->translateQuery(stmts, transQuery->label, (isDynamic) ? IPART_VOLATILE : IPART_BASE);
+			// Translate the query.
+			std::ostringstream stmtBuilder;
+			Context localContext = Context(
+					Context::POS_QUERY,
+					part,
+					Context::EMPTY_STR,
+					NULL,
+					NULL,
+					true,
+					true,
+					&stmts
+			);
+
+
+			stmtBuilder << "false <- query_label(" << transQuery->label << ") & not (";
+
+			bindAndTranslate(stmtBuilder, (*lIter), localContext, false, false);
+
+			// end the statement.
+			stmtBuilder << ").";
+
+			// push the results in the statements list.
+			stmts.push_back(Statement(stmtBuilder.str(), part));
+
 		}
 
 		// output all the resulting statements.
@@ -2061,8 +2075,8 @@ void Translator::setStaticTranslation(bool staticTrans) {
 		staticTimeStamp = getSort("step")->varTransName();
 		dynamicTimeStamp = getSort("astep")->varTransName();
 	} else {
-		staticTimeStamp = "t";
-		dynamicTimeStamp = "t";
+		staticTimeStamp = "maxstep";
+		dynamicTimeStamp = "maxstep";
 	}
 
 }

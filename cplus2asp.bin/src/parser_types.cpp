@@ -39,38 +39,6 @@ PT_constant_binder_t::~PT_constant_binder_t()
 
 size_t ParseElement::sVarCount = 0;
 
-
-// Translates a query
-StmtList& ParseElement::translateQuery(StmtList& outStmts, std::string const& label, IPart ipart) const {
-	std::ostringstream tmp;
-
-
-	tmp << "false <- query_label(" << label << ") & not (";
-
-	// We want to bind the variables and clauses
-		Context localContext =
-			Context(
-				Context::POS_QUERY,
-				ipart,
-				mQueryTimeStamp,
-				NULL,
-				NULL,
-				false,
-				false,
-				&outStmts
-		);
-
-	Translator::bindAndTranslate(tmp, this, localContext, false);
-
-	// end the statement.
-	tmp << ").";
-
-	// push the results in the statements list.
-	outStmts.push_back(Statement(tmp.str(),ipart));
-
-	return outStmts;
-}
-
 /*******************************************************************/
 /* SimpleUnaryOperator */
 /*******************************************************************/
@@ -342,6 +310,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 {
 	Context localContext;
 	std::ostringstream tmp;
+	std::string tmpstr;
 	//SimpleBinaryOperatorWrapper* tmpOp;
 
 	out << translateBeforeParen();
@@ -360,6 +329,18 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 	{ 	// Then, perform different translations based on what the operator is.
 		// Lack of breaks is intentional.
 		switch(type) {
+
+		case BOP_BIND_STEP:
+			// This is an expression of the form X:F which binds F to have maximum step value X.
+
+			localContext = context.mkPos(Context::POS_ARITHEXPR);
+			preOp()->translate(tmp, localContext);
+			tmpstr = tmp.str();
+
+			localContext = context.mkTime(tmpstr);
+			Translator::bindAndTranslate(out, postOp(), localContext, false);
+			break;
+
 		/* This special case isn't actually neccessary.
 		case BOP_NEQ:
 
@@ -482,6 +463,29 @@ bool SimpleBinaryOperator::isSingleAtom() const {
 					&& !postOp()->hasConstants(MASK_NON_TRIVIAL));
 }
 
+IPart SimpleBinaryOperator::determineQueryIPart() const {
+	std::ostringstream tmp;
+	IPart ret1, ret2;
+
+	if (opType() == BOP_BIND_STEP) {
+		// This is a bind statement. Figure out what we're doing.
+		preOp()->fullName(tmp);
+		if (tmp.str() == "0") {
+			return IPART_BASE;
+		} else {
+			return IPART_VOLATILE;
+		}
+	} else {
+		ret1 = (preOp()) ? preOp()->determineQueryIPart() : IPART_BASE;
+		ret2 = (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE;
+
+		if (ret1 == IPART_CUMULATIVE || ret2 == IPART_CUMULATIVE) return IPART_CUMULATIVE;
+		else if (ret1 == IPART_VOLATILE || ret2 == IPART_VOLATILE) return IPART_VOLATILE;
+		else return IPART_BASE;
+	}
+
+}
+
 
 // Determines if the element is a valid arithmetic expression.
 bool SimpleBinaryOperator::isArithExpr() const {
@@ -578,7 +582,7 @@ std::string SimpleBinaryOperator::translateOpType(BinaryOperatorType op) {
 		opStr = " | ";
 		break;
 	case BOP_EQUIV:
-		opStr = " <-> ";
+		opStr = " <--> ";
 		break;
 	case BOP_IMPL:
 		opStr = " -> ";
@@ -693,7 +697,7 @@ std::ostream& BigQuantifiers::fullName(std::ostream& out) const
 	if(postOp() && numQuants())
 	{
 		out << "[ ";
-		for(QuantifierList::const_iterator lIter = quantsBegin(); lIter != quantsBegin(); lIter++)
+		for(QuantifierList::const_iterator lIter = quantsBegin(); lIter != quantsEnd(); lIter++)
 		{
 			if((*lIter) && (*lIter)->second)
 			{

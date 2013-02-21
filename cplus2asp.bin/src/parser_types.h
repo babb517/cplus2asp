@@ -137,6 +137,12 @@ public:
 	virtual bool hasLuaCalls() const = 0;
 
 	/**
+	 * Determines the proper IPart to place the formula in.
+	 * @return IPART_BASE if the formula is 0:(...), IPART_VOLATILE if the formula is X:(...), and IPART_CUMULATIVE if the formula is anything else.
+	 */
+	virtual IPart determineQueryIPart() const = 0;
+
+	/**
 	 * Prints the untranslated element string.
 	 * @param out The output stream to print to.
 	 * @return out.
@@ -145,7 +151,6 @@ public:
 
 	/// Returns an exact copy of the parse element.
 	virtual ParseElement* copy() const = 0;
-
 
 	/**
 	 * Aggregates all of the undefined identifiers (which are assumed to be constants).
@@ -159,24 +164,6 @@ public:
 
 	/// Gets the type of the parse element.
 	inline ParseElementType getType() const { return mElemType; }
-
-	/// Gets the timestamp (assuming this is a query).
-	inline std::string const& getQueryTimeStamp() const { return mQueryTimeStamp; }
-
-	/**
-	 * Special helper method used for translating query formulas.
-	 * @param[out] outStmts The list to store the resulting statements in.
-	 * @param label The label to label the query with.
-	 * @param ipart The incremental module the query should go in.
-	 * @return out.
-	 */
-	virtual StmtList& translateQuery(StmtList& outStmts, std::string const& label, IPart ipart) const;
-
-	/**
-	 * Attaches a timestamp to a query formula which will be used during translation.
-	 * @param timestamp The new timestamp to use during translation.
-	 */
-	inline void  setQueryTimeStamp(std::string const& timestamp) { mQueryTimeStamp = timestamp; }
 
 	/**
 	 * Sets whether the expression is wrapped in parentheses.
@@ -255,6 +242,7 @@ public:
 	virtual bool isSingleAtom() const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls() const							{ return postOp() && postOp()->hasLuaCalls(); }
+	inline virtual IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
 	virtual std::ostream& fullName(std::ostream& out) const;
 	inline virtual ParseElement* copy() const					{ return new SimpleUnaryOperator(opType(), (postOp()) ? postOp()->copy() : NULL, parens()); }
 	inline virtual void aggregateUndefined(BaseElementList& outIdentifiers)	{ if (postOp()) mPostOp->aggregateUndefined(outIdentifiers); }
@@ -281,12 +269,14 @@ public:
 	virtual ~SimpleUnaryOperator();
 
 protected:
+
 	/**
 	 * Simple helper function. Converts the provided operator to a string representation.
 	 * @param op The operator to convert
 	 * @return A string corresponding to that operator.
 	 */
 	static std::string translateOpType(UnaryOperatorType op);
+
 };
 
 class SimpleBinaryOperatorWrapper;
@@ -318,7 +308,8 @@ public:
 			BOP_LTHAN,
 			BOP_GTHAN,
 			BOP_LTHAN_EQ,
-			BOP_GTHAN_EQ
+			BOP_GTHAN_EQ,
+			BOP_BIND_STEP
 		};
 private:
 		enum BinaryOperatorType mOpType; ///< Which kind of operator an instance represents.
@@ -345,6 +336,7 @@ public:
 	virtual bool isSingleAtom() const;
 	virtual bool isArithExpr() const;
 	inline virtual bool hasLuaCalls() const						{ return (preOp() && preOp()->hasLuaCalls()) || (postOp() && postOp()->hasLuaCalls()); }
+	virtual IPart determineQueryIPart() const;
 	virtual std::ostream& fullName(std::ostream& out) const;
 	inline virtual ParseElement* copy() const					{ return new SimpleBinaryOperator(preOp()->copy(), opType(), postOp()->copy(), parens()); }
 	virtual void aggregateUndefined(BaseElementList& outIdentifiers);
@@ -435,6 +427,7 @@ public:
 	inline virtual bool isSingleAtom() const					{ return false; }
 	inline virtual bool isArithExpr() const						{ return false; }
 	inline virtual bool hasLuaCalls() const						{ return postOp() && postOp()->hasLuaCalls(); }
+	virtual inline IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
 	virtual std::ostream& fullName(std::ostream& out) const;
 	virtual ParseElement* copy() const;
 	virtual void aggregateUndefined(BaseElementList& outIdentifiers);
@@ -499,6 +492,7 @@ public:
 	inline virtual bool isSingleAtom() const					{ return mWrapped->isSingleAtom(); }
 	inline virtual bool isArithExpr() const						{ return mWrapped->isArithExpr(); }
 	inline virtual bool hasLuaCalls() const						{ return mWrapped->hasLuaCalls(); }
+	virtual inline IPart determineQueryIPart() const			{ return mWrapped->determineQueryIPart(); }
 	virtual std::ostream& fullName(std::ostream& out) const		{ return mWrapped->fullName(out); }
 	virtual ParseElement* copy() const							{ return new SimpleBinaryOperatorWrapper(mWrapped, mType); }
 	inline virtual void aggregateUndefined(BaseElementList& outIdentifiers) { /* Not Supported */ }
@@ -554,6 +548,7 @@ public:
 	virtual bool isSingleAtom() const = 0;
 	inline virtual bool isArithExpr() const 								{ return isNumeric(); }
 	virtual bool hasLuaCalls() const = 0;
+	virtual IPart determineQueryIPart() const = 0;
 	virtual std::ostream& fullName(std::ostream& out) const;
 	virtual ParseElement* copy() const = 0;
 	inline virtual void aggregateUndefined(BaseElementList& outIdentifiers) { if (!ref()) outIdentifiers.push_back(this); }
@@ -650,6 +645,7 @@ public:
 	virtual bool hasConstants(unsigned int types) const;
 	inline virtual bool isSingleAtom() const				{ return ref() && ((Constant const*)ref())->isBoolean(); }
 	inline virtual bool hasLuaCalls() const					{ return false; }
+	inline virtual IPart determineQueryIPart() const 		{ return IPART_CUMULATIVE; }
 	virtual ParseElement* copy() const;
 
 
@@ -727,6 +723,7 @@ public:
 	virtual bool hasConstants(unsigned int types) const;
 	virtual bool isSingleAtom() const						{ return baseName() == "true" || baseName() == "false"; }
 	virtual bool hasLuaCalls() const						{ return ref() && ((Object const*)ref())->isLua(); }
+	inline virtual IPart determineQueryIPart() const 		{ return IPART_BASE; }
 	virtual ParseElement* copy() const;
 
 	virtual bool isNumeric() const;
@@ -761,6 +758,7 @@ public:
 	virtual bool hasConstants(unsigned int types) const;
 	inline virtual bool isSingleAtom() const						{ return ref() && isConstantVariable() && ref()->isBoolean(); }
 	inline virtual bool hasLuaCalls() const							{ return false; }
+	inline virtual IPart determineQueryIPart() const 				{ return IPART_BASE; }
 	inline virtual ParseElement* copy() const						{ return new VariableLikeElement(baseName(), (Variable const*)ref(), parens()); }
 
 	inline virtual bool isNumeric() const							{ return ref() && ref()->isNumeric(); }

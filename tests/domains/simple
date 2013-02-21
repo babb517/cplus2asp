@@ -97,14 +97,16 @@ caused cCIR(I) after cCI(I) & -cSMO(I) & -hh(I1) & -hh(I2)
             where I1==(I-1) mod max, I2==(I+1) mod max.
 
 :- query 
-maxstep :: 1.
-
+maxstep :: 1;
+label :: 2.
 %(0: cSLP(I)) = (1: cSLP(I)).
 
-:- query	
-label :: basin;
-maxstep :: 1;
 /*
+:- query	
+% label :: basin;
+label :: 3;
+maxstep :: 1;
+/ *
 0: -wg(0), wg(1), -wg(2), -wg(3), -wg(4), wg(5), 
    -wg(6), -wg(7), -wg(8), wg(9), -wg(10), -wg(11);
 
@@ -138,7 +140,7 @@ maxstep :: 1;
 0: -cCIA(I);
 
 0: -cCIR(I).
-*/
+* /
 
 
 (0: cSLP(I)) = (1: cSLP(I));
@@ -156,17 +158,19 @@ maxstep :: 1;
 (0: cCI(I)) = (1: cCI(I));
 (0: cCIA(I)) = (1: cCIA(I));
 (0: cCIR(I)) = (1: cCIR(I)). 
-
+*/
 
 %%
 
 :- query 
-label :: states;
+%label :: states;
+label :: 3;
 maxstep :: 0.
 
 
 :- query	
-label :: plan;
+%label :: plan;
+label :: 4;
 maxstep :: 8..25;
 0: (I mod 4=1) ->> wg(I),
    (I mod 4\=1) ->> -wg(I);
@@ -245,7 +249,8 @@ maxstep: (I mod 4=0) ->> cCIR(I),
 
 
 :- query 
-label :: basin_eq;
+%label :: basin_eq;
+label :: 5;
 maxstep :: 0;
 
 0: wg(I) <-> (cCIA(I) & cSLP(I) & -cCIR(I)) 
@@ -285,7 +290,8 @@ maxstep :: 0;
 
 
 :- query 
-label :: prediction;
+%label :: prediction;
+label :: 6;
 maxstep :: 5;
 
 %1: -cPTC(0);
@@ -325,7 +331,8 @@ maxstep :: 5;
 
 
 :- query 
-label :: goal;
+% label :: goal;
+label :: 7;
 maxstep :: 1;
 
 maxstep: (I mod 4=1) ->> wg(I),
@@ -374,10 +381,12 @@ maxstep: (I mod 4=0) ->> cCIR(I),
 :- variables
 FF :: simpleFluent.
 
+/*
 :- query
-label :: pair;
+% label :: pair;
+label :: 87;
 maxstep :: 1;
 (0: FF) = (1: FF);
 0: (I mod 4==2 ->> en(I));
 0: (I mod 4\=2 ->> -en(I)).
-
+*/

@@ -4,6 +4,9 @@
 #base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
 
+% Maxstep
+#const maxstep=t.
+
 % Numeric sorts designed for use with additive constants.
 sort(additiveInteger).
 #domain additiveInteger(V_additiveInteger).

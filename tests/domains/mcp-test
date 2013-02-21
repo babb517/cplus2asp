@@ -11,7 +11,7 @@ maxstep :: 6..7;
 0: [/\V | loc(V) = bank1];
 maxstep: (num(mi,bank1) = 0 && num(ca,bank1) = 0).
 
-:- show loc(V); num(G,L); cross(V); to(V); howmany(V,G); departing(G,C).
+:- show loc(V); num(G,L); cross(V); to(V); howmany(V,G); departing(G,L).
 
 
 /*

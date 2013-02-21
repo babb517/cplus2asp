@@ -949,14 +949,14 @@ static const yytype_uint16 yyrline[] =
     1992,  1998,  2002,  2012,  2020,  2026,  2030,  2040,  2044,  2050,
     2054,  2058,  2064,  2081,  2096,  2105,  2114,  2146,  2180,  2219,
     2260,  2289,  2293,  2299,  2350,  2369,  2387,  2405,  2409,  2417,
-    2441,  2445,  2449,  2453,  2457,  2461,  2467,  2471,  2481,  2500,
-    2504,  2508,  2535,  2541,  2558,  2594,  2628,  2629,  2631,  2640,
-    2651,  2657,  2678,  2705,  2709,  2713,  2717,  2723,  2727,  2738,
-    2742,  2746,  2750,  2754,  2758,  2762,  2766,  2774,  2779,  2785,
-    2793,  2798,  2803,  2808,  2817,  2821,  2831,  2835,  2844,  2853,
-    2862,  2871,  2883,  2887,  2891,  2897,  2903,  2907,  2913,  2919,
-    2923,  2928,  2935,  2939,  2943,  2947,  2951,  2957,  2963,  2969,
-    2973,  2980,  2984
+    2437,  2441,  2445,  2449,  2453,  2457,  2463,  2467,  2477,  2496,
+    2500,  2504,  2531,  2537,  2554,  2590,  2624,  2625,  2627,  2636,
+    2647,  2653,  2674,  2701,  2705,  2709,  2713,  2719,  2723,  2734,
+    2738,  2742,  2746,  2750,  2754,  2758,  2762,  2770,  2775,  2781,
+    2789,  2794,  2799,  2804,  2813,  2817,  2827,  2831,  2840,  2849,
+    2858,  2867,  2879,  2883,  2887,  2893,  2899,  2903,  2909,  2915,
+    2919,  2924,  2931,  2935,  2939,  2943,  2947,  2953,  2959,  2965,
+    2969,  2976,  2980
 };
 #endif
 
@@ -5414,31 +5414,27 @@ yyreduce:
 #line 2418 "parser.y"
     {
 	// Turn the time stamp into a plain, translated string representation, then propogate it through the body formula.
-	std::string tempTimeStamp = "UNKNOWN";
-	if((yyvsp[(1) - (3)].parseElement) != NULL)
+	if((yyvsp[(1) - (3)].parseElement) != NULL && (yyvsp[(3) - (3)].parseElement) != NULL)
 	{
-		ClauseList throwaway;
-		tempTimeStamp =  Translator::sanitizeObjectName(((ObjectLikeElement*)(yyvsp[(1) - (3)].parseElement))->baseName());
-		deallocateItem((yyvsp[(1) - (3)].parseElement));
-	}
-	if((yyvsp[(3) - (3)].parseElement) != NULL)
+		(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_BIND_STEP, (yyvsp[(3) - (3)].parseElement));
+	} 
+	else if ((yyvsp[(3) - (3)].parseElement) != NULL) 
 	{
-		(yyvsp[(3) - (3)].parseElement)->setQueryTimeStamp(tempTimeStamp);
+		(yyval.parseElement) = (yyvsp[(3) - (3)].parseElement);
 	}
 	else
 	{
 		ltsyystartWarning(ltsyylloc);
-		ltsyyossErr << "Query body formula with time stamp \"" << tempTimeStamp << "\" is NULL!";
+		ltsyyossErr << "Query body formula is NULL!";
 		ltsyyreportWarning();
 	}
-	(yyval.parseElement) = (yyvsp[(3) - (3)].parseElement);
 ;}
     break;
 
   case 210:
 
 /* Line 1455 of yacc.c  */
-#line 2442 "parser.y"
+#line 2438 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5447,7 +5443,7 @@ yyreduce:
   case 211:
 
 /* Line 1455 of yacc.c  */
-#line 2446 "parser.y"
+#line 2442 "parser.y"
     {
 	(yyval.parseElement) = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_NOT, (yyvsp[(2) - (2)].parseElement));
 ;}
@@ -5456,7 +5452,7 @@ yyreduce:
   case 212:
 
 /* Line 1455 of yacc.c  */
-#line 2450 "parser.y"
+#line 2446 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_AND, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5465,7 +5461,7 @@ yyreduce:
   case 213:
 
 /* Line 1455 of yacc.c  */
-#line 2454 "parser.y"
+#line 2450 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_OR, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5474,7 +5470,7 @@ yyreduce:
   case 214:
 
 /* Line 1455 of yacc.c  */
-#line 2458 "parser.y"
+#line 2454 "parser.y"
     {
 		(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_EQUIV, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5483,7 +5479,7 @@ yyreduce:
   case 215:
 
 /* Line 1455 of yacc.c  */
-#line 2462 "parser.y"
+#line 2458 "parser.y"
     {
 		(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_IMPL, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5492,7 +5488,7 @@ yyreduce:
   case 216:
 
 /* Line 1455 of yacc.c  */
-#line 2468 "parser.y"
+#line 2464 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5501,7 +5497,7 @@ yyreduce:
   case 217:
 
 /* Line 1455 of yacc.c  */
-#line 2472 "parser.y"
+#line 2468 "parser.y"
     {
 	if((yyvsp[(2) - (3)].parseElement) != NULL)
 	{
@@ -5514,7 +5510,7 @@ yyreduce:
   case 218:
 
 /* Line 1455 of yacc.c  */
-#line 2482 "parser.y"
+#line 2478 "parser.y"
     {
 	// This is really only allowed to be a constant/variable/object expression, verify that.
 	if((yyvsp[(1) - (1)].parseElement) != NULL)
@@ -5538,7 +5534,7 @@ yyreduce:
   case 219:
 
 /* Line 1455 of yacc.c  */
-#line 2501 "parser.y"
+#line 2497 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_EQ, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5547,7 +5543,7 @@ yyreduce:
   case 220:
 
 /* Line 1455 of yacc.c  */
-#line 2505 "parser.y"
+#line 2501 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_NEQ, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5556,7 +5552,7 @@ yyreduce:
   case 221:
 
 /* Line 1455 of yacc.c  */
-#line 2509 "parser.y"
+#line 2505 "parser.y"
     {
 	SimpleBinaryOperator::BinaryOperatorType type;
 	// A bunch of possible operators bundle into COMPARISON. Find out which one.
@@ -5588,7 +5584,7 @@ yyreduce:
   case 222:
 
 /* Line 1455 of yacc.c  */
-#line 2536 "parser.y"
+#line 2532 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5597,7 +5593,7 @@ yyreduce:
   case 223:
 
 /* Line 1455 of yacc.c  */
-#line 2542 "parser.y"
+#line 2538 "parser.y"
     {
 	(yyval.parseElement) = NULL;
 	if((yyvsp[(2) - (5)].l_quantPair) != NULL && (yyvsp[(4) - (5)].parseElement) != NULL)
@@ -5615,7 +5611,7 @@ yyreduce:
   case 224:
 
 /* Line 1455 of yacc.c  */
-#line 2559 "parser.y"
+#line 2555 "parser.y"
     {
 	// Guess what kind of instance this might be, go with the best match.
 	// Guess variable, then constant, then try object.
@@ -5656,7 +5652,7 @@ yyreduce:
   case 225:
 
 /* Line 1455 of yacc.c  */
-#line 2595 "parser.y"
+#line 2591 "parser.y"
     {
 	// Guess what kind of instance this might be, go with the best match.
 	// Guess constant, then try object.
@@ -5692,21 +5688,21 @@ yyreduce:
   case 226:
 
 /* Line 1455 of yacc.c  */
-#line 2628 "parser.y"
+#line 2624 "parser.y"
     { (yyval.str) = NULL; ;}
     break;
 
   case 227:
 
 /* Line 1455 of yacc.c  */
-#line 2629 "parser.y"
+#line 2625 "parser.y"
     { (yyval.str) = new std::string("@"); ;}
     break;
 
   case 228:
 
 /* Line 1455 of yacc.c  */
-#line 2632 "parser.y"
+#line 2628 "parser.y"
     {
 	(yyval.v_parseElement) = NULL;
 	if((yyvsp[(1) - (1)].parseElement) != NULL)
@@ -5720,7 +5716,7 @@ yyreduce:
   case 229:
 
 /* Line 1455 of yacc.c  */
-#line 2641 "parser.y"
+#line 2637 "parser.y"
     {
 	(yyval.v_parseElement) = NULL;
 	if((yyvsp[(1) - (3)].v_parseElement) != NULL && (yyvsp[(3) - (3)].parseElement) != NULL)
@@ -5734,7 +5730,7 @@ yyreduce:
   case 230:
 
 /* Line 1455 of yacc.c  */
-#line 2652 "parser.y"
+#line 2648 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5743,7 +5739,7 @@ yyreduce:
   case 231:
 
 /* Line 1455 of yacc.c  */
-#line 2658 "parser.y"
+#line 2654 "parser.y"
     {
 	Sort* tempSort = mainTrans.getSort(*(yyvsp[(1) - (1)].str));
 	(yyval.l_sort) = NULL;
@@ -5769,7 +5765,7 @@ yyreduce:
   case 232:
 
 /* Line 1455 of yacc.c  */
-#line 2679 "parser.y"
+#line 2675 "parser.y"
     {
 	(yyval.l_sort) = NULL;
 	if((yyvsp[(1) - (3)].l_sort) != NULL)
@@ -5799,7 +5795,7 @@ yyreduce:
   case 233:
 
 /* Line 1455 of yacc.c  */
-#line 2706 "parser.y"
+#line 2702 "parser.y"
     {
 	(yyval.parseElement) = new ObjectLikeElement("true", mainTrans.getOrCreateSimpleObjectLike("true"));
 ;}
@@ -5808,7 +5804,7 @@ yyreduce:
   case 234:
 
 /* Line 1455 of yacc.c  */
-#line 2710 "parser.y"
+#line 2706 "parser.y"
     {
 	(yyval.parseElement) = new ObjectLikeElement("false", mainTrans.getOrCreateSimpleObjectLike("false"));
 ;}
@@ -5817,7 +5813,7 @@ yyreduce:
   case 235:
 
 /* Line 1455 of yacc.c  */
-#line 2714 "parser.y"
+#line 2710 "parser.y"
     {
 	(yyval.parseElement) = new ObjectLikeElement("none", mainTrans.getOrCreateSimpleObjectLike("none"));
 ;}
@@ -5826,7 +5822,7 @@ yyreduce:
   case 236:
 
 /* Line 1455 of yacc.c  */
-#line 2718 "parser.y"
+#line 2714 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5835,7 +5831,7 @@ yyreduce:
   case 237:
 
 /* Line 1455 of yacc.c  */
-#line 2724 "parser.y"
+#line 2720 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5844,7 +5840,7 @@ yyreduce:
   case 238:
 
 /* Line 1455 of yacc.c  */
-#line 2728 "parser.y"
+#line 2724 "parser.y"
     {
 	(yyval.parseElement) = NULL;
 	if((yyvsp[(2) - (3)].parseElement) != NULL)
@@ -5858,7 +5854,7 @@ yyreduce:
   case 239:
 
 /* Line 1455 of yacc.c  */
-#line 2739 "parser.y"
+#line 2735 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5867,7 +5863,7 @@ yyreduce:
   case 240:
 
 /* Line 1455 of yacc.c  */
-#line 2743 "parser.y"
+#line 2739 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_PLUS, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5876,7 +5872,7 @@ yyreduce:
   case 241:
 
 /* Line 1455 of yacc.c  */
-#line 2747 "parser.y"
+#line 2743 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_MINUS, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5885,7 +5881,7 @@ yyreduce:
   case 242:
 
 /* Line 1455 of yacc.c  */
-#line 2751 "parser.y"
+#line 2747 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_TIMES, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5894,7 +5890,7 @@ yyreduce:
   case 243:
 
 /* Line 1455 of yacc.c  */
-#line 2755 "parser.y"
+#line 2751 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_DIVIDE, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5903,7 +5899,7 @@ yyreduce:
   case 244:
 
 /* Line 1455 of yacc.c  */
-#line 2759 "parser.y"
+#line 2755 "parser.y"
     {
 	(yyval.parseElement) = new SimpleBinaryOperator((yyvsp[(1) - (3)].parseElement), SimpleBinaryOperator::BOP_MOD, (yyvsp[(3) - (3)].parseElement));
 ;}
@@ -5912,7 +5908,7 @@ yyreduce:
   case 245:
 
 /* Line 1455 of yacc.c  */
-#line 2763 "parser.y"
+#line 2759 "parser.y"
     {
 	(yyval.parseElement) = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_ABS, (yyvsp[(2) - (2)].parseElement));
 ;}
@@ -5921,7 +5917,7 @@ yyreduce:
   case 246:
 
 /* Line 1455 of yacc.c  */
-#line 2767 "parser.y"
+#line 2763 "parser.y"
     {
 	// Not necessary to flag parenBefore and parenAfter, translation of abs
 	// automatically adds parentheses around the expression.
@@ -5932,7 +5928,7 @@ yyreduce:
   case 247:
 
 /* Line 1455 of yacc.c  */
-#line 2775 "parser.y"
+#line 2771 "parser.y"
     {
 	(yyval.parseElement) = new ObjectLikeElement(*(yyvsp[(1) - (1)].str), mainTrans.getOrCreateSimpleObjectLike(*(yyvsp[(1) - (1)].str)));
 	deallocateItem((yyvsp[(1) - (1)].str));
@@ -5942,7 +5938,7 @@ yyreduce:
   case 248:
 
 /* Line 1455 of yacc.c  */
-#line 2780 "parser.y"
+#line 2776 "parser.y"
     {
 	(yyval.parseElement) = (yyvsp[(1) - (1)].parseElement);
 ;}
@@ -5951,7 +5947,7 @@ yyreduce:
   case 249:
 
 /* Line 1455 of yacc.c  */
-#line 2786 "parser.y"
+#line 2782 "parser.y"
     {
 	(yyval.numRange) = new NumberRange(*(yyvsp[(1) - (3)].str), *(yyvsp[(3) - (3)].str));
 	deallocateItem((yyvsp[(1) - (3)].str));
@@ -5962,7 +5958,7 @@ yyreduce:
   case 250:
 
 /* Line 1455 of yacc.c  */
-#line 2794 "parser.y"
+#line 2790 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) = utils::to_string((yyvsp[(1) - (1)].integer));
@@ -5972,7 +5968,7 @@ yyreduce:
   case 251:
 
 /* Line 1455 of yacc.c  */
-#line 2799 "parser.y"
+#line 2795 "parser.y"
     {
 	(yyval.str) = new std::string;
 	(*(yyval.str)) = "maxAdditive";
@@ -5982,7 +5978,7 @@ yyreduce:
   case 252:
 
 /* Line 1455 of yacc.c  */
-#line 2804 "parser.y"
+#line 2800 "parser.y"
     {
 	(yyval.str) = new std::string;
 	(*(yyval.str)) = "maxstep";
@@ -5992,7 +5988,7 @@ yyreduce:
   case 253:
 
 /* Line 1455 of yacc.c  */
-#line 2809 "parser.y"
+#line 2805 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) = "-";
@@ -6004,7 +6000,7 @@ yyreduce:
   case 254:
 
 /* Line 1455 of yacc.c  */
-#line 2818 "parser.y"
+#line 2814 "parser.y"
     {
 	(yyval.str) = (yyvsp[(1) - (1)].str);
 ;}
@@ -6013,7 +6009,7 @@ yyreduce:
   case 255:
 
 /* Line 1455 of yacc.c  */
-#line 2822 "parser.y"
+#line 2818 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += "(";
@@ -6026,7 +6022,7 @@ yyreduce:
   case 256:
 
 /* Line 1455 of yacc.c  */
-#line 2832 "parser.y"
+#line 2828 "parser.y"
     {
 	(yyval.str) = (yyvsp[(1) - (1)].str);
 ;}
@@ -6035,7 +6031,7 @@ yyreduce:
   case 257:
 
 /* Line 1455 of yacc.c  */
-#line 2836 "parser.y"
+#line 2832 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += (*(yyvsp[(1) - (3)].str));
@@ -6049,7 +6045,7 @@ yyreduce:
   case 258:
 
 /* Line 1455 of yacc.c  */
-#line 2845 "parser.y"
+#line 2841 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += (*(yyvsp[(1) - (3)].str));
@@ -6063,7 +6059,7 @@ yyreduce:
   case 259:
 
 /* Line 1455 of yacc.c  */
-#line 2854 "parser.y"
+#line 2850 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += (*(yyvsp[(1) - (3)].str));
@@ -6077,7 +6073,7 @@ yyreduce:
   case 260:
 
 /* Line 1455 of yacc.c  */
-#line 2863 "parser.y"
+#line 2859 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += (*(yyvsp[(1) - (3)].str));
@@ -6091,7 +6087,7 @@ yyreduce:
   case 261:
 
 /* Line 1455 of yacc.c  */
-#line 2872 "parser.y"
+#line 2868 "parser.y"
     {
 	(yyval.str) = new std::string();
 	(*(yyval.str)) += (*(yyvsp[(1) - (3)].str));
@@ -6105,7 +6101,7 @@ yyreduce:
   case 262:
 
 /* Line 1455 of yacc.c  */
-#line 2884 "parser.y"
+#line 2880 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6114,7 +6110,7 @@ yyreduce:
   case 263:
 
 /* Line 1455 of yacc.c  */
-#line 2888 "parser.y"
+#line 2884 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6123,7 +6119,7 @@ yyreduce:
   case 264:
 
 /* Line 1455 of yacc.c  */
-#line 2892 "parser.y"
+#line 2888 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6132,7 +6128,7 @@ yyreduce:
   case 265:
 
 /* Line 1455 of yacc.c  */
-#line 2898 "parser.y"
+#line 2894 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6141,7 +6137,7 @@ yyreduce:
   case 266:
 
 /* Line 1455 of yacc.c  */
-#line 2904 "parser.y"
+#line 2900 "parser.y"
     {
 	(yyval.integer) = T_UMINUS;
 ;}
@@ -6150,7 +6146,7 @@ yyreduce:
   case 267:
 
 /* Line 1455 of yacc.c  */
-#line 2908 "parser.y"
+#line 2904 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6159,7 +6155,7 @@ yyreduce:
   case 268:
 
 /* Line 1455 of yacc.c  */
-#line 2914 "parser.y"
+#line 2910 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6168,7 +6164,7 @@ yyreduce:
   case 269:
 
 /* Line 1455 of yacc.c  */
-#line 2920 "parser.y"
+#line 2916 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6177,7 +6173,7 @@ yyreduce:
   case 270:
 
 /* Line 1455 of yacc.c  */
-#line 2924 "parser.y"
+#line 2920 "parser.y"
     {
 	// This means "less than in sorted order", which can be safely approximated with !=.
 	(yyval.integer) = (yyvsp[(2) - (2)].integer);
@@ -6187,7 +6183,7 @@ yyreduce:
   case 271:
 
 /* Line 1455 of yacc.c  */
-#line 2929 "parser.y"
+#line 2925 "parser.y"
     {
 	// This means "greater than in sorted order", which can be safely approximated with !=.
 	(yyval.integer) = (yyvsp[(2) - (2)].integer);
@@ -6197,7 +6193,7 @@ yyreduce:
   case 272:
 
 /* Line 1455 of yacc.c  */
-#line 2936 "parser.y"
+#line 2932 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6206,7 +6202,7 @@ yyreduce:
   case 273:
 
 /* Line 1455 of yacc.c  */
-#line 2940 "parser.y"
+#line 2936 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6215,7 +6211,7 @@ yyreduce:
   case 274:
 
 /* Line 1455 of yacc.c  */
-#line 2944 "parser.y"
+#line 2940 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6224,7 +6220,7 @@ yyreduce:
   case 275:
 
 /* Line 1455 of yacc.c  */
-#line 2948 "parser.y"
+#line 2944 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6233,7 +6229,7 @@ yyreduce:
   case 276:
 
 /* Line 1455 of yacc.c  */
-#line 2952 "parser.y"
+#line 2948 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6242,7 +6238,7 @@ yyreduce:
   case 277:
 
 /* Line 1455 of yacc.c  */
-#line 2958 "parser.y"
+#line 2954 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6251,7 +6247,7 @@ yyreduce:
   case 278:
 
 /* Line 1455 of yacc.c  */
-#line 2964 "parser.y"
+#line 2960 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6260,7 +6256,7 @@ yyreduce:
   case 279:
 
 /* Line 1455 of yacc.c  */
-#line 2970 "parser.y"
+#line 2966 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6269,7 +6265,7 @@ yyreduce:
   case 280:
 
 /* Line 1455 of yacc.c  */
-#line 2974 "parser.y"
+#line 2970 "parser.y"
     {
 	// This means "less than or equal to in sorted order", which has no good approximation except for <=.
 	(yyval.integer) = (yyvsp[(2) - (2)].integer);
@@ -6279,7 +6275,7 @@ yyreduce:
   case 281:
 
 /* Line 1455 of yacc.c  */
-#line 2981 "parser.y"
+#line 2977 "parser.y"
     {
 	(yyval.integer) = (yyvsp[(1) - (1)].integer);
 ;}
@@ -6288,7 +6284,7 @@ yyreduce:
   case 282:
 
 /* Line 1455 of yacc.c  */
-#line 2985 "parser.y"
+#line 2981 "parser.y"
     {
 	// This means "greater than or equal to in sorted order", which has no good approximation except for >=.
 	(yyval.integer) = (yyvsp[(2) - (2)].integer);
@@ -6298,7 +6294,7 @@ yyreduce:
 
 
 /* Line 1455 of yacc.c  */
-#line 6302 "parser.cpp"
+#line 6298 "parser.cpp"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -6517,7 +6513,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 2991 "parser.y"
+#line 2987 "parser.y"
 
 
 // Tries to find an existing normal sort or declare a starred ("something*") sort.

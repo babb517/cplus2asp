@@ -10,8 +10,8 @@ echo "% ------------------------------------------------------ Clique ----------
 # --------------------------- sat ---------------------------
 echo "% --------------------------- sat ---------------------------" 
 
-echo "$ cplus2asp domains/clique -q sat --shift" 
-cplus2asp domains/clique -q sat --shift 
+echo "$ cplus2asp domains/clique query=sat --shift" 
+cplus2asp domains/clique query=sat --shift 
 
 #Output:
 
@@ -43,8 +43,8 @@ echo "% ------------------------------------------------------ Color -----------
 # --------------------------- sat ---------------------------
 echo "% --------------------------- sat ---------------------------" 
 
-echo "$ cplus2asp domains/color -q sat" 
-cplus2asp domains/color -q sat
+echo "$ cplus2asp domains/color query=sat" 
+cplus2asp domains/color query=sat
 
 # % Pragma: Running Query 'Satisfiability Check'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -68,8 +68,8 @@ echo "% ------------------------------------------------------ Going -----------
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp domains/going -q 0 0" 
-cplus2asp domains/going -q 0 0
+echo "$ cplus2asp domains/going query=0 0" 
+cplus2asp domains/going query=0 0
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -111,8 +111,8 @@ cplus2asp domains/going -q 0 0
 # --------------------------- Query 1 ---------------------------
 echo "% --------------------------- Query 1 ---------------------------" 
 
-echo "$ cplus2asp domains/going -q 1 0" 
-cplus2asp domains/going -q 1 0
+echo "$ cplus2asp domains/going query=1 0" 
+cplus2asp domains/going query=1 0
 
 # % Pragma: Running Query 'Query 1'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -147,8 +147,8 @@ cplus2asp domains/going -q 1 0
 # --------------------------- Query 2 ---------------------------
 echo "% --------------------------- Query 2 ---------------------------" 
 
-echo "$ cplus2asp domains/going -q 2 0" 
-cplus2asp domains/going -q 2 0
+echo "$ cplus2asp domains/going query=2 0" 
+cplus2asp domains/going query=2 0
 
 # % Pragma: Running Query 'Query 2'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -185,8 +185,8 @@ echo "% ------------------------------------------------------ Hanoi -----------
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp domains/hanoi -q 0" 
-cplus2asp domains/hanoi -q 0
+echo "$ cplus2asp domains/hanoi query=0" 
+cplus2asp domains/hanoi query=0
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '6', Maximum Step = '7'.
@@ -237,8 +237,8 @@ cplus2asp domains/hanoi -q 0
 # --------------------------- Query 1 ---------------------------
 echo "% --------------------------- Query 1 ---------------------------" 
 
-echo "$ cplus2asp domains/hanoi -q 1" 
-cplus2asp domains/hanoi -q 1
+echo "$ cplus2asp domains/hanoi query=1" 
+cplus2asp domains/hanoi query=1
 
 # % Pragma: Running Query 'Query 1'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -260,8 +260,8 @@ echo "% ------------------------------------------------------ Hanoi2 ----------
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp domains/hanoi2 -q 0 0 --none-hack=false" 
-cplus2asp domains/hanoi2 -q 0 0 --none-hack=false
+echo "$ cplus2asp domains/hanoi2 query=0 0 --none-hack=false" 
+cplus2asp domains/hanoi2 query=0 0 --none-hack=false
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '7', Maximum Step = '7'.
@@ -311,8 +311,8 @@ cplus2asp domains/hanoi2 -q 0 0 --none-hack=false
 # --------------------------- Query 1 ---------------------------
 echo "% --------------------------- Query 1 ---------------------------" 
 
-echo "$ cplus2asp domains/hanoi2 -q 1 0 --none-hack=false" 
-cplus2asp domains/hanoi2 -q 1 0 --none-hack=false
+echo "$ cplus2asp domains/hanoi2 query=1 0 --none-hack=false" 
+cplus2asp domains/hanoi2 query=1 0 --none-hack=false
 
 
 # % Pragma: Running Query 'Query 1'.
@@ -334,8 +334,8 @@ echo "% ------------------------------------------------------ Has -------------
 
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
-echo "$ cplus2asp domains/has -q 0 0 --none-hack=false" 
-cplus2asp domains/has -q 0 0 --none-hack=false
+echo "$ cplus2asp domains/has query=0 0 --none-hack=false" 
+cplus2asp domains/has query=0 0 --none-hack=false
 
 
 # % Pragma: Running Query 'Query 0'.
@@ -429,8 +429,8 @@ echo "% ---------------------------------------------------- Multiple Monkeys --
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 0" 
-cplus2asp domains/multiple-monkey-test -q 0
+echo "$ cplus2asp domains/multiple-monkey-test query=0" 
+cplus2asp domains/multiple-monkey-test query=0
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -451,8 +451,8 @@ cplus2asp domains/multiple-monkey-test -q 0
 # --------------------------- Query 1 ---------------------------
 echo "% --------------------------- Query 1 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 1" 
-cplus2asp domains/multiple-monkey-test -q 1
+echo "$ cplus2asp domains/multiple-monkey-test query=1" 
+cplus2asp domains/multiple-monkey-test query=1
 
 # % Pragma: Running Query 'Query 1'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -471,8 +471,8 @@ cplus2asp domains/multiple-monkey-test -q 1
 # --------------------------- Query 2 ---------------------------
 echo "% --------------------------- Query 2 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 2" 
-cplus2asp domains/multiple-monkey-test -q 2
+echo "$ cplus2asp domains/multiple-monkey-test query=2" 
+cplus2asp domains/multiple-monkey-test query=2
 
 # % Pragma: Running Query 'Query 2'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -496,8 +496,8 @@ cplus2asp domains/multiple-monkey-test -q 2
 # --------------------------- Query 3 ---------------------------
 echo "% --------------------------- Query 3 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 3"
-cplus2asp domains/multiple-monkey-test -q 3
+echo "$ cplus2asp domains/multiple-monkey-test query=3"
+cplus2asp domains/multiple-monkey-test query=3
 
 # % Pragma: Running Query 'Query 3'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -522,8 +522,8 @@ cplus2asp domains/multiple-monkey-test -q 3
 # --------------------------- Query 4 ---------------------------
 echo "% --------------------------- Query 4 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 4"
-cplus2asp domains/multiple-monkey-test -q 4
+echo "$ cplus2asp domains/multiple-monkey-test query=4"
+cplus2asp domains/multiple-monkey-test query=4
 
 # % Pragma: Running Query 'Query 4'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -542,8 +542,8 @@ cplus2asp domains/multiple-monkey-test -q 4
 # --------------------------- Query 5 ---------------------------
 echo "% --------------------------- Query 5 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 5"
-cplus2asp domains/multiple-monkey-test -q 5
+echo "$ cplus2asp domains/multiple-monkey-test query=5"
+cplus2asp domains/multiple-monkey-test query=5
 
 # % Pragma: Running Query 'Query 5'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -567,8 +567,8 @@ cplus2asp domains/multiple-monkey-test -q 5
 # --------------------------- Query 6 ---------------------------
 echo "% --------------------------- Query 6 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 6"
-cplus2asp domains/multiple-monkey-test -q 6
+echo "$ cplus2asp domains/multiple-monkey-test query=6"
+cplus2asp domains/multiple-monkey-test query=6
 
 # % Pragma: Running Query 'Query 6'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -587,8 +587,8 @@ cplus2asp domains/multiple-monkey-test -q 6
 # --------------------------- Query 7 ---------------------------
 echo "% --------------------------- Query 7 ---------------------------" 
 
-echo "$ cplus2asp domains/multiple-monkey-test -q 7"
-cplus2asp domains/multiple-monkey-test -q 7
+echo "$ cplus2asp domains/multiple-monkey-test query=7"
+cplus2asp domains/multiple-monkey-test query=7
 
 # % Pragma: Running Query 'Query 7'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -616,8 +616,8 @@ echo "% ---------------------------------------------------- 8 Queens ----------
 # --------------------------- sat ---------------------------
 echo "% --------------------------- sat ---------------------------" 
 
-echo "$ cplus2asp domains/queens -q sat"
-cplus2asp domains/queens -q sat
+echo "$ cplus2asp domains/queens query=sat"
+cplus2asp domains/queens query=sat
 
 # % Pragma: Running Query 'Satisfiability Check'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -641,8 +641,8 @@ echo "% ---------------------------------------------------- Shooting ----------
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp domains/shooting -q 0"
-cplus2asp domains/shooting -q 0
+echo "$ cplus2asp domains/shooting query=0"
+cplus2asp domains/shooting query=0
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '6', Maximum Step = '6'.
@@ -684,5 +684,82 @@ cplus2asp domains/shooting -q 0
 # Prepro.   : 0.000
 # Solving   : 0.000
 
+# ---------------------------------------------------- Snack --------------------------------------------------
+echo "% ---------------------------------------------------- Snack --------------------------------------------------" 
+
+# --------------------------- Query 0 ---------------------------
+echo "% --------------------------- Query 0 ---------------------------" 
+
+echo "$ cplus2asp domains/snack query=0 0"
+cplus2asp domains/snack query=0 0
 
 
+# % Pragma: Running Query 'Query 0'.
+# % Pragma: Minimum Step = '2', Maximum Step = '2'.
+# % Pragma: Searching for all solutions.
+# Solution 1:
+# 
+# 	0:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(left,apple)
+# 
+# 	1:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(right,banana)
+# 
+# 	2:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 
+# Solution 2:
+# 
+# 	0:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(left,apple)
+# 
+# 	1:  owner(apple)=left owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(right,banana)
+# 
+# 	2:  owner(apple)=left owner(banana)=i owner(carrot)=i
+# 
+# 
+# Solution 3:
+# 
+# 	0:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(left,apple)
+# 
+# 	1:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(right,banana)
+# 
+# 	2:  owner(apple)=i owner(banana)=right owner(carrot)=i
+# 
+# 
+# Solution 4:
+# 
+# 	0:  owner(apple)=i owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(left,apple)
+# 
+# 	1:  owner(apple)=left owner(banana)=i owner(carrot)=i
+# 
+# 	ACTIONS:  fightFor(right,banana)
+# 
+# 	2:  owner(apple)=left owner(banana)=right owner(carrot)=i
+# 
+# 
+# SATISFIABLE
+# Models      : 4
+# Total Steps : 2
+# Time        : 0.000
+# Prepare   : 0.000
+# Prepro.   : 0.000
+# Solving   : 0.000
+
+
+# ---------------------------------------------------- Zoo World --------------------------------------------------
+echo "% ---------------------------------------------------- Zoo World --------------------------------------------------" 
+
+# --------------------------- Test 0 ---------------------------
+echo "% --------------------------- Test 0 ---------------------------" 

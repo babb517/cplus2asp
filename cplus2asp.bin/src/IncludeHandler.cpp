@@ -88,17 +88,20 @@ int IncludeHandler::handleInclude(int (*flexlex)(), char *&flextext, int &flexle
 							includeAlias = *includeListIterator;
 							flexin = NULL;
 
+							flexerReset();
+
 							// Start by checking path's relative to the current include directory.
 							if (realpath(includeFileName.c_str(), resolvedFileName)) {
-								*includeListIterator = resolvedFileName;
-								*includeListIterator = includeListIterator->substr(0,includeListIterator->find_last_of("/")) + "/" + includeAlias;
-								flexin = fopen(includeListIterator->c_str(), "r");
+								std::string tmp = resolvedFileName;
+								tmp = tmp.substr(0,tmp.find_last_of("/")) + "/" + includeAlias;
+								flexin = fopen(tmp.c_str(), "r");
+								if (flexin) {
+									(*includeListIterator) = tmp;
+								}
 							}
 
 							// If that didn't work, fall back to the standard PATH variables and current working directory.
 							if (!flexin) {
-
-								flexerReset();
 								flexin = fopen((*includeListIterator).c_str(), "r");
 							}
 

@@ -403,7 +403,11 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
 			if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+
+			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED
+					&& mode() != MODE_INCREMENTAL && mode() != MODE_REACTIVE)
+				out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+
 			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
 			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 			if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
@@ -448,7 +452,11 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 		// Include special constant definitions
 		if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+
+		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED
+				&& mode() != MODE_INCREMENTAL && mode() != MODE_REACTIVE)
+			out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+
 		if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
 		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 		if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
