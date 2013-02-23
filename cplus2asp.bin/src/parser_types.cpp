@@ -457,10 +457,16 @@ bool SimpleBinaryOperator::hasConstants(unsigned int types) const {
 
 // Returns true if this expression corresponds to a single atom.
 bool SimpleBinaryOperator::isSingleAtom() const {
-	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v.
-	return (!preOp() && postOp() && postOp()->isSingleAtom()) || (!postOp() && preOp() && preOp()->isSingleAtom())
-			|| (preOp() && postOp() && opType() == BOP_EQ && preOp()->getType() == ParseElement::PELEM_CONSTLIKE
-					&& !postOp()->hasConstants(MASK_NON_TRIVIAL));
+	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
+	// OR if it's a conjunction of single atoms.
+	if (!preOp() && postOp()) return postOp()->isSingleAtom();
+	else if (!postOp() && preOp()) return preOp()->isSingleAtom();
+	else if (opType() == BOP_AND) {
+		return preOp()->isSingleAtom() && postOp()->isSingleAtom();
+	} else if (opType() == BOP_EQ) {
+		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
+				&& !postOp()->hasConstants(MASK_NON_TRIVIAL);
+	} else return false;
 }
 
 IPart SimpleBinaryOperator::determineQueryIPart() const {
