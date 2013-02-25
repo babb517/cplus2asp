@@ -1072,7 +1072,7 @@ void Translator::translateCausalLaw(
 
 
 	// step 1: ensure the head is non-null and in the correct form
-	if (!head || !head->isSingleAtom()) {
+	if (!head || !head->isDefinite()) {
 		error("Definite causal laws must have exactly one constant in the head.\n");
 		malformed = true;
 		return;

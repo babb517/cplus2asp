@@ -184,7 +184,7 @@ bool SimpleUnaryOperator::hasConstants(unsigned int types) const {
 
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleUnaryOperator::isSingleAtom() const
+bool SimpleUnaryOperator::isDefinite() const
 {
 	// Two cases:
 	// the expression is '-p' or 'not p', as this is shorthand for p=false.
@@ -306,14 +306,14 @@ SimpleUnaryOperator::~SimpleUnaryOperator()
 
 
 // Translator method.
-std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& context, BinaryOperatorType type) const
+std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& context, BinaryOperatorType type, bool forceParens) const
 {
 	Context localContext;
 	std::ostringstream tmp;
 	std::string tmpstr;
-	//SimpleBinaryOperatorWrapper* tmpOp;
+	SimpleBinaryOperator* tmpOp;
 
-	out << translateBeforeParen();
+	out << translateBeforeParen(forceParens);
 
 	if (!preOp() && !postOp()) {
 		// TODO: Throw error
@@ -418,6 +418,33 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 			}
 			break;
 
+		case BOP_EQUIV:
+			// Special case: F <-> G
+			// F2LP can't handle equivalence in general.
+			// Translate to (F -> G) & (G -> F)
+
+			// Setup the wrapper expression
+			tmpOp = new SimpleBinaryOperator(
+					new SimpleBinaryOperatorWrapper(this, BOP_IMPL, true),
+					BOP_AND,
+					new SimpleBinaryOperatorWrapper(this, BOP_REV_IMPL, true)
+			);
+
+			// Translate
+			tmpOp->translate(out, context);
+
+			// Tear down
+			delete tmpOp;
+			break;
+
+		case BOP_REV_IMPL:
+			// Special case: F <- G.
+			// Translate as G -> F.
+			Translator::bindAndTranslate(out, postOp(), context, false);
+			out << translateOpType(BOP_IMPL);
+			Translator::bindAndTranslate(out, preOp(), context, false);
+			break;
+
 		default:
 			// Logical operations...
 			// If this isn't conjunction, then we want to capture local clauses for each term.
@@ -444,7 +471,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 		}
 	}
 
-	out << translateAfterParen();
+	out << translateAfterParen(forceParens);
 	return out;
 }
 
@@ -456,13 +483,13 @@ bool SimpleBinaryOperator::hasConstants(unsigned int types) const {
 }
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleBinaryOperator::isSingleAtom() const {
+bool SimpleBinaryOperator::isDefinite() const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
 	// OR if it's a conjunction of single atoms.
-	if (!preOp() && postOp()) return postOp()->isSingleAtom();
-	else if (!postOp() && preOp()) return preOp()->isSingleAtom();
+	if (!preOp() && postOp()) return postOp()->isDefinite();
+	else if (!postOp() && preOp()) return preOp()->isDefinite();
 	else if (opType() == BOP_AND) {
-		return preOp()->isSingleAtom() && postOp()->isSingleAtom();
+		return preOp()->isDefinite() && postOp()->isDefinite();
 	} else if (opType() == BOP_EQ) {
 		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
 				&& !postOp()->hasConstants(MASK_NON_TRIVIAL);

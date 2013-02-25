@@ -17,11 +17,6 @@
 /* Configuration Defaults */
 /*********************************************************************************************/
 
-// We require the install directory to be specified. This will _usually_ be done by the makefile.
-#ifndef INSTALL_DIR
-#define INSTALL_DIR ""
-#error An install directory must be specified using the 'INSTALL_DIR' macro.
-#endif
 
 #define DEF_RUNNING_MODE					MODE_INCREMENTAL					///< The default running mode.
 #define DEF_INCL_STD						true								///< Whether to include standard files by default.
@@ -77,6 +72,7 @@
 #define INT_PREPROC_FILE					".cplus2asp_pre.out"				///< Name of our intermediate output from the pre-processor.
 #define INT_GRD_FILE 						".cplus2asp_gr.out"					///< Name of our intermediate output from the grounder.
 #define INT_SO_FILE							".cplus2asp_so.out"					///< Name of our intermediate output from the solver.
+#define INT_SO_ERR_FILE						".cplus2asp_so.err"					///< Name of our intermediate file for solver warnings.
 
 // Known constant names
 #define CONST_MAXSTEP						"maxstep"							///< Specifies the maximum step to use.
@@ -86,7 +82,8 @@
 
 // special query values
 #define CONST_QUERY_NONE					"none"								///< The value to provide to the query to indicate that no query should be applied.
-#define CONST_QUERY_SAT						"sat"								///< The value to provide to the query to indicate that we should check for satisfiability.
+#define CONST_QUERY_STATES					"states"							///< The value to provide to the query to indicate that we should find the system's states.
+#define CONST_QUERY_TRANSITIONS				"transitions"						///< The value to provide to the query to indicate that we should find the system's transitions.
 
 
 // etc
@@ -129,30 +126,29 @@ public:
 	/// The various extra configurations that can be set.
 	enum ConfigOption
 	{
-		OPT_BEGIN = 0x00,						///< Dummy constant to mark the beginning of the configuration list.
+		OPT_BEGIN = 0x00,				///< Dummy constant to mark the beginning of the configuration list.
 
 		// boolean
-		OPT_INCL_STD = 0x00,					///< Whether we should include the standard files.
-		OPT_INCL_ADDITIVE = 0x01,				///< Whether we should include the standard additive files.
-		OPT_DISCARD_INTERMEDIATE = 0x02,		///< Whether we should discard all intermediate files when we're done.
-		OPT_DISCARD_F2LP = 0x03,				///< Whether we should discard all F2LP intermediate files when we're done.
-		OPT_SUPPRESS_INTERACTION = 0x04,		///< Whether we should operate in silent mode.
-		OPT_SQUELCH_SOLVER = 0x05,				///< Whether we should silence the solver's warnings
-		OPT_NONE_HACK = 0x06,					///< Whether we should simulate none as an integral type to circumvent a gringo bug that prevents grounding otherwise.
-		OPT_SHIFT = 0X07,					///< Whether we should assert the '--shift' flag, which tells gringo to shift disjunction into the body of the rules.
-
+		OPT_INCL_STD = OPT_BEGIN,		///< Whether we should include the standard files.
+		OPT_INCL_ADDITIVE,				///< Whether we should include the standard additive files.
+		OPT_DISCARD_INTERMEDIATE,		///< Whether we should discard all intermediate files when we're done.
+		OPT_DISCARD_F2LP,				///< Whether we should discard all F2LP intermediate files when we're done.
+		OPT_SUPPRESS_INTERACTION,		///< Whether we should operate in silent mode.
+		OPT_SQUELCH_SOLVER,				///< Whether we should silence the solver's warnings
+		OPT_NONE_HACK,					///< Whether we should simulate none as an integral type to circumvent a gringo bug that prevents grounding otherwise.
+		OPT_SHIFT,						///< Whether we should assert the '--shift' flag, which tells gringo to shift disjunction into the body of the rules.
 
 		// integer
-		OPT_MINSTEP = 0x08,						///< The currently configured minimum step, or UNDEFINED.
-		OPT_MAXSTEP = 0x09,						///< The currently configured maximum step, or UNDEFINED.
-		OPT_QUERY = 0x0A,						///< The currently configured query, or UNDEFINED.
-		OPT_MAXADDITIVE = 0x0B,					///< The currently configured maximum additive, or UNDEFINED.
-		OPT_NUM_SOLN = 0x0C,					///< The currently configured # of solutions to find.
-		OPT_EXT_PORT = 0x0D,					///< The port that we should make available for the user.
-		OPT_INT_PORT = 0x0E,					///< The port which we should use internally to communicate with oClingo.
+		OPT_MINSTEP,					///< The currently configured minimum step, or UNDEFINED.
+		OPT_MAXSTEP,					///< The currently configured maximum step, or UNDEFINED.
+		OPT_QUERY,						///< The currently configured query, or UNDEFINED.
+		OPT_MAXADDITIVE,				///< The currently configured maximum additive, or UNDEFINED.
+		OPT_NUM_SOLN,					///< The currently configured # of solutions to find.
+		OPT_EXT_PORT,					///< The port that we should make available for the user.
+		OPT_INT_PORT,					///< The port which we should use internally to communicate with oClingo.
 
-		OPT_LENGTH = 0x0F,						///< Dummy constant to provide the number configuration options.
-		OPT_END = 0x0F							///< Dummy constant to mark the end of the configuration list.
+		OPT_LENGTH,						///< Dummy constant to provide the number configuration options.
+		OPT_END = OPT_LENGTH			///< Dummy constant to mark the end of the configuration list.
 	};
 
 	/// A flag-type used to specify multiple modes simultaneously
@@ -176,6 +172,7 @@ public:
 		inline virtual ~FileType() { /* Intentionally Left Blank */ }
 	};
 
+	/// A structure which is used to describe a query.
 	struct Query
 	{
 		unsigned int id;		///< ID # for the query.
@@ -196,6 +193,16 @@ public:
 
 	};
 
+	/// A structure used to describe the current runtime subconfiguration (used for iterative runs where the configuration can change).
+	struct RunConfig
+	{
+		unsigned int queryId;					///< The query that should be run.
+		unsigned int minstep;					///< The minimum step that should be solved for.
+		unsigned int maxstep;					///< The maximum step that should be solved for.
+		unsigned int numSoln;					///< The number of solutions to display.
+
+	};
+
 	typedef std::map<unsigned int, Query> QueryMap;						///< A map of queries indexed by their ID and their max steps.
 	typedef std::map<std::string,std::string> ConstantMap;				///< A map between constant names and their definitions.
 	typedef std::vector<std::string> InputList;							///< A list of input files.
@@ -209,8 +216,12 @@ public:
 	/// Indicates an undefined configuration setting.
 	static unsigned int const UNDEFINED;
 
-	/// Indicates that the user wishes to perform a satisfiability check
-	static unsigned int const SAT_QUERY;
+	/// Indicates that the user wishes to perform a satisfiability check to find system states.
+	static unsigned int const STATES_QUERY;
+
+	/// Indicates that the user wishes to find system transitions
+	static unsigned int const TRANSITIONS_QUERY;
+
 
 	/// Indicates that the user wishes to run without a query.
 	static unsigned int const NO_QUERY;
@@ -260,20 +271,20 @@ public:
 	/***************************************************************/
 
 	/// Install directory
-	inline std::string installDir() const 					{ return INSTALL_DIR; }
+	std::string installDir() const;
 
 	/// standard file
 	inline std::string stdFile() const
 		{ return (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) ?
-				installDir() + CCALC2_ASP_STD_DYNAMIC_FILE
-				: installDir() + CCALC2_ASP_STD_FILE;
+				installDir() + "/" + CCALC2_ASP_STD_DYNAMIC_FILE
+				: installDir() + "/" + CCALC2_ASP_STD_FILE;
 		}
 
 	/// Additive file
 	inline std::string additiveFile() const
 		{ return (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) ?
-				installDir() + CCALC2_ASP_ADDITIVE_DYNAMIC_FILE
-				: installDir() + CCALC2_ASP_ADDITIVE_FILE;
+				installDir() + "/" + CCALC2_ASP_ADDITIVE_DYNAMIC_FILE
+				: installDir() + "/" + CCALC2_ASP_ADDITIVE_FILE;
 		}
 
 	/// Intermediate translator file
@@ -290,6 +301,9 @@ public:
 
 	/// Intermediate solver file
 	inline std::string intSoFile() const					{ return INT_SO_FILE; }
+
+	/// Intermediate file to store solver errors.
+	inline std::string intSoErrFile() const					{ return INT_SO_ERR_FILE; }
 
 	/***************************************************************/
 	/* Basic accessors / mutators */
@@ -511,10 +525,10 @@ public:
 	/**
 	 * Compiles the command line call for a specific element in the toolchain.
 	 * @param tool The toolchain element we want to compile the call for.
-	 * @param curMaxStep The current maxstep to use (only relevant when compiling the solver command line).
+	 * @param subconfig The subconfiguration used to override settings for this specific run.
 	 * @return A command to send to the system to call the element.
 	 */
-	std::string compileCommandLine(Toolchain tool, unsigned int curMaxStep) const;
+	std::string compileCommandLine(Toolchain tool, RunConfig const* subconfig = NULL) const;
 
 	/**
 	 * Sets the toolchain to run everything up to the desired tool and nothing else.

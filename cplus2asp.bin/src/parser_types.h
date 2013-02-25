@@ -116,7 +116,7 @@ public:
 	 * Determines if the element contains a single atom (or a unary expression w/ a single atom), which would be suitable for the head of a rule.
 	 * @return True if the element contains a single atom suitable for the head of a rule.
 	 */
-	virtual bool isSingleAtom() const = 0;
+	virtual bool isDefinite() const = 0;
 
 	/**
 	 * Determines if the element contains no (real) constants. (i.e. only "true" and/or "false").
@@ -200,15 +200,17 @@ protected:
 
 	/**
 	 * Helper to translate that intelligently handles the value of parenBefore.
+	 * @param forceParens Whether to force the presence of parens.
 	 * @return A blank string if parenBefore is false, "(" if it's true.
 	 */
-	inline std::string translateBeforeParen() const { return (hasParens()) ? "(" : ""; }
+	inline std::string translateBeforeParen(bool forceParens = false) const { return (hasParens() | forceParens) ? "(" : ""; }
 
 	/**
 	 * Helper to translate that intelligently handles the value of parenAfter.
+	 * @param forceParens Whether to force the presence of parens.
 	 * @return A blank string if parenAfter is false, ")" if it's true.
 	 */
-	inline std::string translateAfterParen() const { return (hasParens()) ? ")" : ""; }
+	inline std::string translateAfterParen(bool forceParens = false) const { return (hasParens() | forceParens) ? ")" : ""; }
 };
 
 /**
@@ -239,7 +241,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types) const;
-	virtual bool isSingleAtom() const;
+	virtual bool isDefinite() const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls() const							{ return postOp() && postOp()->hasLuaCalls(); }
 	inline virtual IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
@@ -302,6 +304,7 @@ public:
 			BOP_OR,
 			BOP_EQUIV,
 			BOP_IMPL,
+			BOP_REV_IMPL, // fake operator to simulate F <- G.
 			BOP_EQ,
 			BOP_NEQ,
 			BOP_DBL_EQ,
@@ -333,7 +336,7 @@ public:
 	// inherted stuffs
 	inline virtual std::ostream& translate(std::ostream& out, Context& context) const { return translate(out, context, opType()); }
 	virtual bool hasConstants(unsigned int types) const;
-	virtual bool isSingleAtom() const;
+	virtual bool isDefinite() const;
 	virtual bool isArithExpr() const;
 	inline virtual bool hasLuaCalls() const						{ return (preOp() && preOp()->hasLuaCalls()) || (postOp() && postOp()->hasLuaCalls()); }
 	virtual IPart determineQueryIPart() const;
@@ -373,9 +376,10 @@ protected:
 	 * @param[out] out - The output stream to write to.
 	 * @param context -  The formula context to be used for translation.
 	 * @param type - The operator type to use for the translation.
+	 * @param forceParens - Whether to force the presence of parens around the expression.
 	 * @return out.
 	 */
-	std::ostream& translate(std::ostream& out, Context& context, BinaryOperatorType type) const;
+	std::ostream& translate(std::ostream& out, Context& context, BinaryOperatorType type, bool forceParens = false) const;
 
 	/**
 	 * Simple helper function. Converts the provided operator to a string representation.
@@ -424,7 +428,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types) const;
-	inline virtual bool isSingleAtom() const					{ return false; }
+	inline virtual bool isDefinite() const					{ return false; }
 	inline virtual bool isArithExpr() const						{ return false; }
 	inline virtual bool hasLuaCalls() const						{ return postOp() && postOp()->hasLuaCalls(); }
 	virtual inline IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
@@ -475,26 +479,31 @@ class SimpleBinaryOperatorWrapper : public ParseElement {
 private:
 	SimpleBinaryOperator const* mWrapped;
 	SimpleBinaryOperator::BinaryOperatorType mType;
+	bool mForceParens;
 public:
 
 	/**
 	 * Constructor.
 	 * @param wrappedExpr The expression to wrap.
 	 * @param type The new operator type.
+	 * @param forceParens Whether to force the presence of parens around the expression.
 	 */
-	inline SimpleBinaryOperatorWrapper(SimpleBinaryOperator const* wrappedExpr, SimpleBinaryOperator::BinaryOperatorType type)
-		: ParseElement(wrappedExpr->getType(), wrappedExpr->parens()), mWrapped(wrappedExpr), mType(type)
+	inline SimpleBinaryOperatorWrapper(SimpleBinaryOperator const* wrappedExpr, SimpleBinaryOperator::BinaryOperatorType type, bool forceParens = false)
+		: ParseElement(wrappedExpr->getType(), wrappedExpr->parens()), mWrapped(wrappedExpr), mType(type), mForceParens(forceParens)
 	{ /* Intetionally Left Blank */ }
 
 
-	virtual std::ostream& translate(std::ostream& out, Context& context) const { return mWrapped->translate(out, context, opType()); }
-	virtual bool hasConstants(unsigned int types) const;
-	inline virtual bool isSingleAtom() const					{ return mWrapped->isSingleAtom(); }
+	virtual inline std::ostream& translate(std::ostream& out, Context& context) const
+																{ return mWrapped->translate(out, context, opType(), mForceParens); }
+	inline virtual bool hasConstants(unsigned int types) const
+																{ return mWrapped->hasConstants(types); }
+	inline virtual bool isDefinite() const						{ return mWrapped->isDefinite(); }
 	inline virtual bool isArithExpr() const						{ return mWrapped->isArithExpr(); }
 	inline virtual bool hasLuaCalls() const						{ return mWrapped->hasLuaCalls(); }
-	virtual inline IPart determineQueryIPart() const			{ return mWrapped->determineQueryIPart(); }
-	virtual std::ostream& fullName(std::ostream& out) const		{ return mWrapped->fullName(out); }
-	virtual ParseElement* copy() const							{ return new SimpleBinaryOperatorWrapper(mWrapped, mType); }
+	inline virtual IPart determineQueryIPart() const			{ return mWrapped->determineQueryIPart(); }
+	inline virtual std::ostream& fullName(std::ostream& out) const
+																{ return mWrapped->fullName(out); }
+	inline virtual ParseElement* copy() const					{ return new SimpleBinaryOperatorWrapper(mWrapped, mType, mForceParens); }
 	inline virtual void aggregateUndefined(BaseElementList& outIdentifiers) { /* Not Supported */ }
 
 	/// Gets the operator's type.
@@ -545,7 +554,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const = 0;
 	virtual bool hasConstants(unsigned int types) const = 0;
-	virtual bool isSingleAtom() const = 0;
+	virtual bool isDefinite() const = 0;
 	inline virtual bool isArithExpr() const 								{ return isNumeric(); }
 	virtual bool hasLuaCalls() const = 0;
 	virtual IPart determineQueryIPart() const = 0;
@@ -643,7 +652,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types) const;
-	inline virtual bool isSingleAtom() const				{ return ref() && ((Constant const*)ref())->isBoolean(); }
+	inline virtual bool isDefinite() const				{ return ref() && ((Constant const*)ref())->isBoolean(); }
 	inline virtual bool hasLuaCalls() const					{ return false; }
 	inline virtual IPart determineQueryIPart() const 		{ return IPART_CUMULATIVE; }
 	virtual ParseElement* copy() const;
@@ -721,7 +730,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types) const;
-	virtual bool isSingleAtom() const						{ return baseName() == "true" || baseName() == "false"; }
+	virtual bool isDefinite() const						{ return baseName() == "true" || baseName() == "false"; }
 	virtual bool hasLuaCalls() const						{ return ref() && ((Object const*)ref())->isLua(); }
 	inline virtual IPart determineQueryIPart() const 		{ return IPART_BASE; }
 	virtual ParseElement* copy() const;
@@ -756,7 +765,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types) const;
-	inline virtual bool isSingleAtom() const						{ return ref() && isConstantVariable() && ref()->isBoolean(); }
+	inline virtual bool isDefinite() const						{ return ref() && isConstantVariable() && ref()->isBoolean(); }
 	inline virtual bool hasLuaCalls() const							{ return false; }
 	inline virtual IPart determineQueryIPart() const 				{ return IPART_BASE; }
 	inline virtual ParseElement* copy() const						{ return new VariableLikeElement(baseName(), (Variable const*)ref(), parens()); }

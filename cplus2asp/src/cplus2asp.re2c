@@ -188,11 +188,12 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out);
 OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outConf);
 
 /**
- * [interactive] Queries the user to select an appropriate query number among the defined queries.
+ * [interactive] Queries the user to select an appropriate query number (and optional solution count) among the defined queries.
  * @param config The program's configuration options.
- * @return The selected query's ID or Config::UNDEFINED to indicate that the user wishes to exit the program.
+ * @param[out] runconfig The run's configurations that will be updated.
+ * @return True if the program should continue execution, false otherwise.
  */
-unsigned int queryUserForQuery(Config const& config);
+bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig);
 
 /**
  * [interactive] Queries the user to select a value for the specified constant.
@@ -207,29 +208,25 @@ unsigned int queryUserForConstant(Config const& config, std::string const& const
  * Scans through all of the available input files in order to attempt to find the required constants.
  * @param config The configuration for the program. The list of queries in the configuration may be added to.
  * @param ranTranslator Whether the translator was ran.
- * @param neededConstants A set of flags indicating the constants that are required.
- * @return A new set of flags indicating the constants that are still required.
  */
- unsigned char scanFilesForConstants(Config& config, bool ranTranslator, unsigned char neededConstants);
+void scanFilesForConstants(Config& config, bool ranTranslator);
 
  /**
   * Scans through a provided input files in order to attempt to find the required constants.
   * @param config The configuration for the program. The list of queries in the configuration may be added to.
   * @param file The name of the file to scan.
-  * @param neededConstants A set of flags indicating the constants that are required.
-  * @return A new set of flags indicating the constants that are still required.
   */
-  unsigned char scanForConstants(Config& config, std::string const& file, unsigned char neededConstants);
+void scanForConstants(Config& config, std::string const& file);
 
 /**
  * Runs the specified tool in the toolchain IF it is not disabled in the toolchain configuration.
  * @param config The configuration for the program.
  * @param tool The tool to run.
- * @param maxstep The maxstep to use during compilation
  * @param name The human readable name of the tool (for output purposes).
+ * @param subconfig The sub configuration settings which will override the configuration settings.
  * @return The status code from running the program (TC_STAT_TOOLSKIPPED indicates that it did not run).
  */
-int runTool(Config const& config, Config::Toolchain tool, unsigned int maxstep, std::string const& name);
+int runTool(Config const& config, Config::Toolchain tool, std::string const& name, Config::RunConfig const* subconfig = NULL);
 
 /**
  * Cleans up the intermediate files generated during program execution.
@@ -238,6 +235,13 @@ int runTool(Config const& config, Config::Toolchain tool, unsigned int maxstep, 
  */
 void cleanup(Config const& config, bool const* ran);
 
+/**
+ * Attempts to echo the specified file to the specified output stream.
+ * @param out The output stream to print to.
+ * @param filename The file to open.
+ * @return True if the file exists, false otherwise.
+ */
+bool echoFile(std::ostream& out, std::string const& filename);
 
 int main(int argc, char** argv)
 {
@@ -247,9 +251,6 @@ int main(int argc, char** argv)
 
 	vector<string> vecConstants; 						// List of constants to pass to the grounder.
 	int intSystemResult = 0; 							// Holds what comes back from system().
-	
-	unsigned int intCurMaxstep = Config::UNDEFINED; 	// Used when maxstep is a range.
-	Config::Query const* activeQuery = NULL;			// The query which we are currently executing.
 	
 
 	Config config;										// The almighty system configuration.
@@ -319,7 +320,7 @@ int main(int argc, char** argv)
 	
 	// Run the translator if it's called for.
 	debug("Beginning translator subroutine.", true);
-	if ((intSystemResult = runTool(config, Config::TC_TRANSLATOR, config.intConfigOpt(Config::OPT_MAXSTEP), "translator")) != TC_STAT_TOOLSKIPPED) {
+	if ((intSystemResult = runTool(config, Config::TC_TRANSLATOR, "translator")) != TC_STAT_TOOLSKIPPED) {
 
 		// It Ran!
 		ran[Config::TC_TRANSLATOR] = true;
@@ -356,199 +357,10 @@ int main(int argc, char** argv)
 	}
 
 	/**********************************************************************************************************************/
-	/* Intermediate Processing & Final Configuration */
-	/**********************************************************************************************************************/
-
-	debug("Translation done. Performing intermediate processing and final configuration.", true);
-
-	// If any of the "critical" constants aren't defined and one of the
-	// "active" tool chain programs is going to need the constants, try
-	// finding "hint" comments in the input that we can use to fill in details.
-
-	if (config.run(Config::TC_GROUNDER) || config.run(Config::TC_SOLVER)) {
-
-		// If any of the "critical" constants aren't defined and one of the
-		// "active" tool chain programs is going to need the constants, try
-		// finding "hint" comments in the input that we can use to fill in details.
-		unsigned char neededConstantFlgs = 0;
-
-		if (!config.customConfigOpt(Config::OPT_MAXSTEP)
-				&& (config.mode() == Config::MODE_STATIC_AUTO /* || config.mode() == Config::MODE_STATIC_MANUAL */)) {
-			// This isn't needed in static-manual mode, we'll simply ask the user!
-			neededConstantFlgs |= CONST_MAXSTEP_MASK;
-			debug("The maxstep is unspecified. Registering the deficiency.", true);
-		}
-
-		if (!config.customConfigOpt(Config::OPT_QUERY)) {
-			neededConstantFlgs |= CONST_QUERY_MASK;
-			debug("The query is unspecified. Registering the deficiency.", true);
-		}
-
-		if (config.boolConfigOpt(Config::OPT_INCL_ADDITIVE) && !config.customConfigOpt(Config::OPT_MAXADDITIVE)) {
-			neededConstantFlgs |= CONST_MAXADDITIVE_MASK;
-			debug("The maxAdditive is unspecified. Registering the deficiency.", true);
-		}
-
-		/* Note: minstep is never really required, therefore we never register the deficiency */
-
-		if (!config.customConfigOpt(Config::OPT_EXT_PORT) && config.mode() == Config::MODE_REACTIVE) {
-			neededConstantFlgs |= CONST_EXT_PORT_MASK;
-			debug("The external port is unspecified. Registering the deficiency.", true);
-		}
-
-		// Scan the files for the required constants. Hopefully one of them has it!
-		neededConstantFlgs = scanFilesForConstants(config, ran[Config::TC_TRANSLATOR], neededConstantFlgs);
-
-
-
-		// If at least one of maxstep and query still aren't defined and, we found query hints,
-		// and we're allowed to be interactive, set up a prompt to have the user pick values to fill in.
-
-
-		// Query deficiency:
-		if (neededConstantFlgs & CONST_QUERY_MASK) {
-			if (config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
-				// We aren't supposed to be asking the user anything...
-				// We can still salvage this if there is only a single query...
-				if (config.queryCount() == 1) {
-					config.intConfigOpt(Config::OPT_QUERY,config.beginQueries()->first);
-					pragma("The query hasn't been defined but there is only a single one. Defaulting to query '%s'.", true, config.activeQuery()->name.c_str());
-					neededConstantFlgs &= ~CONST_QUERY_MASK;
-				}
-			} else {
-				// Let's make this simple and just ask the user.
-				unsigned int tmpVal;
-				if ((tmpVal = queryUserForQuery(config)) != Config::UNDEFINED) {
-					config.intConfigOpt(Config::OPT_QUERY, tmpVal);
-					debug("Got user input. Using query '%s'.", true, config.activeQuery()->name.c_str());
-					neededConstantFlgs &= ~CONST_QUERY_MASK;
-				} else {
-					// They elected to exit instead of answer a simple question.
-					// Life moves on but we do not.
-					cleanup(config, ran);
-					nice_exit(0, "Exiting.");
-				}
-			}
-		}
-
-		// Get the currently active query.
-		// Note: If there is query selected from the user this _could_ be null, so we need to be careful.
-		activeQuery = config.activeQuery();
-
-		// Check if the activated query exists...
-		if (!activeQuery) {
-			warning("The specified query '%d' wasn't found.", true, config.intConfigOpt(Config::OPT_QUERY));
-		}
-
-
-		// Maxstep Deficiency:
-		// This can be solved if we have a query and it has a maxstep...
-		// We actually want to double check this right now regardless of whether we 'need' it. That way the query/maxstep is kept in sync.
-		if (config.intConfigOpt(Config::OPT_MAXSTEP) == Config::UNDEFINED
-				&& activeQuery
-				&& activeQuery->maxstep != Config::UNDEFINED) {
-
-			// All is well, we have a maximum step to use...
-			config.intConfigOpt(Config::OPT_MAXSTEP, activeQuery->maxstep);
-			neededConstantFlgs &= ~CONST_MAXSTEP_MASK;
-			debug("Selecting maxstep '%d' from the query '%s' for our maximum step.", true, activeQuery->maxstep, activeQuery->name.c_str());
-		} else if ((neededConstantFlgs & CONST_MAXSTEP_MASK)
-				&& !config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
-
-			// Well, we don't have a  good maxstep value (and one is certainly needed).
-			// Luckily we're allowed to ask the user.
-
-			unsigned int tmpVal;
-
-			if ((tmpVal = queryUserForConstant(config, "maximum step")) != Config::UNDEFINED) {
-				config.intConfigOpt(Config::OPT_MAXSTEP, tmpVal);
-				debug("Got maxstep value '%d' from user.", true, tmpVal);
-				neededConstantFlgs &= ~CONST_MAXSTEP_MASK;
-			} else {
-				// The user wants to exit.
-				cleanup(config, ran);
-				nice_exit(0, "Exiting.");
-			}
-		}
-
-		// Minstep
-		// If a minstep isn't specified and we know a query, then we might be able to get it from the query...
-		if (config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED) {
-			if (activeQuery && activeQuery->minstep != Config::UNDEFINED) {
-				// The query has specified a minimum step for us to use.
-				config.intConfigOpt(Config::OPT_MINSTEP, activeQuery->minstep);
-				debug("Got minstep value '%d' from the query '%s'.", true, activeQuery->minstep, activeQuery->name.c_str());
-				neededConstantFlgs &= ~CONST_MINSTEP_MASK;
-			} else {
-				// No such luck, default to 0.
-				debug("No minimum step specified. Defaulting to 0.", true);
-				config.intConfigOpt(Config::OPT_MINSTEP, 0);
-				neededConstantFlgs &= ~CONST_MINSTEP_MASK;
-
-			}
-		}
-
-		// MaxAdditive Deficiency:
-		// There is no way to resolve this short of asking the user...
-		if ((neededConstantFlgs & CONST_MAXADDITIVE_MASK)
-				&& ~config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
-
-			// Well, it's certainly a good thing we can ask the user, now isn't it?
-			unsigned int tmpVal;
-
-			if ((tmpVal = queryUserForConstant(config, "maximum additive value")) != Config::UNDEFINED) {
-				config.intConfigOpt(Config::OPT_MAXADDITIVE, tmpVal);
-				debug("Got maxAdditive value '%d' from user.", true, tmpVal);
-				neededConstantFlgs &= ~CONST_MAXADDITIVE_MASK;
-			} else {
-				// The user wants to exit.
-				cleanup(config, ran);
-				nice_exit(0, "Exiting.");
-			}
-		}
-
-
-		// Listening port deficiency:
-		// We have to ask the user about this.
-		if ((neededConstantFlgs & CONST_EXT_PORT_MASK)
-				&& ~config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
-
-			// Well, it's certainly a good thing we can ask the user, now isn't it?
-			unsigned int tmpVal;
-
-			if ((tmpVal = queryUserForConstant(config, "client port")) != Config::UNDEFINED) {
-				config.intConfigOpt(Config::OPT_EXT_PORT, tmpVal);
-				debug("Got client port value '%d' from user.", true, tmpVal);
-				neededConstantFlgs &= ~CONST_EXT_PORT_MASK;
-			} else {
-				// The user wants to exit.
-				cleanup(config, ran);
-				nice_exit(0, "Exiting.");
-			}
-		}
-
-		// Hopefully by now we've resolved all of our various issues...
-		if (neededConstantFlgs) {
-			// Aaaaand we haven't. Fail gracefully.
-			if (neededConstantFlgs & CONST_QUERY_MASK) error("The query to run was never defined. Exiting.", true, 0);
-			if (neededConstantFlgs & CONST_MAXSTEP_MASK) error("The maximum step was never defined and is required for static mode. Exiting.", true, 0);
-			if (neededConstantFlgs & CONST_MAXADDITIVE_MASK) error("The maxAdditive constant was never defined and is required for program's containing additive constants. Exiting.", true, 0);
-			if (neededConstantFlgs & CONST_MINSTEP_MASK) error("The minimum step was never specified and is required for the given running mode. Exiting.", true, 0);
-			if (neededConstantFlgs & CONST_EXT_PORT_MASK) error("The port to listen on for client connections is undefined and is required for the given running mode. Exiting.", true, 0);
-			cleanup(config, ran);
-			nice_exit(EXT_CODE_UNDEFINED_CONSTANTS, NULL);
-		}
-	}
-	
-	// After this point we know for a fact that the active query is non-null.
-	// This is because we've guaranteed that the query was previously initialized to some value,
-	// otherwise it would have been marked as deficient and we would have exited by now.
-
-	/**********************************************************************************************************************/
 	/* Pre-processor */
 	/**********************************************************************************************************************/
 	debug("Entering pre-processor subroutine.", true);
-	if ((intSystemResult = runTool(config, Config::TC_PREPROC, config.intConfigOpt(Config::OPT_MAXSTEP), "pre-processor")) != TC_STAT_TOOLSKIPPED)  {
+	if ((intSystemResult = runTool(config, Config::TC_PREPROC, "pre-processor")) != TC_STAT_TOOLSKIPPED)  {
 		// It Ran!
 		ran[Config::TC_PREPROC] = true;
 
@@ -560,186 +372,357 @@ int main(int argc, char** argv)
 		}
 
 	}
+
 	/**********************************************************************************************************************/
-	/* Interactive Loop */
+	/* Intermediate Processing & Final Configuration */
 	/**********************************************************************************************************************/
 
+	debug("Translation done. Performing intermediate processing and final configuration.", true);
 
-	/*********************************************************************************************/
-	/* Initial Maxstep */
-	/*********************************************************************************************/
 
-	// Note: current maxstep is ONLY applicable for the static modes.
-	// We also shouldn't ask for it if we aren't running a grounder or solver.
+	// If any of the "critical" constants aren't defined and one of the
+	// "active" tool chain programs is going to need the constants, try
+	// finding "hint" comments in the input that we can use to fill in details.
+
 	if (config.run(Config::TC_GROUNDER) || config.run(Config::TC_SOLVER)) {
-		if (config.mode() == Config::MODE_STATIC_MANUAL) {
-			// Running in manual mode, ask the user what to do.
-			if ((intCurMaxstep = queryUserForConstant(config, "maximum step", config.intConfigOpt(Config::OPT_MINSTEP))) != Config::UNDEFINED) {
-				debug("Got new maximum step value '%d' from user.", true, intCurMaxstep);
-			} else {
-				// The user wants to exit.
-				cleanup(config, ran);
-				nice_exit(0, "Exiting.");
-			}
 
-		} else if (config.mode() == Config::MODE_STATIC_AUTO) {
-			// Automatic mode, go with the current minstep value
-			// or default to 0 if it's not included.
-			intCurMaxstep = config.intConfigOpt(Config::OPT_MINSTEP);
-			if (intCurMaxstep == Config::UNDEFINED) intCurMaxstep = 0;
-		} else {
-			// Incremental or reactive, go with the REAL maxstep.
-			intCurMaxstep = config.intConfigOpt(Config::OPT_MAXSTEP);
+		// We should determine the maxAdditive and port information outside of the interactive loop.
+		// The query, maxstep, and minstep information can be determined from within.
+
+		// If any of the "critical" constants aren't defined and one of the
+		// "active" tool chain programs is going to need the constants, try
+		// finding "hint" comments in the input that we can use to fill in details.
+
+		unsigned int tmpVal;
+
+		// Scan the files for the required constants. Hopefully one of them has it!
+		// We should also scan the files in the event a query hasn't been specified (we'll need it!)
+		if ((config.boolConfigOpt(Config::OPT_INCL_ADDITIVE) && !config.customConfigOpt(Config::OPT_MAXADDITIVE))
+				|| config.intConfigOpt(Config::OPT_QUERY) == Config::UNDEFINED
+				|| config.intConfigOpt(Config::OPT_MAXSTEP) == Config::UNDEFINED
+				|| config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED)
+			scanFilesForConstants(config, ran[Config::TC_TRANSLATOR]);
+
+		// If all else fails, ask the user (unless we're not allowed to).
+		if (config.intConfigOpt(Config::OPT_MAXADDITIVE) == Config::UNDEFINED
+				&& config.boolConfigOpt(Config::OPT_INCL_ADDITIVE)) {
+
+			if (!config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
+
+				if ((tmpVal = queryUserForConstant(config, "maxAdditive")) != Config::UNDEFINED) {
+					// They gave us a maxAdditive value.
+					config.intConfigOpt(Config::OPT_MAXADDITIVE, tmpVal);
+				} else {
+					// They elected to exit instead of answer a simple question.
+					// Life moves on but we do not.
+					cleanup(config, ran);
+					nice_exit(0, "Exiting.");
+				}
+			} else {
+				// we can't ask the user
+				error("The maxAdditive constant was never defined and is required for program's containing additive constants. Exiting.", true, 0);
+				cleanup(config, ran);
+				nice_exit(EXT_CODE_UNDEFINED_CONSTANTS, NULL);
+			}
 		}
-	} else {
-		// If we aren't running an active element just set the max step to undefined.
-		// This will be useful later as it will flag the interactive loop to run once.
-		intCurMaxstep = Config::UNDEFINED;
+
+		if (config.run(Config::TC_SOLVER)) {
+			if (config.intConfigOpt(Config::OPT_EXT_PORT) == Config::UNDEFINED
+					&& config.mode() == Config::MODE_REACTIVE) {
+
+				if (!config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
+
+					if ((tmpVal = queryUserForConstant(config, "external port")) != Config::UNDEFINED) {
+						// They gave us a maxAdditive value.
+						config.intConfigOpt(Config::OPT_EXT_PORT, tmpVal);
+					} else {
+						// They elected to exit instead of answer a simple question.
+						// Life moves on but we do not.
+						cleanup(config, ran);
+						nice_exit(0, "Exiting.");
+					}
+				} else {
+					// We can't ask the user.
+					 error("The port to listen on for client connections is undefined and is required for the given running mode. Exiting.", true, 0);
+					 cleanup(config, ran);
+					 nice_exit(EXT_CODE_UNDEFINED_CONSTANTS, NULL);
+				}
+			}
+		}
+
 	}
 
-	// run the rest of the tool chain at least once, but we may have to run it multiple times in one of the STATIC modes...
-	debug("Entering interactive loop.", true);
-	do
-	{
 
-		/*********************************************************************************************/
-		/* Grounder */
-		/*********************************************************************************************/
-		debug("Entering grounder subroutine.", true);
-		if ((intSystemResult = runTool(config, Config::TC_GROUNDER, intCurMaxstep, "grounder")) != TC_STAT_TOOLSKIPPED)  {
-			// It Ran!
-			ran[Config::TC_GROUNDER] = true;
+	/************************************************************************************************/
+	/* Outer Interactive Loop */
+	/************************************************************************************************/
 
-			// check the status and make sure all is well...
-			if(intSystemResult != TC_STAT_OK)
-			{
+	Config::RunConfig runConfig;
+
+	do {
+		unsigned int maxmaxstep = config.intConfigOpt(Config::OPT_MAXSTEP);
+		Config::Query const* activeQuery = NULL;
+
+		runConfig.minstep = (config.intConfigOpt(Config::OPT_MINSTEP) != Config::UNDEFINED)
+					? config.intConfigOpt(Config::OPT_MINSTEP)
+					: 0;
+
+		runConfig.queryId = config.intConfigOpt(Config::OPT_QUERY);
+		runConfig.numSoln = config.intConfigOpt(Config::OPT_NUM_SOLN);
+
+		/********************************************************************************************/
+		/*  Run configurations */
+		/********************************************************************************************/
+
+		// Query
+		if ((config.run(Config::TC_GROUNDER) || config.run(Config::TC_SOLVER))
+				&& (config.intConfigOpt(Config::OPT_QUERY) == Config::UNDEFINED
+						|| config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED
+						|| config.intConfigOpt(Config::OPT_MAXSTEP) == Config::UNDEFINED)){
+
+
+			// Query...
+			if (runConfig.queryId == Config::UNDEFINED && !config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
+
+				// The query hasn't been specified, try prompting them for it
+				if (!queryUserForQuery(config, runConfig)) {
+
+					// They elected to exit instead of answer a simple question.
+					// Life moves on but we do not.
+					cleanup(config, ran);
+					nice_exit(0, "Exiting.");
+				}
+
+			} else if (runConfig.queryId == Config::UNDEFINED) {
+				// Not specified and we can't prompt the for it.
+				error("The query to execute was never specified. Exiting.", true, 0);
 				cleanup(config, ran);
-				error("An error occurred while executing the grounder.",true, EXT_CODE_TOOLCHAIN_GROUNDER_ERR);
+				nice_exit(EXT_CODE_UNDEFINED_CONSTANTS, NULL);
 			}
 
+			if ((activeQuery = config.query(runConfig.queryId)) == NULL) {
+				error("The specified query was not found.", true, 0);
+				cleanup(config, ran);
+				nice_exit(EXT_CODE_INVALID_QUERY, NULL);
+			}
+
+			// Maxstep...
+			// This can be solved if we have a query and it has a maxstep...
+			if ((config.intConfigOpt(Config::OPT_MAXSTEP) == Config::UNDEFINED)
+					&& activeQuery
+					&& activeQuery->maxstep != Config::UNDEFINED) {
+				maxmaxstep = activeQuery->maxstep;
+			}
+
+			// Minstep...
+			// This can be solved if we have a query and it has a minstep...
+			if ((config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED)
+					&& activeQuery
+					&& activeQuery->minstep != Config::UNDEFINED) {
+				runConfig.minstep = activeQuery->minstep;
+			}
+
+		} else {
+			// Look for the active query anyways.
+			// Chances are we didn't end up parsing the files so we probably haven't seen it.
+			activeQuery = config.query(runConfig.queryId);
 		}
 
+
+		/**********************************************************************************************************************/
+		/* Interactive Loop */
+		/**********************************************************************************************************************/
+
+
 		/*********************************************************************************************/
-		/* Header Logic */
+		/* Initial Maxstep */
 		/*********************************************************************************************/
 
-		// Print the solution header!
-		if (config.run(Config::TC_SOLVER))
+		runConfig.maxstep = (config.mode() == Config::MODE_STATIC_AUTO || config.mode() == Config::MODE_STATIC_MANUAL)
+				? runConfig.minstep
+				: maxmaxstep;
+
+
+		// Final sanity check on the min and max steps...
+		if (runConfig.maxstep != Config::UNDEFINED && runConfig.minstep > runConfig.maxstep) {
+			error("The maxstep value must be at least that of the minstep.", true, 0);
+			cleanup(config, ran);
+			nice_exit(EXT_CODE_INVALID_STEP_VALUE, NULL);
+		}
+
+		// run the rest of the tool chain at least once, but we may have to run it multiple times in one of the STATIC modes...
+		debug("Entering primary interactive loop.", true);
+		do
 		{
-			if (activeQuery) pragma("Running Query '%s'.", true, activeQuery->name.c_str());
-			else pragma("Running Query '%d'.", true, config.intConfigOpt(Config::OPT_QUERY));
-			switch (config.mode()) {
-			case Config::MODE_STATIC_AUTO:
-			case Config::MODE_STATIC_MANUAL:
-				pragma("Current maxstep value is '%d'", true, intCurMaxstep);
-				break;
 
-			case Config::MODE_INCREMENTAL:
-			case Config::MODE_REACTIVE:
-				// We can guarantee that at this point the minimum step is defined.
-				if (config.intConfigOpt(Config::OPT_MAXSTEP) != Config::UNDEFINED)
-					pragma("Minimum Step = '%d', Maximum Step = '%d'.", true, config.intConfigOpt(Config::OPT_MINSTEP), config.intConfigOpt(Config::OPT_MAXSTEP));
-				else
-					pragma("Minimum Step = '%d', No Maximum Step.", true, config.intConfigOpt(Config::OPT_MINSTEP));
-				break;
-
-			default:
-				break;
-			}
-
-			if (config.intConfigOpt(Config::OPT_NUM_SOLN) == 0)
-				pragma("Searching for all solutions.", true);
-			else
-				pragma("Searching for %d solutions.", true, config.intConfigOpt(Config::OPT_NUM_SOLN));
-		}
-
-		/*********************************************************************************************/
-		/* Solver */
-		/*********************************************************************************************/
-		debug("Entering solver subroutine.", true);
-		if ((intSystemResult = runTool(config, Config::TC_SOLVER, intCurMaxstep, "solver")) != TC_STAT_TOOLSKIPPED)  {
-			// It Ran!
-			ran[Config::TC_SOLVER] = true;
-
-			// check the status and make sure all is well...
-			if (intSystemResult == TC_STAT_SO_CLINGO_FOUND_SOLUTIONS) {
-				// Looks like we have solutions... YAY!
-				blnFoundSolutions = true;
-			} else if (intSystemResult == TC_STAT_SO_CLINGO_NO_SOLUTIONS) {
-				pragma("No solutions found.", true);
-			} else if (intSystemResult == TC_STAT_BG) {
-				// The solver was launched in the background.
-			} else if(intSystemResult != TC_STAT_OK) {
-				cleanup(config, ran);
-				error("An error occurred while executing the solver.",true, EXT_CODE_TOOLCHAIN_SOLVER_ERR);
-			}
-
-		}
-
-		/*********************************************************************************************/
-		/* Post-processor */
-		/*********************************************************************************************/
-		// The post-processor is only run outside of reactive mode
-		debug("Entering post-processor subroutine.", true);
-		if (config.mode() != Config::MODE_REACTIVE) {
-			if ((intSystemResult = runTool(config, Config::TC_POSTPROC, intCurMaxstep, "post-processor")) != TC_STAT_TOOLSKIPPED)  {
+			/*********************************************************************************************/
+			/* Grounder */
+			/*********************************************************************************************/
+			debug("Entering grounder subroutine.", true);
+			if ((intSystemResult = runTool(config, Config::TC_GROUNDER, "grounder", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
 				// It Ran!
-				ran[Config::TC_POSTPROC] = true;
+				ran[Config::TC_GROUNDER] = true;
 
 				// check the status and make sure all is well...
-				if (intSystemResult == TC_STAT_POSTPROC_AS2TRANSITION_FOUND_SOLUTIONS) {
+				if(intSystemResult != TC_STAT_OK)
+				{
+					cleanup(config, ran);
+					error("An error occurred while executing the grounder.",true, EXT_CODE_TOOLCHAIN_GROUNDER_ERR);
+				}
+
+			}
+
+			/*********************************************************************************************/
+			/* Header Logic */
+			/*********************************************************************************************/
+
+			// Print the solution header!
+			if (config.run(Config::TC_SOLVER))
+			{
+				if (activeQuery)pragma("Running Query '%s'.", true, activeQuery->name.c_str());
+				else pragma("Running Query '%d'.", true, runConfig.queryId);
+
+				switch (config.mode()) {
+				case Config::MODE_STATIC_AUTO:
+				case Config::MODE_STATIC_MANUAL:
+					if (runConfig.maxstep != Config::UNDEFINED)
+						pragma("Maximum Step = '%d'.", true, runConfig.maxstep);
+					else
+						pragma("No Maximum Step.", true);
+					break;
+
+				case Config::MODE_INCREMENTAL:
+				case Config::MODE_REACTIVE:
+					// We can guarantee that at this point the minimum step is defined.
+					if (runConfig.maxstep != Config::UNDEFINED)
+						pragma("Minimum Step = '%d', Maximum Step = '%d'.", true, runConfig.minstep, runConfig.maxstep);
+					else
+						pragma("Minimum Step = '%d', No Maximum Step.", true, runConfig.minstep);
+					break;
+
+				default:
+					break;
+				}
+
+				if (runConfig.numSoln == 0)
+					pragma("Searching for all solutions.", true);
+				else
+					pragma("Searching for %d solutions.", true, runConfig.numSoln );
+			}
+
+			/*********************************************************************************************/
+			/* Solver */
+			/*********************************************************************************************/
+			debug("Entering solver subroutine.", true);
+			if ((intSystemResult = runTool(config, Config::TC_SOLVER, "solver", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
+				// It Ran!
+				ran[Config::TC_SOLVER] = true;
+				bool ok = true;
+
+				// check the status and make sure all is well...
+				if (intSystemResult == TC_STAT_SO_CLINGO_FOUND_SOLUTIONS) {
 					// Looks like we have solutions... YAY!
 					blnFoundSolutions = true;
-				} else if (intSystemResult == TC_STAT_POSTPROC_AS2TRANSITION_NO_SOLUTIONS) {
-
+				} else if (intSystemResult == TC_STAT_SO_CLINGO_NO_SOLUTIONS) {
+					pragma("No solutions found.", true);
+				} else if (intSystemResult == TC_STAT_BG) {
+					// The solver was launched in the background.
 				} else if(intSystemResult != TC_STAT_OK) {
+					ok = false;
+				}
+
+				if (!ok || !config.boolConfigOpt(Config::OPT_SQUELCH_SOLVER)) {
+					// echo the warnings, if any
+					if (!echoFile(std::cerr, config.intSoErrFile())) {
+						error("Cannot display solver errors. The error file does not exist.", true, 0);
+					}
+				}
+
+				if (!ok) {
+					// something went wrong
 					cleanup(config, ran);
-					error("An error occurred while executing the post-processor.",true, EXT_CODE_TOOLCHAIN_POSTPROC_ERR);
+					error("An error occurred while executing the solver.",true, EXT_CODE_TOOLCHAIN_SOLVER_ERR);
+				}
+
+			}
+
+			/*********************************************************************************************/
+			/* Post-processor */
+			/*********************************************************************************************/
+			// The post-processor is only run outside of reactive mode
+			debug("Entering post-processor subroutine.", true);
+			if (config.mode() != Config::MODE_REACTIVE) {
+				if ((intSystemResult = runTool(config, Config::TC_POSTPROC, "post-processor", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
+					// It Ran!
+					ran[Config::TC_POSTPROC] = true;
+
+					// check the status and make sure all is well...
+					if (intSystemResult == TC_STAT_POSTPROC_AS2TRANSITION_FOUND_SOLUTIONS) {
+						// Looks like we have solutions... YAY!
+						blnFoundSolutions = true;
+					} else if (intSystemResult == TC_STAT_POSTPROC_AS2TRANSITION_NO_SOLUTIONS) {
+
+					} else if(intSystemResult != TC_STAT_OK) {
+						cleanup(config, ran);
+						error("An error occurred while executing the post-processor.",true, EXT_CODE_TOOLCHAIN_POSTPROC_ERR);
+					}
 				}
 			}
-		}
 
-		/*********************************************************************************************/
-		/* Reactive Bridge */
-		/*********************************************************************************************/
+			/*********************************************************************************************/
+			/* Reactive Bridge */
+			/*********************************************************************************************/
 
-		// The reactive bridge is run inside of reactive mode.
-		// NOTE: If we really are in reactive mode then they solver is still running the background!
-		debug("Entering reactive bridge subroutine.", true);
-		if (config.mode() == Config::MODE_REACTIVE) {
-			if ((intSystemResult = runTool(config, Config::TC_REACTIVE_BRIDGE, intCurMaxstep, "reactive bridge")) != TC_STAT_TOOLSKIPPED)  {
-				// It Ran!
-				ran[Config::TC_REACTIVE_BRIDGE] = true;
+			// The reactive bridge is run inside of reactive mode.
+			// NOTE: If we really are in reactive mode then they solver is still running the background!
+			debug("Entering reactive bridge subroutine.", true);
+			if (config.mode() == Config::MODE_REACTIVE) {
+				if ((intSystemResult = runTool(config, Config::TC_REACTIVE_BRIDGE, "reactive bridge", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
+					// It Ran!
+					ran[Config::TC_REACTIVE_BRIDGE] = true;
 
-				// check the status and make sure all is well...
-				if (intSystemResult == TC_STAT_BG) {
-					// The reactive bridge was launched in the background.
-				} else if(intSystemResult != TC_STAT_OK) {
-					cleanup(config, ran);
-					error("An error occurred while executing the reactive bridge.",true, EXT_CODE_TOOLCHAIN_REACTIVE_BRIDGE_ERR);
+					// check the status and make sure all is well...
+					if (intSystemResult == TC_STAT_BG) {
+						// The reactive bridge was launched in the background.
+					} else if(intSystemResult != TC_STAT_OK) {
+						cleanup(config, ran);
+						error("An error occurred while executing the reactive bridge.",true, EXT_CODE_TOOLCHAIN_REACTIVE_BRIDGE_ERR);
+					}
 				}
 			}
-		}
 
-		/*********************************************************************************************/
-		/* Maxstep Increment */
-		/*********************************************************************************************/
+			/*********************************************************************************************/
+			/* Maxstep Increment */
+			/*********************************************************************************************/
 
-		if (intCurMaxstep != Config::UNDEFINED) {
 			if (config.mode() == Config::MODE_STATIC_MANUAL) {
-				intCurMaxstep = queryUserForConstant(config, "maximum step", intCurMaxstep+1);
-			} else {
-				intCurMaxstep++;
+				runConfig.maxstep = queryUserForConstant(config, "maximum step", runConfig.maxstep+1);
+			} else if (config.mode() == Config::MODE_STATIC_AUTO) {
+				runConfig.maxstep++;
 			}
-		}
 
-	} while(
-			// The loop should continue as long as we are:
-			// * Running in static-manual mode and the user hasn't told us to stop, or
-			// * Running in static-auto mode, we haven't reached the maximum step , and we haven't found solutions.
-			(config.mode() == Config::MODE_STATIC_MANUAL && intCurMaxstep != Config::UNDEFINED)
-			|| (config.mode() == Config::MODE_STATIC_AUTO && intCurMaxstep != Config::UNDEFINED && intCurMaxstep <= config.intConfigOpt(Config::OPT_MAXSTEP) && !blnFoundSolutions)
-			);
+		} while(
+				// The loop should continue as long as we are:
+				// * Running in static-manual mode and the user hasn't told us to stop, or
+				// * Running in static-auto mode, we haven't reached the maximum step , and we haven't found solutions.
+				(config.mode() == Config::MODE_STATIC_MANUAL && runConfig.maxstep != Config::UNDEFINED)
+				|| (config.mode() == Config::MODE_STATIC_AUTO
+						&& runConfig.maxstep != Config::UNDEFINED
+						&& (maxmaxstep == Config::UNDEFINED || runConfig.maxstep <= maxmaxstep)
+						&& !blnFoundSolutions)
+				);
+
+
+
+	} while
+			// The outer loop should run as long as:
+			// * We're not suppressing user interaction,
+			// * We are running what looks like a grounder/solver,
+			// * The user has not selected a query on the command line, and
+			// * The user has not selected to exit the outer loop.
+			(!config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)
+			&& (config.run(Config::TC_GROUNDER) || config.run(Config::TC_SOLVER))
+			&& config.intConfigOpt(Config::OPT_QUERY) == Config::UNDEFINED);
 
 	debug("Exiting interactive loop.", true);
 	/**********************************************************************************************************************/
@@ -1305,8 +1288,12 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 				if (outConf.intConfigOpt(Config::OPT_QUERY, Config::NO_QUERY)) {
 					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
 				}
-			} else if (!strcmp(argv[i], CONST_QUERY_SAT)) {
-				if (outConf.intConfigOpt(Config::OPT_QUERY, Config::SAT_QUERY)) {
+			} else if (!strcmp(argv[i], CONST_QUERY_STATES)) {
+				if (outConf.intConfigOpt(Config::OPT_QUERY, Config::STATES_QUERY)) {
+					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+				}
+			} else if (!strcmp(argv[i], CONST_QUERY_TRANSITIONS)) {
+				if (outConf.intConfigOpt(Config::OPT_QUERY, Config::TRANSITIONS_QUERY)) {
 					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
 				}
 			} else if (!from_string(tmpInt, argv[i])) {
@@ -1677,7 +1664,7 @@ std::ostream& showVersion(std::string const& execName, std::ostream& out) {
 }
 
 
-unsigned char scanFilesForConstants(Config& config, bool ranTranslator, unsigned char neededConstants) {
+void scanFilesForConstants(Config& config, bool ranTranslator) {
 
 
 	// Go through the input file(s) looking for special "hint" comments
@@ -1688,26 +1675,24 @@ unsigned char scanFilesForConstants(Config& config, bool ranTranslator, unsigned
 	if(config.run(Config::TC_TRANSLATOR))
 	{	// Start with the output from the translator.
 		debug("Starting with the translator output file...",true);
-		neededConstants = scanForConstants(config, config.intTransFile(), neededConstants);
+		scanForConstants(config, config.intTransFile());
 	}
 
 
 	// Scan all other input files
 	for (Config::Toolchain tool = Config::TC_BEGIN; tool < Config::TC_END; tool = (Config::Toolchain)(((int) tool) + 1)) {
 		for (Config::InputList::const_iterator it = config.beginInput(tool); it != config.endInput(tool); it++) {
-			neededConstants = scanForConstants(config, *it, neededConstants);
+			scanForConstants(config, *it);
 		}
 
 	}
-
-	return neededConstants;
 }
 
 
 
 
 
-unsigned char scanForConstants(Config& config, std::string const& file, unsigned char neededConstants) {
+void scanForConstants(Config& config, std::string const& file) {
 	std::string tempLine = "";
 	std::string tempString;
 	std::ifstream fin;
@@ -1729,7 +1714,6 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 	if(fin.fail()) {
 		// Throw a warning!
 		warning("Unable to open file '%s' for scanning. Skipping it.", true, file.c_str());
-		return neededConstants;
 	}
 
 
@@ -1740,7 +1724,7 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 		if (tempLine.empty()) continue;
 
 		// Look for a maxadditive definition
-		if (neededConstants & CONST_MAXADDITIVE_MASK) {
+		if ( config.intConfigOpt(Config::OPT_MAXADDITIVE) == Config::UNDEFINED) {
 			// Look for a maxAdditive hint comment.
 			// If one is found, set maxAdditive
 
@@ -1760,7 +1744,6 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 						// Found maxAdditive, set it and flag that we need the additive standard file.
 						pragma("Found a maxAdditive hint. Setting maxAdditive to '%d'.", true, tempInt);
 						config.intConfigOpt(Config::OPT_MAXADDITIVE, tempInt);
-						neededConstants &= ~CONST_MAXADDITIVE_MASK;
 					} else {
 						// It looks like this hint is malformed. Be sure to warn them!
 						warning("The maxAdditive hint '%s' is malformed. Ignoring it.", true, tempLine.c_str());
@@ -1769,98 +1752,90 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 			}
 		}
 
-		// Look for query definitions if we're missing anything related to the query.
-		if ((neededConstants & CONST_MAXSTEP_MASK)
-				|| (neededConstants & CONST_QUERY_MASK)
-				|| (neededConstants & CONST_MINSTEP_MASK)
-				|| config.intConfigOpt(Config::OPT_MAXSTEP) == Config::UNDEFINED
-				|| config.intConfigOpt(Config::OPT_MINSTEP) == Config::UNDEFINED) {
+		// Look for a query hint comment.
+		// Collect any that are found.
+		findText = "% [Query: Label:";
 
-			// Look for a query hint comment.
-			// Collect any that are found.
-			findText = "% [Query: Label:";
+		if((tempPos = tempLine.find(findText)) != std::string::npos
+				&& (tempPos += findText.length())
+				&& (tempPos2 = tempLine.find_first_of(",]", tempPos)) != std::string::npos
+				&& tempPos2 > tempPos)
+		{
+			foundQuery = false;
+			debug("Found what appears to be a query definition: '%s'", true, tempLine.c_str());
+			tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
 
-			if((tempPos = tempLine.find(findText)) != std::string::npos
-					&& (tempPos += findText.length())
-					&& (tempPos2 = tempLine.find_first_of(",]", tempPos)) != std::string::npos
-					&& tempPos2 > tempPos)
-			{
-				foundQuery = false;
-				debug("Found what appears to be a query definition: '%s'", true, tempLine.c_str());
-				tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
+			if(from_string(tempInt, tempString)) {
+				// Found a query's label, keep it and look for the maxstep...
+				tempQuery.id = tempInt;
 
-				if(from_string(tempInt, tempString)) {
-					// Found a query's label, keep it and look for the maxstep...
-					tempQuery.id = tempInt;
+				findText = "Maxstep:";
+				if (tempLine.at(tempPos2) != ']' // Don't bother if we're at the end of the hint...
+						&& (tempPos = tempLine.find(findText, tempPos2)) != std::string::npos
+						&& (tempPos += findText.length())
+						&& (tempPos2 = tempLine.find("]", tempPos)) != std::string::npos
+						&& tempPos2 > tempPos) {
 
-					findText = "Maxstep:";
-					if (tempLine.at(tempPos2) != ']' // Don't bother if we're at the end of the hint...
-							&& (tempPos = tempLine.find(findText, tempPos2)) != std::string::npos
-							&& (tempPos += findText.length())
-							&& (tempPos2 = tempLine.find("]", tempPos)) != std::string::npos
-							&& tempPos2 > tempPos) {
+					// This would be a maximum step definition
+					// This could be an integer M
+					// Or this could be a range M::N or M..N
+					tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
 
-						// This would be a maximum step definition
-						// This could be an integer M
-						// Or this could be a range M::N or M..N
-						tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
+					size_t sepBegin, sepEnd;
 
-						size_t sepBegin, sepEnd;
-
-						if (((sepBegin = tempString.find("::")) != std::string::npos
-								|| (sepBegin = tempString.find("..")) != std::string::npos)
-							&& (sepEnd = sepBegin + 2)
-							&& from_string(tempQuery.minstep, tempString.substr(0, sepBegin))
-							&& from_string(tempQuery.maxstep, tempString.substr(sepEnd, std::string::npos))){
-							// The query is good and contains a minstep and maxstep.
-							foundQuery = true;
-						} else if (from_string(tempQuery.maxstep, tempString)) {
-							// The query is good and contains only a maxstep.
-							// The minstep is undefined.
-							tempQuery.minstep = tempQuery.maxstep;
-							foundQuery = true;
-						} else {
-							// The step information is malformed.
-							// Warn them...
-							warning("[%s:%d]: The query hint '%s' has a malformed step maxstep parameter. Ignoring the maximum step information...", true, file.c_str(), currentLine, tempLine.c_str());
-							tempQuery.minstep = Config::UNDEFINED;
-							tempQuery.maxstep = Config::UNDEFINED;
-							foundQuery = true;
-						}
+					if (((sepBegin = tempString.find("::")) != std::string::npos
+							|| (sepBegin = tempString.find("..")) != std::string::npos)
+						&& (sepEnd = sepBegin + 2)
+						&& from_string(tempQuery.minstep, tempString.substr(0, sepBegin))
+						&& from_string(tempQuery.maxstep, tempString.substr(sepEnd, std::string::npos))){
+						// The query is good and contains a minstep and maxstep.
+						foundQuery = true;
+					} else if (from_string(tempQuery.maxstep, tempString)) {
+						// The query is good and contains only a maxstep.
+						// The minstep is undefined.
+						tempQuery.minstep = tempQuery.maxstep;
+						foundQuery = true;
 					} else {
-						// No maxstep information to be found. This is ok.
-						tempQuery.maxstep = Config::UNDEFINED;
+						// The step information is malformed.
+						// Warn them...
+						warning("[%s:%d]: The query hint '%s' has a malformed step maxstep parameter. Ignoring the maximum step information...", true, file.c_str(), currentLine, tempLine.c_str());
+						tempQuery.minstep = Config::UNDEFINED;
 						tempQuery.maxstep = Config::UNDEFINED;
 						foundQuery = true;
 					}
 				} else {
-					// The query ID is malformed... Warn them and move on.
-					warning("[%s:%d]: The query hint '%s' has a malformed query ID. Ignoring it.", true, file.c_str(), currentLine, tempLine.c_str());
+					// No maxstep information to be found. This is ok.
+					tempQuery.maxstep = Config::UNDEFINED;
+					tempQuery.maxstep = Config::UNDEFINED;
+					foundQuery = true;
 				}
+			} else {
+				// The query ID is malformed... Warn them and move on.
+				warning("[%s:%d]: The query hint '%s' has a malformed query ID. Ignoring it.", true, file.c_str(), currentLine, tempLine.c_str());
+			}
 
-				if (foundQuery) {
-					// The query was good. We can go ahead and register it.
-					// Generate a name...
-					nameBuilder.str("");
-					nameBuilder << "Query " << tempQuery.id;
+			if (foundQuery) {
+				// The query was good. We can go ahead and register it.
+				// Generate a name...
+				nameBuilder.str("");
+				nameBuilder << "Query " << tempQuery.id;
 
-					//if (tempQuery.minstep != Config::UNDEFINED && tempQuery.maxstep != Config::UNDEFINED)
-					//	nameBuilder << " (" << tempQuery.minstep << ".." << tempQuery.maxstep <<")";
-					//else if (tempQuery.maxstep != Config::UNDEFINED)
-					//	nameBuilder << " (" << tempQuery.maxstep <<")";
+				//if (tempQuery.minstep != Config::UNDEFINED && tempQuery.maxstep != Config::UNDEFINED)
+				//	nameBuilder << " (" << tempQuery.minstep << ".." << tempQuery.maxstep <<")";
+				//else if (tempQuery.maxstep != Config::UNDEFINED)
+				//	nameBuilder << " (" << tempQuery.maxstep <<")";
 
-					tempQuery.name = nameBuilder.str();
+				tempQuery.name = nameBuilder.str();
 
-					// Build the command
-					nameBuilder.str("");
-					nameBuilder << tempQuery.id;
-					tempQuery.cmd = nameBuilder.str();
+				// Build the command
+				nameBuilder.str("");
+				nameBuilder << tempQuery.id;
+				tempQuery.cmd = nameBuilder.str();
 
-					// Attempt to register it.
-					debug("Registering query '%s'...", true, tempQuery.name.c_str());
-					if (!config.addQuery(tempQuery)) {
-						warning("[%s:%d]: Detected duplicate queries with ID '%d'. Ignoring the most recent one found.", file.c_str(), currentLine, tempQuery.id);
-					}
+				// Attempt to register it.
+				debug("Registering query '%s'...", true, tempQuery.name.c_str());
+				if (!config.addQuery(tempQuery)) {
+					warning("[%s:%d]: Detected duplicate queries with ID '%d'. Ignoring the most recent one found.", file.c_str(), currentLine, tempQuery.id);
 				}
 			}
 		}
@@ -1868,14 +1843,17 @@ unsigned char scanForConstants(Config& config, std::string const& file, unsigned
 
 	// Clean up and move on...
 	fin.close();
-	return neededConstants;
 }
 
-// Asks the user to select a query.
-unsigned int queryUserForQuery(Config const& config)
+
+// [interactive] Queries the user to select an appropriate query number (and optional solution count) among the defined queries.
+bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig)
 {
-	unsigned int ret = Config::UNDEFINED;
 	std::string line;
+	std::string tok;
+	Config::Query const* query;
+	unsigned int numSoln;
+	size_t pos = std::string::npos;
 
 	bool goodInput = false;
 	std::cout << "The following queries are available to run:" << endl;
@@ -1899,28 +1877,44 @@ unsigned int queryUserForQuery(Config const& config)
 	// provide an exit
 	std::cout << EXIT_CMD << ": Exit the program." << std::endl;
 
-
 	while (!goodInput) {
 
 		// Get user input
-		std::cout << "Please select a query to run: ";
-		std::cin >> line;
-		line = trimWhitespace(line);
+		query = NULL;
+		numSoln = config.intConfigOpt(Config::OPT_NUM_SOLN);
+
+		std::cout << "Please select a query to run.\n";
+
+		if (config.run(Config::TC_SOLVER))
+			std::cout << "You may also optionally follow your selection with ':#' where # is the number of solutions to find (or 0 to find all solutions) [default: " << numSoln << "].\n";
+
+		std::cout << "Selection: ";
+		std::getline(std::cin,line);
 
 		// Make sure they don't want to exit.
 		if (line == EXIT_CMD) {
-			// crap, they do. returning UNDEFINED will indicate this.
-			goodInput = true;
-			ret = Config::UNDEFINED;
+			// crap, they do. Return false to indicate this.
+			return false;
 		} else {
+			if ( config.run(Config::TC_SOLVER) && (pos = line.find_first_of(':')) != std::string::npos) {
+				// They've specified an answer set count.
+				tok = trimWhitespace(line.substr(0, pos));
+			} else {
+				// no answer set count
+				tok = trimWhitespace(line);
+			}
 
 			// Scan through the queries and try to find the one they (hopefully) selected.
-			for (Config::QueryMap::const_iterator it = config.beginQueries(); it != config.endQueries() && !goodInput; it++) {
-				if (it->second.cmd == line) {
-					// We have a match!
-					goodInput = true;
-					ret = it->second.id;
+			for (Config::QueryMap::const_iterator it = config.beginQueries(); it != config.endQueries() && !query; it++) {
+				if (it->second.cmd == tok) {
+					query = &(it->second);
 				}
+			}
+
+			if (query && config.run(Config::TC_SOLVER) && pos != std::string::npos) {
+				goodInput = from_string(numSoln, trimWhitespace(line.substr(pos+1)));
+			} else if (query) {
+				goodInput = true;
 			}
 
 		}
@@ -1931,7 +1925,10 @@ unsigned int queryUserForQuery(Config const& config)
 
 	}
 
-	return ret;
+	runconfig.numSoln = numSoln;
+	runconfig.queryId = query->id;
+
+	return true;
 }
 
 // Asks the user to select a max step.
@@ -1949,7 +1946,7 @@ unsigned int queryUserForConstant(Config const& config, std::string const& const
 		std::cout << ": ";
 
 
-		// Get user input
+
 		std::getline(std::cin,line);
 		line = trimWhitespace(line);
 
@@ -1978,7 +1975,7 @@ unsigned int queryUserForConstant(Config const& config, std::string const& const
 	return ret;
 }
 
-int runTool(Config const& config, Config::Toolchain tool, unsigned int maxstep, std::string const& name) {
+int runTool(Config const& config, Config::Toolchain tool, std::string const& name, Config::RunConfig const* subconfig) {
 	std::string tmpCmd;
 	int ret = TC_STAT_TOOLSKIPPED;
 
@@ -1988,7 +1985,7 @@ int runTool(Config const& config, Config::Toolchain tool, unsigned int maxstep, 
 		pragma("No input files for the %s have been specified. Skipping it.", true, name.c_str());
 	} else {
 		// Run the translator...
-		tmpCmd = config.compileCommandLine(tool, maxstep);
+		tmpCmd = config.compileCommandLine(tool, subconfig);
 		debug("Running the %s with command: %s",true,name.c_str(), tmpCmd.c_str());
 		int stat = system(tmpCmd.c_str());
 		ret = WEXITSTATUS(stat);
@@ -2030,6 +2027,7 @@ void cleanup(Config const& config, bool const* ran) {
 
 		if (ran[Config::TC_SOLVER]) {
 			builder << " " << config.intSoFile();
+			builder << " " << config.intSoErrFile();
 			filesToDelete = true;
 		}
 	}
@@ -2043,5 +2041,27 @@ void cleanup(Config const& config, bool const* ran) {
 	} else {
 		debug("There are no files to delete.", true);
 	}
+}
+
+/**
+ * Attempts to echo the specified file to the specified output stream.
+ * @param out The output stream to print to.
+ * @param filename The file to open.
+ * @return True if the file exists, false otherwise.
+ */
+bool echoFile(std::ostream& out, std::string const& filename) {
+	std::ifstream file(filename);
+	char buf[4096];
+
+	if (file.fail()) {
+		return false;
+	}
+
+	while (!file.eof()) {
+		file.read(buf, 4096);
+		out.write(buf, file.gcount());
+	}
+
+	return true;
 }
 

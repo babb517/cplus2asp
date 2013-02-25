@@ -10,17 +10,20 @@
 #include <sstream>
 #include <stdexcept>
 #include <climits>
+#include <unistd.h>
 
 #include "Config.h"
 #include "utils.h"
+
 
 
 /***************************************************************/
 /* Constants */
 /***************************************************************/
 unsigned int const Config::UNDEFINED = UINT_MAX;
-unsigned int const Config::SAT_QUERY = UINT_MAX - 1;
-unsigned int const Config::NO_QUERY = UINT_MAX - 2;
+unsigned int const Config::STATES_QUERY = UINT_MAX - 3;
+unsigned int const Config::TRANSITIONS_QUERY = UINT_MAX - 2;
+unsigned int const Config::NO_QUERY = UINT_MAX - 1;
 
 /***************************************************************/
 /* Methods */
@@ -73,9 +76,20 @@ Config::Config() {
 	memset(mCustomOpts,0,TC_LENGTH);
 
 	// Default queries which should always be made available...
-	mQueries[Config::NO_QUERY] = Query(Config::NO_QUERY, "No Query", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
-	mQueries[Config::SAT_QUERY] = Query(Config::SAT_QUERY, "Satisfiability Check", CONST_QUERY_SAT, UNDEFINED, 0);
+	mQueries[Config::TRANSITIONS_QUERY] = Query(Config::TRANSITIONS_QUERY, "System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
+	mQueries[Config::STATES_QUERY] = Query(Config::STATES_QUERY, "System states", CONST_QUERY_STATES, 0, 0);
+	mQueries[Config::NO_QUERY] = Query(Config::NO_QUERY, "No query", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
 }
+
+// Install directory
+std::string Config::installDir() const {
+	char tmp[PATH_MAX];
+	readlink("/proc/self/exe", tmp, PATH_MAX);
+	std::string ret(tmp);
+	ret = ret.substr(0,ret.find_last_of("/"));
+	return ret;
+}
+
 
 // Gets the definition of a constant or NULL
 std::string const* Config::def(std::string const& constant) const {
@@ -236,9 +250,12 @@ bool Config::def(std::string const& constant, std::string const& value) {
 		if (value_trimmed == CONST_QUERY_NONE) {
 			// The user has requested we use no query.
 			redef = intConfigOpt(OPT_QUERY, NO_QUERY);
-		} else if (value_trimmed == CONST_QUERY_SAT) {
-			// The user has requested that we perform a satisfiability check.
-			redef = intConfigOpt(OPT_QUERY, SAT_QUERY);
+		} else if (value_trimmed == CONST_QUERY_STATES) {
+			// The user has requested that we find the sytem's states.
+			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
+		} else if (value_trimmed == CONST_QUERY_STATES) {
+			// The user has requested that we find the system's transitions.
+			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
 		} else if (from_string(tmpVal,value_trimmed)) {
 			// The user has provided us with a query to perform.
 			redef = intConfigOpt(OPT_QUERY,tmpVal);
@@ -335,11 +352,12 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 }
 
 // Compiles a command line call for the given toolchain element
-std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) const {
+
+std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfig) const {
 	std::ostringstream out;
 
 	// General command
-	out << command(tool) << " " << compileInputCommand(tool) << " " << opts(tool);
+	out << command(tool) << " " << opts(tool);
 
 	// Add step specific instructions
 	switch (tool) {
@@ -396,13 +414,25 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		// * Maximum step information.
 
 		// # solutions
-		out << " " << intConfigOpt(OPT_NUM_SOLN);
+		if (subconfig) {
+			out << " " << subconfig->numSoln;
+		} else {
+			out << " " << intConfigOpt(OPT_NUM_SOLN);
+		}
 
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
-			if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
-			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+			if (subconfig) {
+				if (subconfig->queryId != UNDEFINED) out << " -c query=" << subconfig->queryId;
+				if (subconfig->maxstep != UNDEFINED) out << " -c maxstep=" << subconfig->maxstep;
+				if (subconfig->minstep != UNDEFINED) out << " -c minstep=" << subconfig->minstep;
+			} else {
+				if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY) ;
+				if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+			}
+
+
 			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 			if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
@@ -417,12 +447,22 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 
 		// min/max step
 		if (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) {
-			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " --imin=" << intConfigOpt(OPT_MINSTEP);
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED){
-				if (intConfigOpt(OPT_MAXSTEP) > 0)
-					out << " --imax=" << intConfigOpt(OPT_MAXSTEP);
-				else
-					out << " --ibase";
+			if (subconfig) {
+				if (subconfig->minstep != UNDEFINED) out << " --imin=" << subconfig->minstep;
+				if (subconfig->maxstep != UNDEFINED) {
+					if (subconfig->maxstep > 0)
+						out << " --imax=" << subconfig->maxstep;
+					else
+						out << " --ibase";
+				}
+			} else {
+				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " --imin=" << intConfigOpt(OPT_MINSTEP);
+				if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED){
+					if (intConfigOpt(OPT_MAXSTEP) > 0)
+						out << " --imax=" << intConfigOpt(OPT_MAXSTEP);
+					else
+						out << " --ibase";
+				}
 			}
 		}
 
@@ -433,21 +473,30 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (run(TC_POSTPROC) || mode() == MODE_REACTIVE)
 			out << " > \"" << intSoFile() << "\"";
 
-		// Silence the solver warnings by default
-		if (boolConfigOpt(OPT_SQUELCH_SOLVER)) {
-			out << " 2> /dev/null";
-		}
 
-		// If we're running in reactive mode and are set to run the reactive bridge then we should run the solver in the background
-		if (mode() == MODE_REACTIVE && run(TC_REACTIVE_BRIDGE)) out << " &";
+		if (mode() == MODE_REACTIVE && run(TC_REACTIVE_BRIDGE)) {
+			// If we're running in reactive mode and are set to run the reactive bridge then we should run the solver in the background
+			out << " &";
+		} else {
+			// Silence the solver warnings by default
+			out << " 2> " << intSoErrFile();
+		}
 
 		break;
 	case TC_GROUNDER:
 
 		// Include special constant definitions
-		if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY);
-		if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
-		if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+		if (subconfig) {
+			if (subconfig->queryId != UNDEFINED) out << " -c query=" << subconfig->queryId;
+			if (subconfig->maxstep != UNDEFINED) out << " -c maxstep=" << subconfig->maxstep;
+			if (subconfig->minstep != UNDEFINED) out << " -c minstep=" << subconfig->minstep;
+		} else {
+			if (intConfigOpt(OPT_QUERY) != UNDEFINED) out << " -c query=" << intConfigOpt(OPT_QUERY) ;
+			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) out << " -c maxstep=" << intConfigOpt(OPT_MAXSTEP);
+			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) out << " -c minstep=" << intConfigOpt(OPT_MINSTEP);
+		}
+
+
 		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) out << " -c maxAdditive=" << intConfigOpt(OPT_MAXADDITIVE);
 		if (boolConfigOpt(OPT_NONE_HACK)) out << " -c none=" << HACKED_NONE_VALUE;
 
@@ -479,6 +528,8 @@ std::string Config::compileCommandLine(Toolchain tool, unsigned int curMaxStep) 
 		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none-alias " << HACKED_NONE_VALUE;
 		break;
 	}
+
+	out << " " << compileInputCommand(tool);
 
 	return out.str();
 }
@@ -602,7 +653,6 @@ std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& ma
 
 	return ret;
 }
-
 std::string Config::compileInputCommand(Toolchain tool) const {
 	std::ostringstream out;
 
@@ -610,16 +660,6 @@ std::string Config::compileInputCommand(Toolchain tool) const {
 	// which belong to
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
-
-	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
-		// Only include files which haven't been included by a previous tool.
-		if (i != (int)tool && run((Toolchain)i)) break;
-
-		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
-			out << " " << *it;
-		}
-	}
-
 
 	// Compile the input files from previous step's outputs.
 	switch (tool) {
@@ -665,6 +705,14 @@ std::string Config::compileInputCommand(Toolchain tool) const {
 
 	}
 
+	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
+		// Only include files which haven't been included by a previous tool.
+		if (i != (int)tool && run((Toolchain)i)) break;
+
+		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
+			out << " " << *it;
+		}
+	}
 
 	return out.str();
 }

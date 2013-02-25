@@ -1,6 +1,6 @@
 % ------------------------------------------------ Monkeys & Bananas -------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/monkey -q 0 0 >> output/nmct.out
+$ cplus2asp domains/monkey query=0 0 
 No solution.
 
 UNSATISFIABLE
@@ -12,11 +12,11 @@ Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 0'.
-% Pragma: Minimum Step = '0', Maximum Step = '2'.
+% Pragma: Minimum Step = '2', Maximum Step = '2'.
 % Pragma: Searching for all solutions.
 % Pragma: No solutions found.
 % ------------------------- Query 1 -------------------------
-$ cplus2asp domains/monkey -q 1 0 >> output/nmct.out
+$ cplus2asp domains/monkey query=1 0 
 No solution.
 
 UNSATISFIABLE
@@ -28,11 +28,11 @@ Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 1'.
-% Pragma: Minimum Step = '0', Maximum Step = '2'.
+% Pragma: Minimum Step = '2', Maximum Step = '2'.
 % Pragma: Searching for all solutions.
 % Pragma: No solutions found.
 % ------------------------- Query 2 -------------------------
-$ cplus2asp domains/monkey -q 2 0 >> output/nmct.out
+$ cplus2asp domains/monkey query=2 0 
 Solution 1:
 
 	0:  loc(bananas)=l2 loc(box)=l3 loc(monkey)=l1
@@ -57,9 +57,9 @@ Solution 1:
 SATISFIABLE
 Models      : 1
 Total Steps : 4
-Time        : 0.010
+Time        : 0.000
 Prepare   : 0.000
-Prepro.   : 0.010
+Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 2'.
@@ -67,7 +67,7 @@ Solving   : 0.000
 % Pragma: Searching for all solutions.
 % ----------------------------------------------------- Shooting -----------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/shooting -q 0 0 >> output/nmct.out
+$ cplus2asp domains/shooting query=0 0 
 Solution 1:
 
 	0:  alive(turkey1) alive(turkey2)
@@ -135,11 +135,11 @@ Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 0'.
-% Pragma: Minimum Step = '0', Maximum Step = '6'.
+% Pragma: Minimum Step = '6', Maximum Step = '6'.
 % Pragma: Searching for all solutions.
 % ------------------------------------------------------ Going -------------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/going -q 0 0 >> output/nmct.out
+$ cplus2asp domains/going query=0 0 
 Solution 1:
 
 	0:  loc(car)=work loc(jack)=home
@@ -175,11 +175,11 @@ Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 0'.
-% Pragma: Minimum Step = '0', Maximum Step = '1'.
+% Pragma: Minimum Step = '1', Maximum Step = '1'.
 % Pragma: Searching for all solutions.
 % ----------------------------------------------------- Lifting ------------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/lifting -q 0 0 >> output/nmct.out
+$ cplus2asp domains/lifting query=0 0 
 Solution 1:
 
 	0:  level(leftend)=low level(rightend)=low onTable
@@ -211,11 +211,11 @@ Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 0'.
-% Pragma: Minimum Step = '0', Maximum Step = '1'.
+% Pragma: Minimum Step = '1', Maximum Step = '1'.
 % Pragma: Searching for all solutions.
 % ----------------------------------------------------- Pendulum -----------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/pendulum -q 0 0 >> output/nmct.out
+$ cplus2asp domains/pendulum query=0 0 
 Solution 1:
 
 	0: 
@@ -282,7 +282,7 @@ Solving   : 0.000
 % Pragma: Searching for all solutions.
 % ---------------------------------------------------- Publishing ----------------------------------------------------
 % ------------------------- Query 0 -------------------------
-$ cplus2asp domains/publishing -q 0 >> output/nmct.out
+$ cplus2asp domains/publishing query=0 
 Solution 1:
 
 	0: 
@@ -303,11 +303,11 @@ Solution 1:
 SATISFIABLE
 Models      : 1+
 Total Steps : 3
-Time        : 0.010
+Time        : 0.000
 Prepare   : 0.000
-Prepro.   : 0.010
+Prepro.   : 0.000
 Solving   : 0.000
 
 % Pragma: Running Query 'Query 0'.
-% Pragma: Minimum Step = '0', Maximum Step = '3'.
+% Pragma: Minimum Step = '3', Maximum Step = '3'.
 % Pragma: Searching for 1 solutions.

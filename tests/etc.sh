@@ -7,11 +7,11 @@
 # ------------------------------------------------------ Clique ------------------------------------------------------
 echo "% ------------------------------------------------------ Clique ------------------------------------------------------" 
 
-# --------------------------- sat ---------------------------
-echo "% --------------------------- sat ---------------------------" 
+# --------------------------- states ---------------------------
+echo "% --------------------------- states ---------------------------" 
 
-echo "$ cplus2asp domains/clique query=sat --shift" 
-cplus2asp domains/clique query=sat --shift 
+echo "$ cplus2asp domains/clique query=states --shift" 
+cplus2asp domains/clique query=states --shift 
 
 #Output:
 
@@ -40,11 +40,11 @@ cplus2asp domains/clique query=sat --shift
 # ------------------------------------------------------ Color ------------------------------------------------------
 echo "% ------------------------------------------------------ Color ------------------------------------------------------" 
 
-# --------------------------- sat ---------------------------
-echo "% --------------------------- sat ---------------------------" 
+# --------------------------- states ---------------------------
+echo "% --------------------------- states ---------------------------" 
 
-echo "$ cplus2asp domains/color query=sat" 
-cplus2asp domains/color query=sat
+echo "$ cplus2asp domains/color query=states" 
+cplus2asp domains/color query=states
 
 # % Pragma: Running Query 'Satisfiability Check'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -613,11 +613,11 @@ cplus2asp domains/multiple-monkey-test query=7
 # ---------------------------------------------------- 8 Queens --------------------------------------------------
 echo "% ---------------------------------------------------- 8 Queens --------------------------------------------------" 
 
-# --------------------------- sat ---------------------------
-echo "% --------------------------- sat ---------------------------" 
+# --------------------------- states ---------------------------
+echo "% --------------------------- states ---------------------------" 
 
-echo "$ cplus2asp domains/queens query=sat"
-cplus2asp domains/queens query=sat
+echo "$ cplus2asp domains/queens query=states"
+cplus2asp domains/queens query=states
 
 # % Pragma: Running Query 'Satisfiability Check'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
