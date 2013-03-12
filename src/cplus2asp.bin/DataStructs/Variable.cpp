@@ -24,9 +24,9 @@
 #include <string>
 
 #include "Translator.h"
-#include "datastruct_externs.h"
-#include "Sort.h"
-#include "Variable.h"
+#include "DataStructs/datastruct_externs.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Variable.h"
 
 
 // Full constructor.

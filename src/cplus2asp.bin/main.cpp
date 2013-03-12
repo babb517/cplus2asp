@@ -53,12 +53,12 @@
 #include <vector>
 #include <unistd.h>
 #include "IncludeHandler.h"
-#include "flexer.h"
 #include "lexerTokenStream.h"
 #include "MacroParser.h"
 #include "parser.h"
 #include "Translator.h"
 #include "ltsglobals.h"
+#include "flexer.h"
 
 #define VERSION_MAJOR 2
 #define VERSION_MINOR 0

@@ -26,8 +26,8 @@
 #include <string>
 
 #include "types.h"
-#include "Comment.h"
-#include "Token.h"
+#include "DataStructs/Comment.h"
+#include "DataStructs/Token.h"
 
 #include "ltsglobals.h"
 #include "Translator.h"

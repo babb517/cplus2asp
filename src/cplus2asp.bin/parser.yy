@@ -21,10 +21,10 @@
  */
 
 
-%defines "parser.h"
+// %defines "parser.h"
 %locations
 %name-prefix "ltsyy"
-%output "parser.cpp"
+// %output "parser.cpp"
 %token-table
 %verbose
 
@@ -39,19 +39,19 @@
 #include <string.h>
 
 #include "types.h"
-#include "Attribute.h"
-#include "ASPCode.h"
-#include "Comment.h"
-#include "Constant.h"
-#include "Object.h"
-#include "NumberRange.h"
-#include "Sort.h"
-#include "Variable.h"
-#include "Query.h"
+#include "DataStructs/Attribute.h"
+#include "DataStructs/ASPCode.h"
+#include "DataStructs/Comment.h"
+#include "DataStructs/Constant.h"
+#include "DataStructs/Object.h"
+#include "DataStructs/NumberRange.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Variable.h"
+#include "DataStructs/Query.h"
 
 
-#include "ElementCounter.h"
-#include "SymbolTable.h"
+#include "DataStructs/ElementCounter.h"
+#include "DataStructs/SymbolTable.h"
 #include "Translator.h"
 #include "utilities.h"
 

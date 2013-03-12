@@ -1,5 +1,7 @@
 # Shared configuration for all makefiles to include.
 
+SUFFIXES = 
+
 # Debugging Flags
 if DEBUG
 AM_CFLAGS = -g3 -O0
@@ -10,7 +12,7 @@ AM_CXXFLAGS = -O3
 endif
 
 # RE2C rules
-SUFFIXES = .re2c
+SUFFIXES += .re2c
 if MAINTAINER_MODE 
 if HAVE_RE2C
 .re2c.cpp:
@@ -20,9 +22,82 @@ else
 	@- echo "ERROR: Configured to build in maintainer mode but re2c is not installed on the computer. Modified re2c files cannot be compiled into the corresponding .cpp file. Please install re2c before continuing."
 	@- exit 1
 endif
+else
+.re2c.cpp:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild re2c files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
 endif
 
-#Flex Rules
+#Flex / Bison Config
+AM_YFLAGS = -d 
 
-#Bison Rules
 
+# additional flex rules
+SUFFIXES += .l .ll .lpp
+if MAINTAINER_MODE
+if HAVE_FLEX
+.l.h:
+	$(LEX) $(AM_LFLAGS) --header-file=$@ -o /dev/null $<
+.ll.h:
+	$(LEX) $(AM_LFLAGS) --header-file=$@ -o /dev/null $<
+.lpp.h:
+	$(LEX) $(AM_LFLAGS) --header-file=$@ -o /dev/null $<
+
+.l.cpp:
+	$(LEX) $(AM_LFLAGS) -o $@ $<
+.l.c:
+	$(LEX) $(AM_LFLAGS) -o $@ $<
+.ll.cpp:
+	$(LEX) $(AM_LFLAGS) -o $@ $<
+.ll.c:
+	$(LEX) $(AM_LFLAGS) -o $@ $<
+.lpp.cpp:
+	$(LEX) $(AM_LFLAGS) -o $@ $<
+else
+
+.l.h:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.ll.h:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.lpp.h:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+
+.l.cpp:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.l.c:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.ll.cpp:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.ll.c:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+.lpp.cpp:
+	@- echo "ERROR: Configured to build in maintainer mode but flex is not installed on the computer. Modified flex files cannot be compiled into the corresponding .cpp file. Please install flex before continuing."
+	@- exit 1
+
+endif
+else
+
+.l.h:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.ll.h:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.lpp.h:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+
+.l.cpp:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.l.c:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.ll.cpp:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.ll.c:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+.lpp.cpp:
+	@- echo "WARNING: The system must be configured to build in maintainer mode in order to rebuild flex files. These files will not be rebuilt unless you rerun the configure script with the '--enable-maintainer-mode' flag."
+endif

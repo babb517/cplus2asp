@@ -25,7 +25,7 @@
 #define ATTRIBUTE_H
 
 #include <string>
-#include "Constant.h"
+#include "DataStructs/Constant.h"
 
 /**
  * Subclass of Constant designed to represent an attribute declaration.

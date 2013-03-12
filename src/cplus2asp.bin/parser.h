@@ -1,33 +1,8 @@
-/* 
- * Copyright (c) 2010-2013 <Joseph Babb, Michael Cassollary, Joohyung Lee>
- *
- * For information on how to contact the authors, please visit
- *	http://reasoning.eas.asu.edu/cplus2asp
- *
- * This file is part of the cplus2asp system.
- *
- * cplus2asp is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * cplus2asp is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+/* A Bison parser, made by GNU Bison 2.5.  */
 
-
-
-/* A Bison parser, made by GNU Bison 2.4.1.  */
-
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -57,8 +32,8 @@
 
 /* "%code requires" blocks.  */
 
-/* Line 1676 of yacc.c  */
-#line 8 "parser.y"
+/* Line 2068 of yacc.c  */
+#line 31 "parser.yy"
 
 #include <iostream>
 #include <list>
@@ -70,19 +45,19 @@
 #include <string.h>
 
 #include "types.h"
-#include "Attribute.h"
-#include "ASPCode.h"
-#include "Comment.h"
-#include "Constant.h"
-#include "Object.h"
-#include "NumberRange.h"
-#include "Sort.h"
-#include "Variable.h"
-#include "Query.h"
+#include "DataStructs/Attribute.h"
+#include "DataStructs/ASPCode.h"
+#include "DataStructs/Comment.h"
+#include "DataStructs/Constant.h"
+#include "DataStructs/Object.h"
+#include "DataStructs/NumberRange.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Variable.h"
+#include "DataStructs/Query.h"
 
 
-#include "ElementCounter.h"
-#include "SymbolTable.h"
+#include "DataStructs/ElementCounter.h"
+#include "DataStructs/SymbolTable.h"
 #include "Translator.h"
 #include "utilities.h"
 
@@ -92,8 +67,8 @@
 
 
 
-/* Line 1676 of yacc.c  */
-#line 74 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 72 "parser.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -202,6 +177,107 @@
      T_UMINUS = 355
    };
 #endif
+/* Tokens.  */
+#define END 0
+#define T_INTEGER 258
+#define T_IDENTIFIER 259
+#define T_STRING 260
+#define T_ASP 261
+#define T_COMMENT 262
+#define T_CONSTANTS 263
+#define T_INCLUDE 264
+#define T_MACROS 265
+#define T_OBJECTS 266
+#define T_QUERY 267
+#define T_SHOW 268
+#define T_SORTS 269
+#define T_VARIABLES 270
+#define T_ABACTION 271
+#define T_ACTION 272
+#define T_ADDITIVEACTION 273
+#define T_ADDITIVEFLUENT 274
+#define T_AFTER 275
+#define T_ALWAYS 276
+#define T_ASSUMING 277
+#define T_ATTRIBUTE 278
+#define T_BY 279
+#define T_CAUSED 280
+#define T_CAUSES 281
+#define T_IMPOSSIBLE 282
+#define T_CONSTRAINT 283
+#define T_DECREMENTS 284
+#define T_DEFAULT 285
+#define T_DYNAMICAB 286
+#define T_EXOGENOUS 287
+#define T_EXOGENOUSACTION 288
+#define T_IF 289
+#define T_INCREMENTS 290
+#define T_INERTIAL 291
+#define T_INERTIALFLUENT 292
+#define T_LABEL 293
+#define T_MAY_CAUSE 294
+#define T_MAXADDITIVE 295
+#define T_MAXSTEP 296
+#define T_NEVER 297
+#define T_NOCONCURRENCY 298
+#define T_STRONG_NOCONCURRENCY 299
+#define T_NONEXECUTABLE 300
+#define T_OF 301
+#define T_POSSIBLY_CAUSED 302
+#define T_RIGID 303
+#define T_SDFLUENT 304
+#define T_SIMPLEFLUENT 305
+#define T_STATICAB 306
+#define T_UNLESS 307
+#define T_WHEN 308
+#define T_FOLLOWING 309
+#define T_WHERE 310
+#define T_FALSE 311
+#define T_NONE 312
+#define T_TRUE 313
+#define T_ABS 314
+#define T_AT 315
+#define T_BRACKET_L 316
+#define T_BRACKET_R 317
+#define T_COLON_DASH 318
+#define T_PAREN_L 319
+#define T_PAREN_R 320
+#define T_PERIOD 321
+#define T_PIPE 322
+#define T_NOOP 323
+#define T_SEMICOLON 324
+#define T_DBL_COLON 325
+#define T_ARROW_LDASH 326
+#define T_ARROW_REQ 327
+#define T_ARROW_LEQ 328
+#define T_ARROW_RDASH 329
+#define T_COLON 330
+#define T_COMMA 331
+#define T_EQUIV 332
+#define T_IMPL 333
+#define T_DBL_PLUS 334
+#define T_DBL_AMP 335
+#define T_AMP 336
+#define T_EQ 337
+#define T_GTHAN_EQ 338
+#define T_EQ_LTHAN 339
+#define T_GTHAN 340
+#define T_LTHAN 341
+#define T_NOT_EQ 342
+#define T_DBL_EQ 343
+#define T_NOT 344
+#define T_DBL_PERIOD 345
+#define T_PLUS 346
+#define T_DASH 347
+#define T_DBL_GTHAN 348
+#define T_MOD 349
+#define T_INT_DIV 350
+#define T_STAR 351
+#define T_BIG_CONJ 352
+#define T_BIG_DISJ 353
+#define T_POUND 354
+#define T_UMINUS 355
+
 
 
 
@@ -209,8 +285,8 @@
 typedef union YYSTYPE
 {
 
-/* Line 1676 of yacc.c  */
-#line 40 "parser.y"
+/* Line 2068 of yacc.c  */
+#line 63 "parser.yy"
 
 	/* Types returned by the lexer. */
 	int integer;	 						///< Basic integer.
@@ -245,8 +321,8 @@ typedef union YYSTYPE
 
 
 
-/* Line 1676 of yacc.c  */
-#line 227 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 326 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -272,8 +348,8 @@ extern YYLTYPE ltsyylloc;
 
 /* "%code provides" blocks.  */
 
-/* Line 1676 of yacc.c  */
-#line 73 "parser.y"
+/* Line 2068 of yacc.c  */
+#line 96 "parser.yy"
 
 /**
  * @file parser.h
@@ -436,5 +512,5 @@ YYLTYPE ltsyyGetLoc();
 
 
 
-/* Line 1676 of yacc.c  */
-#line 418 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 517 "parser.h"

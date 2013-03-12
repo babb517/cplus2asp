@@ -26,7 +26,7 @@
 
 #include <string>
 
-#include "Object.h"
+#include "DataStructs/Object.h"
 
 /**
  * Subclass of Object, represents a range of integers as objects.

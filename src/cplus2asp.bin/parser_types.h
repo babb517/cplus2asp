@@ -37,10 +37,10 @@
 #include <utility>
 #include <exception>
 
-#include "Constant.h"
-#include "Context.h"
-#include "Sort.h"
-#include "Variable.h"
+#include "DataStructs/Constant.h"
+#include "DataStructs/Context.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Variable.h"
 #include "utilities.h"
 #include "types.h"
 

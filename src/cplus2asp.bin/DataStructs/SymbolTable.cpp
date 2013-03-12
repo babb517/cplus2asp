@@ -25,9 +25,9 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
+#include "DataStructs/Element.h"
 
-#include "SymbolTable.h"
+#include "DataStructs/SymbolTable.h"
 
 /* SymbolNode methods */
 

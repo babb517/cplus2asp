@@ -22,8 +22,8 @@
 
 
 #include <list>
-#include "Token.h"
-#include "TokenStream.h"
+#include "DataStructs/Token.h"
+#include "DataStructs/TokenStream.h"
 
 // Constructor. Here for completeness's sake.
 TokenStream::TokenStream()

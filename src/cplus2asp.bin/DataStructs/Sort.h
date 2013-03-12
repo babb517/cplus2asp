@@ -27,10 +27,10 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
-#include "Constant.h"
-#include "Object.h"
-#include "Sort.h"
+#include "DataStructs/Element.h"
+#include "DataStructs/Constant.h"
+#include "DataStructs/Object.h"
+#include "DataStructs/Sort.h"
 
 #include "types.h"
 

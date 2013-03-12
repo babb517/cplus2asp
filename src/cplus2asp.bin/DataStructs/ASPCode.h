@@ -25,9 +25,9 @@
 #define ASPCODE_H
 
 #include <string>
-#include "Comment.h"
+#include "DataStructs/Comment.h"
 
-//#include "datastruct_externs.h"
+//#include "DataStructs/datastruct_externs.h"
 
 /**
  * A child of Comment that has been tweaked to store raw ASP code to pass through

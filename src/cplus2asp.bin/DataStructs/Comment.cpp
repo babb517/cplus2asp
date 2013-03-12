@@ -23,7 +23,7 @@
 
 #include <string>
 
-#include "Comment.h"
+#include "DataStructs/Comment.h"
 #include "ltsglobals.h"
 
 // Default constructor.

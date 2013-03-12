@@ -26,7 +26,7 @@
 
 #include "parser_types.h"
 
-#include "Query.h"
+#include "DataStructs/Query.h"
 
 // Default constructor.
 Query::Query()

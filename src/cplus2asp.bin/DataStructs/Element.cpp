@@ -21,7 +21,7 @@
  */
 
 
-#include "Element.h"
+#include "DataStructs/Element.h"
 
 // Full constructor.
 Element::Element(std::string const& baseName, std::string const& baseTransName, ElementType type)

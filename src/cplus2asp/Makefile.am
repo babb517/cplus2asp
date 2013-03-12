@@ -8,6 +8,9 @@ loc_DATA = \
 	cplus2asp_additive.f2lp \
 	cplus2asp_std.f2lp
 
+
+BUILT_SOURCES = cplus2asp.cpp
+
 cplus2asp_SOURCES = \
 	Config.h \
 	Config.cpp \

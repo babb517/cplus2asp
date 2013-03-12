@@ -29,8 +29,8 @@
 #include <string>
 #include <vector>
 
-#include "Element.h"
-#include "ElementCounter.h"
+#include "DataStructs/Element.h"
+#include "DataStructs/ElementCounter.h"
 
 /**
  * @namespace utils

@@ -23,9 +23,9 @@
 
 #include <vector>
 
-#include "Element.h"
+#include "DataStructs/Element.h"
 
-#include "ElementCounter.h"
+#include "DataStructs/ElementCounter.h"
 
 /// Adds an element to the list, incrementing the cardinality and returning the results.
 size_t ElementCounter::add(Element const* elem) {

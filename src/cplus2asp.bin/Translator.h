@@ -34,11 +34,11 @@
 #include "types.h"
 
 #include "parser_types.h"
-#include "ElementCounter.h"
-#include "SymbolTable.h"
-#include "Context.h"
-#include "Sort.h"
-#include "Element.h"
+#include "DataStructs/ElementCounter.h"
+#include "DataStructs/SymbolTable.h"
+#include "DataStructs/Context.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Element.h"
 
 class Constant;
 class Object;

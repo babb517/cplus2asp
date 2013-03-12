@@ -25,11 +25,11 @@ AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LN_S
 AM_PROG_LEX
+AM_CONDITIONAL([HAVE_FLEX],[test "x$LEX" == x"flex"])
 AC_PROG_YACC
 AC_PATH_PROG([RE2C],[re2c],[false])
 AC_SUBST(RE2C)
 AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
-
 
 AC_PATH_PROG([ICLINGO],[iclingo],[false])
 AC_PATH_PROG([OCLINGO],[oclingo],[false])

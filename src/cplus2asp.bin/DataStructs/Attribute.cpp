@@ -23,7 +23,7 @@
 
 #include <string>
 
-#include "Attribute.h"
+#include "DataStructs/Attribute.h"
 
 // Standard toString function.
 std::string Attribute::toString() const {

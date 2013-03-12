@@ -23,10 +23,10 @@
 
 #include <string>
 
-#include "Comment.h"
+#include "DataStructs/Comment.h"
 #include "ltsglobals.h"
 
-#include "ASPCode.h"
+#include "DataStructs/ASPCode.h"
 
 // Default constructor.
 ASPCode::ASPCode() : Comment()

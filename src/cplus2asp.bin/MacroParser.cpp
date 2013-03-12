@@ -27,8 +27,8 @@
 #include <vector>
 
 #include "types.h"
-#include "Macro.h"
-#include "Token.h"
+#include "DataStructs/Macro.h"
+#include "DataStructs/Token.h"
 #include "lexerTokenStream.h"
 #include "utilities.h"
 

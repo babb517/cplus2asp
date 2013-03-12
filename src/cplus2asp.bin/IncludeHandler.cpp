@@ -33,8 +33,8 @@
 #include <vector>
 
 
-#include "Macro.h"
-#include "Token.h"
+#include "DataStructs/Macro.h"
+#include "DataStructs/Token.h"
 
 #include "utilities.h"
 

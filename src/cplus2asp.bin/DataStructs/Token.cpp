@@ -27,9 +27,9 @@
 #include "flexertypes.h"
 #include "ltsglobals.h"
 
-#include "Token.h"
-#include "ASPCode.h"
-#include "Comment.h"
+#include "DataStructs/Token.h"
+#include "DataStructs/ASPCode.h"
+#include "DataStructs/Comment.h"
 
 // Default constructor. Inititalizes all member values to 0, blank, or equivalent.
 Token::Token()

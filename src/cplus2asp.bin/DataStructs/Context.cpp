@@ -28,8 +28,8 @@
  *      Author: joseph
  */
 
-#include "Context.h"
-#include "Sort.h"
+#include "DataStructs/Context.h"
+#include "DataStructs/Sort.h"
 #include <iostream>
 
 /************************************************************/

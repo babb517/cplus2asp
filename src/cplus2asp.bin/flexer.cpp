@@ -1,28 +1,5 @@
-/* 
- * Copyright (c) 2010-2013 <Joseph Babb, Michael Cassollary, Joohyung Lee>
- *
- * For information on how to contact the authors, please visit
- *	http://reasoning.eas.asu.edu/cplus2asp
- *
- * This file is part of the cplus2asp system.
- *
- * cplus2asp is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * cplus2asp is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
-
-
 #line 2 "flexer.cpp"
-#line 2 "flexer.l"
+#line 25 "flexer.ll"
 #include <string>
 #include "parser.h"
 #include "flexertypes.h"
@@ -851,9 +828,30 @@ int flex_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *flextext;
-#line 1 "flexer.l"
+#line 1 "flexer.ll"
+/* 
+ * Copyright (c) 2010-2013 <Joseph Babb, Michael Cassollary, Joohyung Lee>
+ *
+ * For information on how to contact the authors, please visit
+ *	http://reasoning.eas.asu.edu/cplus2asp
+ *
+ * This file is part of the cplus2asp system.
+ *
+ * cplus2asp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * cplus2asp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#line 37 "flexer.l"
+#line 60 "flexer.ll"
 int flexerLineNum = 1; // Saves having to use flexlineno.
 int flexerCharPos = 1; // Tracks current start character position to help populate yylloc.
 std::string flexerFileName = ""; // Stores the file name (or equivalent identifier) for what flexin is pointing at.
@@ -936,7 +934,7 @@ flexerCharPos += flexleng;
 
 
 
-#line 917 "flexer.cpp"
+#line 938 "flexer.cpp"
 
 #define INITIAL 0
 #define BLK_SCOMMENT 1
@@ -1130,9 +1128,9 @@ YY_DECL
 	register char *yy_cp, *yy_bp;
 	register int yy_act;
     
-#line 132 "flexer.l"
+#line 154 "flexer.ll"
 
-#line 1113 "flexer.cpp"
+#line 1134 "flexer.cpp"
 
 	if ( !(yy_init) )
 		{
@@ -1218,7 +1216,7 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 133 "flexer.l"
+#line 155 "flexer.ll"
 {
 						// For the sake of everyone's sanity, we convert block comments
 						// into line comments.
@@ -1231,7 +1229,7 @@ YY_RULE_SETUP
 /* \%[^\n] */
 case 2:
 YY_RULE_SETUP
-#line 142 "flexer.l"
+#line 164 "flexer.ll"
 {
 						tempStr = "";
 						tempLoc.first_line = flexerLineNum;
@@ -1243,7 +1241,7 @@ YY_RULE_SETUP
 
 case 3:
 YY_RULE_SETUP
-#line 150 "flexer.l"
+#line 172 "flexer.ll"
 {	// Block comment finished, return its contents.
 						tempLoc.last_line = flexerLineNum;
 						tempLoc.last_column = flexerCharPos;
@@ -1254,14 +1252,14 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 157 "flexer.l"
+#line 179 "flexer.ll"
 {	// Grab comment text in chunks.
 						tempStr += flextext;
 					}
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 160 "flexer.l"
+#line 182 "flexer.ll"
 {	// Grab a lone "*".
 						tempStr += flextext;
 					}
@@ -1269,7 +1267,7 @@ YY_RULE_SETUP
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 163 "flexer.l"
+#line 185 "flexer.ll"
 {	// Handle newlines in block comments.
 						flexerLineNum++;
 						flexerCharPos = 1;
@@ -1280,7 +1278,7 @@ YY_RULE_SETUP
 
 case 7:
 YY_RULE_SETUP
-#line 170 "flexer.l"
+#line 192 "flexer.ll"
 {	// Grab anything that isn't a newline.
 						tempStr += flextext;
 					}
@@ -1288,7 +1286,7 @@ YY_RULE_SETUP
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 173 "flexer.l"
+#line 195 "flexer.ll"
 {	// Line comment finished, return its contents and aknowledge the newline.
 						tempLoc.last_line = flexerLineNum;
 						tempLoc.last_column = flexerCharPos;
@@ -1314,34 +1312,34 @@ YY_RULE_SETUP
 /* Handle quoted strings gracefully. */
 case 9:
 YY_RULE_SETUP
-#line 196 "flexer.l"
+#line 218 "flexer.ll"
 { BEGIN(SINGLE_QUOTE_STR); }
 	YY_BREAK
 
 case 10:
 YY_RULE_SETUP
-#line 198 "flexer.l"
+#line 220 "flexer.ll"
 { tempStr += "'"; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 199 "flexer.l"
+#line 221 "flexer.ll"
 {TOK_STR(tempStr); BEGIN(INITIAL); return T_STRING;}
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 200 "flexer.l"
+#line 222 "flexer.ll"
 { tempStr += "\\"; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 201 "flexer.l"
+#line 223 "flexer.ll"
 { tempStr += flextext; BEGIN(INITIAL); return T_STRING;}//Currently a hack, need to find a way to get the string into a token properly
 	YY_BREAK
 case 14:
 /* rule 14 can match eol */
 YY_RULE_SETUP
-#line 202 "flexer.l"
+#line 224 "flexer.ll"
 {
 						TOK_EOF;
 						flexerError("Unexpected line break in quoted string.");
@@ -1355,34 +1353,34 @@ YY_RULE_SETUP
 
 case 15:
 YY_RULE_SETUP
-#line 212 "flexer.l"
+#line 234 "flexer.ll"
 { BEGIN(DOUBLE_QUOTE_STR); }
 	YY_BREAK
 
 case 16:
 YY_RULE_SETUP
-#line 214 "flexer.l"
+#line 236 "flexer.ll"
 { tempStr += "\""; }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 215 "flexer.l"
+#line 237 "flexer.ll"
 { TOK_STR(tempStr); BEGIN(INITIAL); return T_STRING; }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 216 "flexer.l"
+#line 238 "flexer.ll"
 { tempStr += "\\"; }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 217 "flexer.l"
+#line 239 "flexer.ll"
 { tempStr += flextext; TOK_STR(tempStr); BEGIN(INITIAL); return T_STRING;}
 	YY_BREAK
 case 20:
 /* rule 20 can match eol */
 YY_RULE_SETUP
-#line 218 "flexer.l"
+#line 240 "flexer.ll"
 {
 						TOK_EOF;
 						flexerError("Unexpected line break in quoted string.");
@@ -1397,7 +1395,7 @@ YY_RULE_SETUP
 /* Intercept any raw ASP code blocks and pass them straight through. */
 case 21:
 YY_RULE_SETUP
-#line 229 "flexer.l"
+#line 251 "flexer.ll"
 {
 									tempStr = "";
 									tempLoc.first_line = flexerLineNum;
@@ -1408,7 +1406,7 @@ YY_RULE_SETUP
 
 case 22:
 YY_RULE_SETUP
-#line 236 "flexer.l"
+#line 258 "flexer.ll"
 {	// ASP code block finished, return its contents.
 									tempLoc.last_line = flexerLineNum;
 									tempLoc.last_column = flexerCharPos;
@@ -1419,7 +1417,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 243 "flexer.l"
+#line 265 "flexer.ll"
 {	// Grab anything that isn't a newline.
 									tempStr += flextext;
 								}
@@ -1427,7 +1425,7 @@ YY_RULE_SETUP
 case 24:
 /* rule 24 can match eol */
 YY_RULE_SETUP
-#line 246 "flexer.l"
+#line 268 "flexer.ll"
 {	// Handle newlines in ASP code blocks.
 									flexerLineNum++;
 									flexerCharPos = 1;
@@ -1437,7 +1435,7 @@ YY_RULE_SETUP
 
 case 25:
 YY_RULE_SETUP
-#line 253 "flexer.l"
+#line 275 "flexer.ll"
 {	
 									tempStr = "#begin_lua";
 									tempLoc.first_line = flexerLineNum;
@@ -1448,7 +1446,7 @@ YY_RULE_SETUP
 
 case 26:
 YY_RULE_SETUP
-#line 260 "flexer.l"
+#line 282 "flexer.ll"
 {	// LUA code block finished, return its contents.
 									tempStr += "#end_lua.";
 									tempLoc.last_line = flexerLineNum;
@@ -1460,7 +1458,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 269 "flexer.l"
+#line 291 "flexer.ll"
 {	// Grab anything that isn't a newline.
 									tempStr += flextext;
 								}
@@ -1468,7 +1466,7 @@ YY_RULE_SETUP
 case 28:
 /* rule 28 can match eol */
 YY_RULE_SETUP
-#line 272 "flexer.l"
+#line 294 "flexer.ll"
 {	// Handle newlines in LUA code blocks.
 									flexerLineNum++;
 									flexerCharPos = 1;
@@ -1481,7 +1479,7 @@ case 29:
 (yy_c_buf_p) = yy_cp -= 1;
 YY_DO_BEFORE_ACTION; /* set up flextext again */
 YY_RULE_SETUP
-#line 279 "flexer.l"
+#line 301 "flexer.ll"
 {	// Lines that are just whitespace get passed through as special comments.
 						tempStr = flextext;
 						//tempStr += "\n";
@@ -1498,7 +1496,7 @@ YY_RULE_SETUP
 case 30:
 /* rule 30 can match eol */
 YY_RULE_SETUP
-#line 291 "flexer.l"
+#line 313 "flexer.ll"
 {	// Empty, blank lines get passed through as special comments.
 						//tempStr = "\n";
 						tempStr = "";
@@ -1515,7 +1513,7 @@ YY_RULE_SETUP
 case 31:
 /* rule 31 can match eol */
 YY_RULE_SETUP
-#line 303 "flexer.l"
+#line 325 "flexer.ll"
 {	// Handle normal newlines.
 						flexerLineNum++;
 						flexerCharPos = 1;
@@ -1523,528 +1521,528 @@ YY_RULE_SETUP
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 308 "flexer.l"
+#line 330 "flexer.ll"
 // Eat any unclaimed whitespace.
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 310 "flexer.l"
+#line 332 "flexer.ll"
 { TOK_INT(T_NOOP); return T_NOOP; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 311 "flexer.l"
+#line 333 "flexer.ll"
 { TOK_INT(T_CONSTANTS); return T_CONSTANTS; }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 312 "flexer.l"
+#line 334 "flexer.ll"
 { TOK_INT(T_INCLUDE); return T_INCLUDE; }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 313 "flexer.l"
+#line 335 "flexer.ll"
 { TOK_INT(T_MACROS); return T_MACROS; }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 314 "flexer.l"
+#line 336 "flexer.ll"
 { TOK_INT(T_OBJECTS); return T_OBJECTS; }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 315 "flexer.l"
+#line 337 "flexer.ll"
 { TOK_INT(T_QUERY); return T_QUERY; }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 316 "flexer.l"
+#line 338 "flexer.ll"
 { TOK_INT(T_SHOW); return T_SHOW; }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 317 "flexer.l"
+#line 339 "flexer.ll"
 { TOK_INT(T_SORTS); return T_SORTS; }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 318 "flexer.l"
+#line 340 "flexer.ll"
 { TOK_INT(T_VARIABLES); return T_VARIABLES; }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 320 "flexer.l"
+#line 342 "flexer.ll"
 { TOK_INT(T_ABACTION); return T_ABACTION; }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 321 "flexer.l"
+#line 343 "flexer.ll"
 { TOK_INT(T_ACTION); return T_ACTION; }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 322 "flexer.l"
+#line 344 "flexer.ll"
 { TOK_INT(T_ADDITIVEACTION); return T_ADDITIVEACTION; }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 323 "flexer.l"
+#line 345 "flexer.ll"
 { TOK_INT(T_ADDITIVEFLUENT); return T_ADDITIVEFLUENT; }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 324 "flexer.l"
+#line 346 "flexer.ll"
 { TOK_INT(T_AFTER); return T_AFTER; }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 325 "flexer.l"
+#line 347 "flexer.ll"
 { TOK_INT(T_ALWAYS); return T_ALWAYS; }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 326 "flexer.l"
+#line 348 "flexer.ll"
 { TOK_INT(T_ATTRIBUTE); return T_ATTRIBUTE; }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 327 "flexer.l"
+#line 349 "flexer.ll"
 { TOK_INT(T_ASSUMING); return T_ASSUMING; }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 328 "flexer.l"
+#line 350 "flexer.ll"
 { TOK_INT(T_BY); return T_BY; }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 329 "flexer.l"
+#line 351 "flexer.ll"
 { TOK_INT(T_CAUSED); return T_CAUSED; }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 330 "flexer.l"
+#line 352 "flexer.ll"
 { TOK_INT(T_CAUSES); return T_CAUSES; }
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 331 "flexer.l"
+#line 353 "flexer.ll"
 { TOK_INT(T_IMPOSSIBLE); return T_IMPOSSIBLE; }
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 332 "flexer.l"
+#line 354 "flexer.ll"
 { TOK_INT(T_CONSTRAINT); return T_CONSTRAINT; }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 333 "flexer.l"
+#line 355 "flexer.ll"
 { TOK_INT(T_DECREMENTS); return T_DECREMENTS; }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 334 "flexer.l"
+#line 356 "flexer.ll"
 { TOK_INT(T_DEFAULT); return T_DEFAULT; }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 335 "flexer.l"
+#line 357 "flexer.ll"
 { TOK_INT(T_DYNAMICAB); return T_DYNAMICAB; }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 336 "flexer.l"
+#line 358 "flexer.ll"
 { TOK_INT(T_EXOGENOUS); return T_EXOGENOUS; }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 337 "flexer.l"
+#line 359 "flexer.ll"
 { TOK_INT(T_EXOGENOUSACTION); return T_EXOGENOUSACTION; }
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 338 "flexer.l"
+#line 360 "flexer.ll"
 { TOK_INT(T_IF); return T_IF; }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 339 "flexer.l"
+#line 361 "flexer.ll"
 { TOK_INT(T_INCREMENTS); return T_INCREMENTS; }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 340 "flexer.l"
+#line 362 "flexer.ll"
 { TOK_INT(T_INERTIAL); return T_INERTIAL; }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 341 "flexer.l"
+#line 363 "flexer.ll"
 { TOK_INT(T_INERTIALFLUENT); return T_INERTIALFLUENT; }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 342 "flexer.l"
+#line 364 "flexer.ll"
 { TOK_INT(T_LABEL); return T_LABEL; }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 343 "flexer.l"
+#line 365 "flexer.ll"
 { TOK_INT(T_MAY_CAUSE); return T_MAY_CAUSE; }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 344 "flexer.l"
+#line 366 "flexer.ll"
 { TOK_INT(T_MAXADDITIVE); return T_MAXADDITIVE; }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 345 "flexer.l"
+#line 367 "flexer.ll"
 { TOK_INT(T_MAXSTEP); return T_MAXSTEP; }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 346 "flexer.l"
+#line 368 "flexer.ll"
 { TOK_INT(T_NEVER); return T_NEVER; }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 347 "flexer.l"
+#line 369 "flexer.ll"
 { TOK_INT(T_NOCONCURRENCY); return T_NOCONCURRENCY; }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 348 "flexer.l"
+#line 370 "flexer.ll"
 { TOK_INT(T_STRONG_NOCONCURRENCY); return T_STRONG_NOCONCURRENCY; }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 349 "flexer.l"
+#line 371 "flexer.ll"
 { TOK_INT(T_NONEXECUTABLE); return T_NONEXECUTABLE; }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 350 "flexer.l"
+#line 372 "flexer.ll"
 { TOK_INT(T_OF); return T_OF; }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 351 "flexer.l"
+#line 373 "flexer.ll"
 { TOK_INT(T_POSSIBLY_CAUSED); return T_POSSIBLY_CAUSED; }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 352 "flexer.l"
+#line 374 "flexer.ll"
 { TOK_INT(T_RIGID); return T_RIGID; }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 353 "flexer.l"
+#line 375 "flexer.ll"
 { TOK_INT(T_SDFLUENT); return T_SDFLUENT; }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 354 "flexer.l"
+#line 376 "flexer.ll"
 { TOK_INT(T_SIMPLEFLUENT); return T_SIMPLEFLUENT; }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 355 "flexer.l"
+#line 377 "flexer.ll"
 { TOK_INT(T_STATICAB); return T_STATICAB; }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 356 "flexer.l"
+#line 378 "flexer.ll"
 { TOK_INT(T_UNLESS); return T_UNLESS; }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 357 "flexer.l"
+#line 379 "flexer.ll"
 { TOK_INT(T_WHEN); return T_WHEN; }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 358 "flexer.l"
+#line 380 "flexer.ll"
 { TOK_INT(T_FOLLOWING); return T_FOLLOWING; }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 359 "flexer.l"
+#line 381 "flexer.ll"
 { TOK_INT(T_WHERE); return T_WHERE; }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 361 "flexer.l"
+#line 383 "flexer.ll"
 { TOK_INT(T_COLON_DASH); return T_COLON_DASH; }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 362 "flexer.l"
+#line 384 "flexer.ll"
 { TOK_INT(T_DBL_COLON); return T_DBL_COLON; }
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 363 "flexer.l"
+#line 385 "flexer.ll"
 { TOK_INT(T_COLON); return T_COLON; }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 365 "flexer.l"
+#line 387 "flexer.ll"
 { TOK_INT(T_IMPL); return T_IMPL; }
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 366 "flexer.l"
+#line 388 "flexer.ll"
 { TOK_INT(T_ARROW_RDASH); return T_ARROW_RDASH; }
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 367 "flexer.l"
+#line 389 "flexer.ll"
 { TOK_INT(T_DASH); return T_DASH; }
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 369 "flexer.l"
+#line 391 "flexer.ll"
 { TOK_INT(T_EQUIV); return T_EQUIV; }
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 370 "flexer.l"
+#line 392 "flexer.ll"
 { TOK_INT(T_ARROW_LDASH); return T_ARROW_LDASH; }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 371 "flexer.l"
+#line 393 "flexer.ll"
 { TOK_INT(T_ARROW_LEQ); return T_ARROW_LEQ; }
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 372 "flexer.l"
+#line 394 "flexer.ll"
 { TOK_INT(T_NOT_EQ); return T_NOT_EQ; }
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 373 "flexer.l"
+#line 395 "flexer.ll"
 { TOK_INT(T_LTHAN); return T_LTHAN; }
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 374 "flexer.l"
+#line 396 "flexer.ll"
 { TOK_INT(T_LTHAN); return T_LTHAN; }			// less than in sorted order.
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 376 "flexer.l"
+#line 398 "flexer.ll"
 { TOK_INT(T_GTHAN_EQ); return T_GTHAN_EQ; }
 	YY_BREAK
 case 95:
 YY_RULE_SETUP
-#line 377 "flexer.l"
+#line 399 "flexer.ll"
 { TOK_INT(T_GTHAN_EQ); return T_GTHAN_EQ; }		// greater than equal in sorted order.
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 378 "flexer.l"
+#line 400 "flexer.ll"
 { TOK_INT(T_DBL_GTHAN); return T_DBL_GTHAN; }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 379 "flexer.l"
+#line 401 "flexer.ll"
 { TOK_INT(T_GTHAN); return T_GTHAN; }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 380 "flexer.l"
+#line 402 "flexer.ll"
 { TOK_INT(T_GTHAN); return T_GTHAN; }			// greater than in sorted order.
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 382 "flexer.l"
+#line 404 "flexer.ll"
 { TOK_INT(T_ARROW_REQ); return T_ARROW_REQ; }
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 383 "flexer.l"
+#line 405 "flexer.ll"
 { TOK_INT(T_EQ_LTHAN); return T_EQ_LTHAN; }
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 384 "flexer.l"
+#line 406 "flexer.ll"
 { TOK_INT(T_EQ_LTHAN); return T_EQ_LTHAN; }		// less than equal in sorted order.
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 385 "flexer.l"
+#line 407 "flexer.ll"
 { TOK_INT(T_DBL_EQ); return T_DBL_EQ; }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 386 "flexer.l"
+#line 408 "flexer.ll"
 { TOK_INT(T_EQ); return T_EQ; }
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 388 "flexer.l"
+#line 410 "flexer.ll"
 { TOK_INT(T_AMP); return T_AMP; }			// NOTE: we hide double ampersand from the parser.
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 389 "flexer.l"
+#line 411 "flexer.ll"
 { TOK_INT(T_AMP); return T_AMP; }
 	YY_BREAK
 case 106:
 YY_RULE_SETUP
-#line 391 "flexer.l"
+#line 413 "flexer.ll"
 { TOK_INT(T_DBL_PLUS); return T_DBL_PLUS; }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 392 "flexer.l"
+#line 414 "flexer.ll"
 { TOK_INT(T_PLUS); return T_PLUS; }
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 394 "flexer.l"
+#line 416 "flexer.ll"
 { TOK_INT(T_DBL_PERIOD); return T_DBL_PERIOD; }
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
-#line 395 "flexer.l"
+#line 417 "flexer.ll"
 { TOK_INT(T_PERIOD); return T_PERIOD; }
 	YY_BREAK
 case 110:
 YY_RULE_SETUP
-#line 397 "flexer.l"
+#line 419 "flexer.ll"
 { TOK_INT(T_NOT_EQ); return T_NOT_EQ; }
 	YY_BREAK
 case 111:
 YY_RULE_SETUP
-#line 398 "flexer.l"
+#line 420 "flexer.ll"
 { TOK_INT(T_BIG_DISJ); return T_BIG_DISJ; }
 	YY_BREAK
 case 112:
 YY_RULE_SETUP
-#line 400 "flexer.l"
+#line 422 "flexer.ll"
 { TOK_INT(T_INT_DIV); return T_INT_DIV; }
 	YY_BREAK
 case 113:
 YY_RULE_SETUP
-#line 401 "flexer.l"
+#line 423 "flexer.ll"
 { TOK_INT(T_BIG_CONJ); return T_BIG_CONJ; }
 	YY_BREAK
 case 114:
 YY_RULE_SETUP
-#line 403 "flexer.l"
+#line 425 "flexer.ll"
 { TOK_INT(T_COMMA); return T_COMMA; }
 	YY_BREAK
 case 115:
 YY_RULE_SETUP
-#line 405 "flexer.l"
+#line 427 "flexer.ll"
 { TOK_INT(T_SEMICOLON); return T_SEMICOLON; }
 	YY_BREAK
 case 116:
 YY_RULE_SETUP
-#line 407 "flexer.l"
+#line 429 "flexer.ll"
 { TOK_INT(T_PIPE); return T_PIPE; }
 	YY_BREAK
 case 117:
 YY_RULE_SETUP
-#line 409 "flexer.l"
+#line 431 "flexer.ll"
 { TOK_INT(T_POUND); return T_POUND; }
 	YY_BREAK
 case 118:
 YY_RULE_SETUP
-#line 411 "flexer.l"
+#line 433 "flexer.ll"
 { TOK_INT(T_STAR); return T_STAR; }
 	YY_BREAK
 case 119:
 YY_RULE_SETUP
-#line 413 "flexer.l"
+#line 435 "flexer.ll"
 { TOK_INT(T_AT); return T_AT; }
 	YY_BREAK
 case 120:
 YY_RULE_SETUP
-#line 415 "flexer.l"
+#line 437 "flexer.ll"
 { TOK_INT(T_BRACKET_L); return T_BRACKET_L; }
 	YY_BREAK
 case 121:
 YY_RULE_SETUP
-#line 416 "flexer.l"
+#line 438 "flexer.ll"
 { TOK_INT(T_BRACKET_R); return T_BRACKET_R; }
 	YY_BREAK
 case 122:
 YY_RULE_SETUP
-#line 418 "flexer.l"
+#line 440 "flexer.ll"
 { TOK_INT(T_PAREN_L); return T_PAREN_L; }
 	YY_BREAK
 case 123:
 YY_RULE_SETUP
-#line 419 "flexer.l"
+#line 441 "flexer.ll"
 { TOK_INT(T_PAREN_R); return T_PAREN_R; }
 	YY_BREAK
 case 124:
 YY_RULE_SETUP
-#line 421 "flexer.l"
+#line 443 "flexer.ll"
 { TOK_INT(T_ABS); return T_ABS; }
 	YY_BREAK
 case 125:
 YY_RULE_SETUP
-#line 422 "flexer.l"
+#line 444 "flexer.ll"
 { TOK_INT(T_EQ); return T_EQ; }
 	YY_BREAK
 case 126:
 YY_RULE_SETUP
-#line 423 "flexer.l"
+#line 445 "flexer.ll"
 { TOK_INT(T_FALSE); return T_FALSE; }
 	YY_BREAK
 case 127:
 YY_RULE_SETUP
-#line 424 "flexer.l"
+#line 446 "flexer.ll"
 { TOK_INT(T_MOD); return T_MOD; }
 	YY_BREAK
 case 128:
 YY_RULE_SETUP
-#line 425 "flexer.l"
+#line 447 "flexer.ll"
 { TOK_INT(T_NOT_EQ); return T_NOT_EQ; }
 	YY_BREAK
 case 129:
 YY_RULE_SETUP
-#line 426 "flexer.l"
+#line 448 "flexer.ll"
 { TOK_INT(T_NONE); return T_NONE; }
 	YY_BREAK
 case 130:
 YY_RULE_SETUP
-#line 427 "flexer.l"
+#line 449 "flexer.ll"
 { TOK_INT(T_NOT); return T_NOT; }
 	YY_BREAK
 case 131:
 YY_RULE_SETUP
-#line 428 "flexer.l"
+#line 450 "flexer.ll"
 { TOK_INT(T_TRUE); return T_TRUE; }
 	YY_BREAK
 case 132:
 YY_RULE_SETUP
-#line 430 "flexer.l"
+#line 452 "flexer.ll"
 { TOK_INT(atoi(flextext)); return T_INTEGER; }
 	YY_BREAK
 case 133:
 YY_RULE_SETUP
-#line 431 "flexer.l"
+#line 453 "flexer.ll"
 { TOK_IDENT; return T_IDENTIFIER; }
 	YY_BREAK
 case 134:
 YY_RULE_SETUP
-#line 432 "flexer.l"
+#line 454 "flexer.ll"
 { TOK_IDENT; return T_IDENTIFIER; }
 	YY_BREAK
 case 135:
 YY_RULE_SETUP
-#line 433 "flexer.l"
+#line 455 "flexer.ll"
 { TOK_IDENT; return T_IDENTIFIER; }
 	YY_BREAK
 /* Match any other unrecognized character tokens, warn about them and stop. */
 case 136:
 YY_RULE_SETUP
-#line 436 "flexer.l"
+#line 458 "flexer.ll"
 {
 						TOK_EOF;
 						std::string badTokErrStr = "";
@@ -2056,7 +2054,7 @@ YY_RULE_SETUP
 					}
 	YY_BREAK
 case YY_STATE_EOF(BLK_SCOMMENT):
-#line 446 "flexer.l"
+#line 468 "flexer.ll"
 {
 							TOK_EOF;
 							flexerError("Unterminated \"/*\" block comment.");
@@ -2066,7 +2064,7 @@ case YY_STATE_EOF(BLK_SCOMMENT):
 						}
 	YY_BREAK
 case YY_STATE_EOF(SINGLE_QUOTE_STR):
-#line 453 "flexer.l"
+#line 475 "flexer.ll"
 {
 								TOK_EOF;
 								flexerError("Unterminated quoted string.");
@@ -2076,7 +2074,7 @@ case YY_STATE_EOF(SINGLE_QUOTE_STR):
 							}
 	YY_BREAK
 case YY_STATE_EOF(DOUBLE_QUOTE_STR):
-#line 460 "flexer.l"
+#line 482 "flexer.ll"
 {
 								TOK_EOF;
 								flexerError("Unterminated quoted string.");
@@ -2086,7 +2084,7 @@ case YY_STATE_EOF(DOUBLE_QUOTE_STR):
 							}
 	YY_BREAK
 case YY_STATE_EOF(RAW_ASP):
-#line 467 "flexer.l"
+#line 489 "flexer.ll"
 {
 						TOK_EOF;
 						flexerError("Unterminated ASP code block.");
@@ -2096,7 +2094,7 @@ case YY_STATE_EOF(RAW_ASP):
 					}
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 474 "flexer.l"
+#line 496 "flexer.ll"
 {
 							TOK_EOF;
 							flexerLineNum = 1; // Reset flexerLineNum on EOF
@@ -2106,10 +2104,10 @@ case YY_STATE_EOF(INITIAL):
 	YY_BREAK
 case 137:
 YY_RULE_SETUP
-#line 481 "flexer.l"
+#line 503 "flexer.ll"
 ECHO;
 	YY_BREAK
-#line 2090 "flexer.cpp"
+#line 2111 "flexer.cpp"
 case YY_STATE_EOF(LINE_COMMENT):
 case YY_STATE_EOF(RAW_LUA):
 	yyterminate();
@@ -3074,7 +3072,7 @@ void flexfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 481 "flexer.l"
+#line 503 "flexer.ll"
 
 
 

@@ -29,8 +29,8 @@
 #include <iostream>
 
 #include "utilities.h"
-#include "Element.h"
-#include "Context.h"
+#include "DataStructs/Element.h"
+#include "DataStructs/Context.h"
 #include "types.h"
 
 class ElementCounter;

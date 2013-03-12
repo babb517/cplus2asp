@@ -25,12 +25,12 @@
 #include <vector>
 
 #include "Translator.h"
-#include "Element.h"
-#include "Object.h"
-#include "Variable.h"
+#include "DataStructs/Element.h"
+#include "DataStructs/Object.h"
+#include "DataStructs/Variable.h"
 #include "utilities.h"
 
-#include "Sort.h"
+#include "DataStructs/Sort.h"
 
 
 std::string const Sort::VAR_NULL_NAME = "NULL_VAR";

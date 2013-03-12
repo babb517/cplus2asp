@@ -22,7 +22,7 @@
 
 
 
-#include "NumberRange.h"
+#include "DataStructs/NumberRange.h"
 #include "utilities.h"
 
 NumberRange::NumberRange(std::string const& name)

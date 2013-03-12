@@ -21,7 +21,7 @@
  */
 
 
-#include "Token.h"
+#include "DataStructs/Token.h"
 #include "ltsglobals.h"
 
 int ltsyyleng; // Equivalent to yyleng, the length of the last token retrieved by a call to the emulated yylex() function.

@@ -23,9 +23,9 @@
 
 #include <list>
 
-#include "Token.h"
+#include "DataStructs/Token.h"
 
-#include "Macro.h"
+#include "DataStructs/Macro.h"
 
 // Default constructor.
 Macro::Macro()

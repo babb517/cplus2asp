@@ -37,7 +37,7 @@
 #include <list>
 #include <string>
 
-#include "TokenStream.h"
+#include "DataStructs/TokenStream.h"
 #include "flexertypes.h"
 class Token;
 class Comment;

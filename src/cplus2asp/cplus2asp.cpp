@@ -6009,7 +6009,7 @@ void cleanup(Config const& config, bool const* ran) {
  * @return True if the file exists, false otherwise.
  */
 bool echoFile(std::ostream& out, std::string const& filename) {
-	std::ifstream file(filename);
+	std::ifstream file(filename.c_str());
 	char buf[4096];
 
 	if (file.fail()) {

@@ -136,7 +136,6 @@ flexerCharPos += yyleng;
 %}
 
 %option nounput noyywrap
-%option outfile="flexer.cpp" header-file="flexer.h"
 %option prefix="flex"
 
 WHITESPACE			[ \f\r\t\v]+

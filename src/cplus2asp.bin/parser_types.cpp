@@ -26,10 +26,10 @@
 #include <list>
 #include <utility>
 
-#include "Sort.h"
-#include "Variable.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Variable.h"
 #include "utilities.h"
-#include "Context.h"
+#include "DataStructs/Context.h"
 #include "parser_types.h"
 #include "Translator.h"
 #include "parser.h"

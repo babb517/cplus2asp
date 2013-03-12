@@ -28,11 +28,11 @@
 #include <vector>
 #include <iostream>
 
-#include "datastruct_externs.h"
+#include "DataStructs/datastruct_externs.h"
 
 #include "utilities.h"
-#include "Element.h"
-#include "Context.h"
+#include "DataStructs/Element.h"
+#include "DataStructs/Context.h"
 
 class Sort;
 class ElementCounter;

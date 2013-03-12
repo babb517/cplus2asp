@@ -24,14 +24,14 @@
 #include <string>
 #include <vector>
 
-#include "datastruct_externs.h"
+#include "DataStructs/datastruct_externs.h"
 
-#include "Element.h"
+#include "DataStructs/Element.h"
 
-#include "Sort.h"
+#include "DataStructs/Sort.h"
 #include "utilities.h"
 #include "Translator.h"
-#include "Object.h"
+#include "DataStructs/Object.h"
 
 
 // Full constructor.

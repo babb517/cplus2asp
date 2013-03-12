@@ -26,9 +26,9 @@
 
 #include <string>
 
-#include "Sort.h"
-#include "Constant.h"
-#include "Element.h"
+#include "DataStructs/Sort.h"
+#include "DataStructs/Constant.h"
+#include "DataStructs/Element.h"
 
 
 /**
