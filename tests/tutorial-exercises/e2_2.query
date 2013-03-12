@@ -1,0 +1,16 @@
+
+:-include 'shooting.cplus'.
+
+:- macros
+	wait -> -load & -shoot.
+
+% Exercise 2.2
+% Verify that the query has exactly 2 answer sets.
+% Command: cplus2asp e2_2.query -q 0 0
+:- query
+	label :: 0;
+	0: alive;
+	0: load;
+	1: wait;
+	2: shoot.
+

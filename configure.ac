@@ -5,14 +5,20 @@ AC_PREREQ([2.68])
 AC_INIT(cplus2asp, 2.0, jbabb1@asu.edu)
 AC_CONFIG_SRCDIR([src/cplus2asp/utils.cpp])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_AUX_DIR([build-scripts])
 
 
 # Setup Automake
-AM_INIT_AUTOMAKE([])
+AM_INIT_AUTOMAKE
 AC_CONFIG_FILES([Makefile
 	src/as2transition/Makefile
 	src/cplus2asp.bin/Makefile
 	src/cplus2asp/Makefile])
+
+
+#TODO: Disable this in release
+# Allows LEX, YACC, and RE2C to rebuild their files.
+AM_MAINTAINER_MODE([enable])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -20,8 +26,36 @@ AC_PROG_CC
 AC_PROG_LN_S
 AM_PROG_LEX
 AC_PROG_YACC
-AC_PATH_PROG([RETOC],[re2c],[false])
-AC_SUBST(RETOC)
+AC_PATH_PROG([RE2C],[re2c],[false])
+AC_SUBST(RE2C)
+AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
+
+
+AC_PATH_PROG([ICLINGO],[iclingo],[false])
+AC_PATH_PROG([OCLINGO],[oclingo],[false])
+AC_PATH_PROG([CLINGO], [clingo], [false])
+AC_PATH_PROG([F2LP],   [f2lp], 	 [false])
+
+if test x"$ICLINGO" == x"false"
+then
+	AC_MSG_WARN([Could not find iclingo which is required for the normal operation of cplus2asp. Please install iclingo from http://potassco.sourceforge.net before continuing.])
+fi
+
+if test x"$OCLINGO" == x"false"
+then
+	AC_MSG_WARN([Could not find oclingo which is required for using the reactive features of cplus2asp. Please install oclingo from http://potassco.sourceforge.net before attempting to use these features.])
+fi
+
+if test x"$CLINGO" == x"false"
+then
+	AC_MSG_WARN([Could not find clingo which is required for the static running modes of cplus2asp. Please install clingo from http://potassco.sourceforge.net before attempting to use these features.])
+fi
+
+if test x"$F2LP" == x"false"
+then
+	AC_MSG_WARN([Could not find f2lp which is required for the normal operation of cplus2asp. Please install f2lp from http://reasoning.eas.asu.edu/f2lp before continuing.])
+fi
+
 
 # Checks for libraries.
 

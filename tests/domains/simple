@@ -1,0 +1,392 @@
+:- sorts
+  bool. 
+
+:- objects
+  t,f :: bool.
+
+:- constants
+ p :: inertialFluent(bool);
+ a :: exogenousAction(bool).
+
+a=t causes p=t.
+
+
+:- query 
+maxstep :: 1;
+0: p=f;
+1: p=t.% 0408
+
+:- sorts
+  index.
+
+:- macros
+  max -> 12. 
+
+:- objects
+  0..(max-1)    :: index.
+
+:- constants
+  cSLP(index),     
+  wg(index),       
+  cWG(index),      
+  en(index),
+  cEN(index),
+  hh(index),
+  cHH(index),
+  ptc(index),
+  cPTC(index),
+  cPH(index),
+  cSMO(index),
+  ci(index),
+  cCI(index),
+  cCIA(index),
+  cCIR(index)      :: simpleFluent.
+
+
+:- variables
+  B         :: boolean;
+  I,I1,I2   :: index.
+
+caused -cSLP(I) if (I mod 4 == 1 ) ++ (I mod 4 == 2).
+caused cSLP(I) if (I mod 4 == 3 ) ++ (I mod 4 == 0).
+
+
+default -wg(I).
+caused wg(I) after (cCIA(I) & cSLP(I) & -cCIR(I)) ++
+                   (wg(I) & (cCIA(I) ++ cSLP(I)) & -cCIR(I)).
+
+caused cWG(I)=B after wg(I)=B.
+
+default -en(I).
+caused en(I) after (cWG(I1) ++ cWG(I2)) & -cSLP(I) 
+            where I1==(I-1) mod max, I2==(I+1) mod max.
+
+caused cEN(I)=B after en(I)=B.
+
+default -hh(I).
+caused hh(I) after cEN(I) & -cCIR(I). 
+
+caused cHH(I)=B after hh(I)=B.
+
+default -ptc(I).
+caused ptc(I) after cCIA(I) & -cEN(I) & -cCIR(I). 
+
+default -cPTC(I).
+caused cPTC(I) after (ptc(I) ++ (cPTC(I) & -cHH(I1) & -cHH(I2)))
+           where I1 == (I-1) mod max, I2 == (I+1) mod max.
+           
+default -cPH(I).
+caused cPH(I) if cPTC(I) & (cHH(I1) ++ cHH(I2)) 
+            where I1==(I-1) mod max, I2==(I+1) mod max.
+
+default cSMO(I). 
+caused cSMO(I) if -cPTC(I) ++ cHH(I1) ++ cHH(I2) 
+            where I1==(I-1) mod max, I2==(I+1) mod max.
+
+default -ci(I). 
+caused ci(I) after -cEN(I). 
+
+caused cCI(I)=B after ci(I)=B. 
+
+default -cCIA(I). 
+caused cCIA(I) after cCI(I) & (cSMO(I) ++ hh(I1) ++ hh(I2)) 
+            where I1==(I-1) mod max, I2==(I+1) mod max.
+
+default -cCIR(I). 
+caused cCIR(I) after cCI(I) & -cSMO(I) & -hh(I1) & -hh(I2) 
+            where I1==(I-1) mod max, I2==(I+1) mod max.
+
+:- query 
+maxstep :: 1;
+label :: 2.
+%(0: cSLP(I)) = (1: cSLP(I)).
+
+/*
+:- query	
+% label :: basin;
+label :: 3;
+maxstep :: 1;
+/ *
+0: -wg(0), wg(1), -wg(2), -wg(3), -wg(4), wg(5), 
+   -wg(6), -wg(7), -wg(8), wg(9), -wg(10), -wg(11);
+
+0: -cWG(I);
+
+0: (I mod 4=2) ->> en(I), 
+   (I mod 4\=2) ->> -en(I);
+
+0: -cEN(I);
+
+0: (I mod 4=2) ->> hh(I), 
+   (I mod 4\=2) ->> -hh(I);
+
+0: -cHH(I);
+
+
+0: (I mod 4=2) ->> -ptc(I),
+   (I mod 4\=2) ->> ptc(I);
+
+0: -cPTC(I);
+
+0: -cPH(I);
+
+0: -cSMO(I);
+
+0: (I mod 4=2) ->> -ci(I),
+   (I mod 4\=2) ->> ci(I);
+
+0: -cCI(I);
+
+0: -cCIA(I);
+
+0: -cCIR(I).
+* /
+
+
+(0: cSLP(I)) = (1: cSLP(I));
+(0: wg(I)) = (1: wg(I));   
+(0: cWG(I)) = (1: cWG(I)); 
+(0: en(I)) = (1: en(I)); 
+(0: cEN(I)) = (1: cEN(I));
+(0: hh(I)) = (1: hh(I)); 
+(0: cHH(I)) = (1: cHH(I)); 
+(0: ptc(I)) = (1: ptc(I));
+(0: cPTC(I)) = (1: cPTC(I));
+(0: cPH(I)) = (1: cPH(I)); 
+(0: cSMO(I)) = (1: cSMO(I));
+(0: ci(I)) = (1: ci(I));
+(0: cCI(I)) = (1: cCI(I));
+(0: cCIA(I)) = (1: cCIA(I));
+(0: cCIR(I)) = (1: cCIR(I)). 
+*/
+
+%%
+
+:- query 
+%label :: states;
+label :: 3;
+maxstep :: 0.
+
+
+:- query	
+%label :: plan;
+label :: 4;
+maxstep :: 8..25;
+0: (I mod 4=1) ->> wg(I),
+   (I mod 4\=1) ->> -wg(I);
+
+0: -cWG(I);
+
+0: (I mod 4=2) ->> en(I), 
+   (I mod 4\=2) ->> -en(I);
+
+0: -cEN(I);
+
+0: (I mod 4=2) ->> hh(I), 
+   (I mod 4\=2) ->> -hh(I);
+
+0: -cHH(I);
+
+0: (I mod 4\=2) ->> ptc(I),
+   (I mod 4=2) ->> -ptc(I);
+
+0: -cPTC(I);
+
+0: -cPH(I);
+
+0: cSMO(I);
+
+0: (I mod 4\=2) ->> ci(I),
+   (I mod 4=2) ->> -ci(I);
+
+0: -cCI(I);
+
+0: -cCIA(I);
+
+0: -cCIR(I);
+
+maxstep: (I mod 4=1) ->> wg(I),
+         (I mod 4\=1) ->> -wg(I);
+
+maxstep: (I mod 4=1) ->> cWG(I),
+         (I mod 4\=1) ->> -cWG(I);
+
+maxstep: (I mod 4=2) ->> en(I), 
+         (I mod 4\=2) ->> -en(I);
+
+maxstep: (I mod 4=2) ->> cEN(I), 
+         (I mod 4\=2) ->> -cEN(I);
+
+maxstep: (I mod 4=2) ->> hh(I), 
+         (I mod 4\=2) ->> -hh(I);
+
+maxstep: (I mod 4=2) ->> cHH(I), 
+         (I mod 4\=2) ->> -cHH(I);
+
+maxstep: (I mod 2=1) ->> ptc(I),
+         (I mod 2\=1) ->> -ptc(I);
+
+maxstep: (I mod 4\=2) ->> cPTC(I),
+         (I mod 4=2) ->> -cPTC(I);
+
+maxstep: (I mod 2=1) ->> cPH(I),
+         (I mod 2\=1) ->> -cPH(I);
+
+maxstep: (I mod 4\=0) ->> cSMO(I),
+         (I mod 4=0) ->> -cSMO(I);
+
+maxstep: (I mod 4\=2) ->> ci(I),
+         (I mod 4=2) ->> -ci(I);
+
+maxstep: (I mod 4\=2) ->> cCI(I),
+         (I mod 4=2) ->> -cCI(I);
+         
+maxstep: (I mod 2=1) ->> cCIA(I),
+         (I mod 2\=1) ->> -cCIA(I);
+
+maxstep: (I mod 4=0) ->> cCIR(I),
+         (I mod 4\=0) ->> -cCIR(I).
+
+
+:- query 
+%label :: basin_eq;
+label :: 5;
+maxstep :: 0;
+
+0: wg(I) <-> (cCIA(I) & cSLP(I) & -cCIR(I)) 
+           ++ (wg(I) & (cCIA(I) ++ cSLP(I)) & -cCIR(I));
+
+0: cWG(I) <-> wg(I);
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (en(I) <-> (cWG(I1) ++ cWG(I2)) & -cSLP(I));
+
+0: cEN(I) <-> en(I);
+
+0: hh(I) <-> cEN(I) & -cCIR(I);
+
+0: cHH(I) <-> hh(I);
+
+0: ptc(I) <-> cCIA(I) & -cEN(I) & -cCIR(I);
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (cPTC(I) <-> (ptc(I) ++ (cPTC(I) & -cHH(I1) & -cHH(I2))));
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (cPH(I) <-> cPTC(I) & (cHH(I1) ++ cHH(I2)));
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (cSMO(I) <-> -cPTC(I) ++ cHH(I1) ++ cHH(I2));
+
+0: ci(I) <-> -cEN(I);
+
+0: cCI(I) <-> ci(I);
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (cCIA(I) <-> cCI(I) & (cSMO(I) ++ hh(I1) ++ hh(I2)));
+
+0: (I1=(I-1) mod max) & (I2=(I+1) mod max) 
+   ->> (cCIR(I) <-> cCI(I) & -cSMO(I) & -hh(I1) & -hh(I2)).
+
+
+:- query 
+%label :: prediction;
+label :: 6;
+maxstep :: 5;
+
+%1: -cPTC(0);
+
+0: (I mod 4=1) ->> wg(I),
+   (I mod 4\=1) ->> -wg(I);
+
+0: -cWG(I);
+
+0: (I mod 4=2) ->> en(I), 
+   (I mod 4\=2) ->> -en(I);
+
+0: -cEN(I);
+
+0: (I mod 4=2) ->> hh(I), 
+   (I mod 4\=2) ->> -hh(I);
+
+0: -cHH(I);
+
+0: (I mod 4\=2) ->> ptc(I),
+   (I mod 4=2) ->> -ptc(I);
+
+0: -cPTC(I);
+
+0: -cPH(I);
+
+0: cSMO(I);
+
+0: (I mod 4\=2) ->> ci(I),
+   (I mod 4=2) ->> -ci(I);
+
+0: -cCI(I);
+
+0: -cCIA(I);
+
+0: -cCIR(I).
+
+
+:- query 
+% label :: goal;
+label :: 7;
+maxstep :: 1;
+
+maxstep: (I mod 4=1) ->> wg(I),
+         (I mod 4\=1) ->> -wg(I);
+
+maxstep: (I mod 4=1) ->> cWG(I),
+         (I mod 4\=1) ->> -cWG(I);
+
+maxstep: (I mod 4=2) ->> en(I), 
+         (I mod 4\=2) ->> -en(I);
+
+maxstep: (I mod 4=2) ->> cEN(I), 
+         (I mod 4\=2) ->> -cEN(I);
+
+maxstep: (I mod 4=2) ->> hh(I), 
+         (I mod 4\=2) ->> -hh(I);
+
+maxstep: (I mod 4=2) ->> cHH(I), 
+         (I mod 4\=2) ->> -cHH(I);
+
+maxstep: (I mod 2=1) ->> ptc(I),
+         (I mod 2\=1) ->> -ptc(I);
+
+maxstep: (I mod 4\=2) ->> cPTC(I),
+         (I mod 4=2) ->> -cPTC(I);
+
+maxstep: (I mod 2=1) ->> cPH(I),
+         (I mod 2\=1) ->> -cPH(I);
+
+maxstep: (I mod 4\=0) ->> cSMO(I),
+         (I mod 4=0) ->> -cSMO(I);
+
+maxstep: (I mod 4\=2) ->> ci(I),
+         (I mod 4=2) ->> -ci(I);
+
+maxstep: (I mod 4\=2) ->> cCI(I),
+         (I mod 4=2) ->> -cCI(I);
+         
+maxstep: (I mod 2=1) ->> cCIA(I),
+         (I mod 2\=1) ->> -cCIA(I);
+
+maxstep: (I mod 4=0) ->> cCIR(I),
+         (I mod 4\=0) ->> -cCIR(I).
+
+
+:- variables
+FF :: simpleFluent.
+
+/*
+:- query
+% label :: pair;
+label :: 87;
+maxstep :: 1;
+(0: FF) = (1: FF);
+0: (I mod 4==2 ->> en(I));
+0: (I mod 4\=2 ->> -en(I)).
+*/

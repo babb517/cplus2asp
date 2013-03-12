@@ -1,0 +1,17 @@
+
+:-include 'shooting-nondet.cplus'.
+
+:- macros
+	wait -> -load & -shoot.
+
+% Exercise 2.6
+% Check that 0:alive, 0:load, 1:wait 2:shoot does not entail alive or -alive.
+% Command: cplus2asp e2_6.query -q 0 0
+:- query
+	maxstep :: 3;
+	label :: 0;
+	0: alive;
+	0: load;
+	1: wait;
+	2: shoot.
+

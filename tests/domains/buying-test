@@ -1,0 +1,88 @@
+% File 'buying-test'
+
+:- maxAdditive :: 7.
+
+:- include 'buying'.
+
+:- objects
+  newspaper,magazine          :: item.
+
+price(newspaper)=1. 
+price(magazine)=3.
+
+% I have $6 in my pocket. A newspaper costs $1, and a magazine
+% costs $3. Do I have enough money to buy 2 newspapers and a magazine?
+% A newspaper and 2 magazines?
+
+:- query 
+label :: 1;
+maxstep :: 1;
+0: has(buyer,money) = 6,
+   buy(newspaper),
+   howmany(newspaper) = 2,
+   buy(magazine),
+   howmany(magazine) = 1.
+
+:- query
+label :: 2;
+maxstep :: 1;
+0:  has(buyer,money) = 6,
+   buy(newspaper),
+   howmany(newspaper) = 1,
+   buy(magazine),
+   howmany(magazine) = 2.
+
+:- show 
+    has(buyer,money) = N; 
+    buy(It); 
+    howmany(It).
+
+/*
+ | ?- loadf 'buying-test'.
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/macros.std
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/additive/buying-test
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/examples/additive/buying
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/additive
+% loading file /v/filer1a/v0q031/appsmurf/ccalc.2.0b/arithmetic
+% in transition mode...
+% 492 atoms, 1736 rules, 8132 clauses (1664 new atoms)
+% Grounding time: 5.70 seconds
+% Completion time: 2.15 seconds
+% Total time: 7.85 seconds
+
+yes
+| ?- query 0.
+
+Error: Invalid query label (0).
+{Execution aborted}
+| ?- query 1.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2156 atoms (including new atoms), 8132 clauses
+% Writing input clauses... done.  (0.13 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.12 seconds (prep 0.10 seconds, search 0.02 seconds)
+
+0:  has(buyer,money)=6  
+
+ACTIONS:  buy(newspaper,howmany=2)  buy(magazine,howmany=1)  
+
+1:  has(buyer,money)=1  
+
+
+
+yes
+| ?- query 2.
+% Shifting atoms and clauses... done. (0.00 seconds)
+% After shifting: 2156 atoms (including new atoms), 8132 clauses
+% Writing input clauses... done.  (0.14 seconds)
+% Calling mChaff spelt3... done.
+% Reading output file(s) from SAT solver... done.
+% Solution time: 0.1 seconds (prep 0.09 seconds, search 0.01 seconds)
+
+No solution with maxstep 1.
+
+
+no
+| ?- 
+*/

@@ -1,0 +1,28 @@
+# Shared configuration for all makefiles to include.
+
+# Debugging Flags
+if DEBUG
+AM_CFLAGS = -g3 -O0
+AM_CXXFLAGS = -g3 -O0
+else
+AM_CFLAGS = -O3
+AM_CXXFLAGS = -O3
+endif
+
+# RE2C rules
+SUFFIXES = .re2c
+if MAINTAINER_MODE 
+if HAVE_RE2C
+.re2c.cpp:
+	$(RE2C) $< > $@
+else 
+.re2c.cpp:
+	@- echo "ERROR: Configured to build in maintainer mode but re2c is not installed on the computer. Modified re2c files cannot be compiled into the corresponding .cpp file. Please install re2c before continuing."
+	@- exit 1
+endif
+endif
+
+#Flex Rules
+
+#Bison Rules
+

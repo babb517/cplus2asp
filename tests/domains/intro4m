@@ -1,0 +1,30 @@
+% File 'intro4m': "Nonmonotonic Causal Theories," formulas (10), (12)
+% expressed using a macro
+%
+% To find both models, type
+%
+% | ?- loadf 'intro4m'.
+%
+% then
+%
+% | ?- set(num,all).
+%
+% and then
+%
+% | ?- sat.
+
+:- sorts
+  numbers.
+
+:- macros
+  n -> 4.
+  
+:- objects
+  0..n          :: numbers.
+
+:- constants
+  c		:: numbers.
+
+default c=1
+default c=2.
+

@@ -1,2 +1,6 @@
 #! /bin/sh
-aclocal ; autoheader; automake --add-missing ; autoconf
+mkdir -p build-scripts && 
+aclocal &&
+autoheader &&
+automake --add-missing &&
+autoconf

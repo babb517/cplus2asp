@@ -1,0 +1,17 @@
+% File 'intro2m': "Nonmonotonic Causal Theories," formulas (10)
+%
+% To find a model, type
+%
+% | ?- loadf 'intro2m'.
+%
+% and then
+%
+% | ?- sat.
+
+:- macros
+  n -> 4.
+
+:- constants
+  c		:: 1..n.
+
+c=1 <= c=1.

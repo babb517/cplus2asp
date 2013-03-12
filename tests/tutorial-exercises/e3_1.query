@@ -1,0 +1,10 @@
+
+:- include 'coins3.cplus'.
+
+% Exercise 3.1
+% a was executed twice and now owner=john. Who was the original owner?
+% Command:  cplus2asp e3_1.query -q 0
+:- query
+	0: a;
+	1: a;
+	2: owner=john.

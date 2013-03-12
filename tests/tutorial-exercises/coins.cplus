@@ -1,0 +1,12 @@
+
+:- constants
+ c :: inertialFluent(0..n);
+ a :: exogenousAction.
+
+:- variables
+ I :: 0..n-1.
+
+a causes c=I+1 if c=I.
+
+nonexecutable a if c=n.
+
