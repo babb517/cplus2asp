@@ -1278,7 +1278,7 @@ sort_identifier_name:		  			T_IDENTIFIER
 }
 							| sort_constant_name
 {
-	$$ = $1
+	$$ = $1;
 }
 							;
 
