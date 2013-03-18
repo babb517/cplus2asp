@@ -128,6 +128,7 @@ int main(int argc, char *argv[])
 	std::ostringstream ossStatus;
 	int returnStatus = 0; // Start optimistic.
 	
+
 	// Get the name this executable was called by (w/o the path, just the file name).
 	if(argc > 0)
 	{

@@ -5,14 +5,20 @@ sort(additiveInteger).
 #domain additiveInteger(V_additiveInteger).
 sort_object(additiveInteger,V_additiveInteger).
 
+% afValue is a synonym for additiveInteger.
+sort(afValue).
+#domain afValue(V_afValue).
+sort_object(afValue,V_afValue).
+
 sort(nnAdditiveInteger).
 #domain nnAdditiveInteger(V_nnAdditiveInteger).
 sort_object(nnAdditiveInteger,V_nnAdditiveInteger).
 
 % objects
-
 additiveInteger(-maxAdditive..maxAdditive).
 nnAdditiveInteger(0..maxAdditive).
+
+afValue(V_nnAdditiveInteger).
 
 %------------------------------------------------------
 

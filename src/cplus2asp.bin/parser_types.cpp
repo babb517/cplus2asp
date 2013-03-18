@@ -857,7 +857,7 @@ std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& conte
 	int i = 0;
 	if(arity()) {
 		out <<  "(";
-		for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); ++vIter)
+		for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++)
 		{	
 			if (*vIter) {
 				if(i++ > 0) out << ",";

@@ -364,6 +364,7 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 "label"				{ TOK_INT(T_LABEL); return T_LABEL; }
 "may cause"			{ TOK_INT(T_MAY_CAUSE); return T_MAY_CAUSE; }
 "maxAdditive"		{ TOK_INT(T_MAXADDITIVE); return T_MAXADDITIVE; }
+"maxAFValue"		{ TOK_INT(T_MAXADDITIVE); return T_MAXADDITIVE; }		// maxAFValue is a synonym for maxAdditive
 "maxstep"			{ TOK_INT(T_MAXSTEP); return T_MAXSTEP; }
 "never"				{ TOK_INT(T_NEVER); return T_NEVER; }
 "noconcurrency"		{ TOK_INT(T_NOCONCURRENCY); return T_NOCONCURRENCY; }

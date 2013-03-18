@@ -27,6 +27,7 @@
 // %output "parser.cpp"
 %token-table
 %verbose
+%debug
 
 %code requires {
 #include <iostream>
@@ -337,7 +338,7 @@ Sort* checkDynamicSortDecl(std::string* sortIdent);
 %token <integer> T_NEVER			// never
 %token <integer> T_NOCONCURRENCY	// noconcurrency
 %token <integer> T_STRONG_NOCONCURRENCY // strong_noconcurrency
-%token <integer> T_NONEXECUTABLE	// nonexecutable
+%token <integer> T_NONEXECUTABLE	// onexecutable
 %token <integer> T_OF				// of
 %token <integer> T_POSSIBLY_CAUSED	// possibly caused
 %token <integer> T_RIGID			// rigid
@@ -1558,12 +1559,13 @@ causal_law_shortcut_forms:	  			cl_always_forms			{ $$ = PARSERULE_NOT_USED; }
 							;
 
 
-cl_always_forms:					T_ALWAYS cl_body_formula cl_when_clause cl_where_clause
+cl_always_forms:					T_ALWAYS cl_body_formula cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateAlwaysLaw($2, $3, $4);
+	bool transResult = mainTrans.translateAlwaysLaw($2, $3, $4, $5);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
+	deallocateItem($5);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1638,11 +1640,12 @@ cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause 
 }
 							;
 
-cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_where_clause
+cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_unless_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, NULL, NULL, NULL, $3, SimpleUnaryOperator::UOP_EXOGENOUS);
+	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_EXOGENOUS);
 	deallocateItem($2);
 	deallocateItem($3);
+	deallocateItem($4);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1651,11 +1654,12 @@ cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_where_clause
 }
 							;
 
-cl_inertial_forms:			  		T_INERTIAL constant_expr cl_where_clause
+cl_inertial_forms:			  		T_INERTIAL constant_expr cl_unless_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, NULL, NULL, NULL, $3, SimpleUnaryOperator::UOP_INERTIAL);
+	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_INERTIAL);
 	deallocateItem($2);
 	deallocateItem($3);
+	deallocateItem($4);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1664,13 +1668,14 @@ cl_inertial_forms:			  		T_INERTIAL constant_expr cl_where_clause
 }
 							;
 
-cl_nonexecutable_forms:		  			T_NONEXECUTABLE cl_body_formula cl_if_clause cl_when_clause cl_where_clause
+cl_nonexecutable_forms:		  			T_NONEXECUTABLE cl_body_formula cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateNonexecutableLaw($2, $3, $4, $5);
+	bool transResult = mainTrans.translateNonexecutableLaw($2, $3, $4, $5, $6);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
 	deallocateItem($5);
+	deallocateItem($6);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1766,15 +1771,16 @@ cl_noconcurrency_forms:		  			T_NOCONCURRENCY
 }
 							;
 
-cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
+cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, true);
+	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, true);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);
 	deallocateItem($6);
 	deallocateItem($7);
 	deallocateItem($8);
+	deallocateItem($9);
 	$$ = PARSERULE_NOT_USED;
 	
 	if(!transResult)
@@ -1782,9 +1788,9 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 		YYERROR;
 	}
 }
-							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_when_clause cl_where_clause
+							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, false);
+	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, false);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);

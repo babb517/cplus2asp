@@ -486,12 +486,14 @@ public:
 	/**
 	 * Transforms a causal law of the form "always F [where G]." to basic form, then calls the translator for it.
 	 * @param constraint - The condition that must be true.
+	 * @param unlessBody -  Optional formula that acts as an abnormality condition.
 	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
 	 * @param whereBody - A conditional formula to govern when the law applies.
 	 * @return True if everything translates properly, false if anything goes wrong.
 	 */
 	bool translateAlwaysLaw(
 		ParseElement* constraint,
+		ParseElement* unlessBody,
 		ParseElement* whenBody,
 		ParseElement* whereBody
 	);
@@ -544,6 +546,7 @@ public:
 	 * Transforms a causal law of the form "nonexecutable F [if G] [where H]." to basic form, then calls the translator for it.
 	 * @param nonEx - The formula that should not be executed.
 	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param unlessBody - Optional atom to be dynamically declared as an default-false constant.
 	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
 	 * @param whereBody - Another conditional formula to govern when the law applies.
 	 * @return True if everything translates properly, false if anything goes wrong.
@@ -551,6 +554,7 @@ public:
 	bool translateNonexecutableLaw(
 		ParseElement* nonEx,
 		ParseElement* ifBody,
+		ParseElement* unlessBody,
 		ParseElement* whenBody,
 		ParseElement* whereBody
 	);
@@ -620,6 +624,7 @@ public:
 	 * @param causee - The additive constant being incremented.
 	 * @param increment - The increment expression
 	 * @param ifBody - Optional conditional formula to govern when the law applies.
+	 * @param unlessBody - Optional atom to be dynamically declared as an default-false constant.
 	 * @param whenBody - Optional conditional formula specifying abnormalities in the current time step.
 	 * @param whereBody - Another conditional formula to govern when the law applies.
 	 * @param isIncrement - True if the law is increment, false if it is decrement.
@@ -630,6 +635,7 @@ public:
 		ParseElement* causee,
 		ParseElement* increment,
 		ParseElement* ifBody,
+		ParseElement* unlessBody,
 		ParseElement* whenBody,
 		ParseElement* whereBody,
 		bool isIncrement

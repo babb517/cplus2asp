@@ -329,6 +329,9 @@ Translator::Translator()
 	newSort = this->createInternalSort("additiveInteger", NULL);				// positive + negative integer sort.
 	this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
 
+	// Apparently afValue is a synonym for this sort.
+	newSort = this->createInternalSort("afValue", NULL);
+	this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
 	
 	// Add the contribution constant for additive constants.
 	tmpList.push_back(actionSort);
@@ -982,14 +985,29 @@ void Translator::translateQuery(Query const* transQuery)
 			}
 
 			// Quick checking for undeclared identifiers....
-			BaseElementList undefined;
-			(*lIter)->aggregateUndefined(undefined);
+			BaseElementList maybeUndefined, undefined;
+			(*lIter)->aggregateUndefined(maybeUndefined);
 
+			// Last minute resolution of any dynamically declared 'unless' abnormality constants
+
+			for (BaseElementList::iterator uIt = maybeUndefined.begin(); uIt != maybeUndefined.end(); uIt++) {
+				Constant* ref;
+				if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
+					// found it
+					(*uIt)->ref(ref);
+				} else {
+					// it really is undefined...
+					undefined.push_back(*uIt);
+				}
+			}
+
+
+			
 			if (undefined.size()) {
 				// One or more undefined elements.
 				// Throw an error
 				std::ostringstream tmpErr;
-				tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
+				tmpErr << "Undeclared identifiers were encountered. The following identifiers are undeclared: ";
 				for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
 					tmpErr << "\"";
 					(*it)->fullName(tmpErr);
@@ -1068,14 +1086,27 @@ void Translator::translateCausalLaw(
 	// and performing some basic sanity checking on each of the components...
 
 	// Step 0, check to ensure that there are no undefined identifiers (outside the unless clause).
-	BaseElementList undefined;
-	if (head) head->aggregateUndefined(undefined);
-	if (ifBody) ifBody->aggregateUndefined(undefined);
-	if (assumingBody) assumingBody->aggregateUndefined(undefined);
-	if (afterBody) afterBody->aggregateUndefined(undefined);
-	if (whenBody) whenBody->aggregateUndefined(undefined);
-	if (followingBody) followingBody->aggregateUndefined(undefined);
-	if (whereBody) whereBody->aggregateUndefined(undefined);
+	BaseElementList maybeUndefined, undefined;
+	if (head) head->aggregateUndefined(maybeUndefined);
+	if (ifBody) ifBody->aggregateUndefined(maybeUndefined);
+	if (assumingBody) assumingBody->aggregateUndefined(maybeUndefined);
+	if (afterBody) afterBody->aggregateUndefined(maybeUndefined);
+	if (whenBody) whenBody->aggregateUndefined(maybeUndefined);
+	if (followingBody) followingBody->aggregateUndefined(maybeUndefined);
+	if (whereBody) whereBody->aggregateUndefined(maybeUndefined);
+
+
+	for (BaseElementList::iterator uIt = maybeUndefined.begin(); uIt != maybeUndefined.end(); uIt++) {
+		Constant* ref;
+		if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
+			// found it
+			(*uIt)->ref(ref);
+		} else {
+			// it really is undefined...
+			undefined.push_back(*uIt);
+		}
+	}
+
 
 	if (undefined.size()) {
 		// One or more undefined elements.
@@ -1545,6 +1576,7 @@ bool Translator::translateDeclarativeLaw(
 // Transforms a causal law of the form "always F [when H] [where G]." to basic form, then calls the translator for it.
 bool Translator::translateAlwaysLaw(
 	ParseElement* constraint,
+	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody
 	)
@@ -1559,7 +1591,7 @@ bool Translator::translateAlwaysLaw(
 		ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
 
 		// The law becomes "caused false after -F when H where G."
-		translateCausalLaw(tempObj, NULL, NULL, tempPE, NULL, whenBody, NULL, whereBody);
+		translateCausalLaw(tempObj, NULL, NULL, tempPE, unlessBody, whenBody, NULL, whereBody);
 		delete tempObj;
 		tempPE->detachPostOp();
 		delete tempPE;
@@ -1666,10 +1698,11 @@ bool Translator::translateDefaultLaw(
 	return retVal;
 }
 
-// Transforms a causal law of the form "nonexecutable F [if G] [when H] [where K]." to basic form, then calls the translator for it.
+// Transforms a causal law of the form "nonexecutable F [if G] [unless U] [when H] [where K]." to basic form, then calls the translator for it.
 bool Translator::translateNonexecutableLaw(
 	ParseElement* nonEx,
 	ParseElement* ifBody,
+	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody
 	)
@@ -1694,7 +1727,7 @@ bool Translator::translateNonexecutableLaw(
 			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
 
 			// becomes caused false after F [& G] following H where K.
-			translateCausalLaw(tempObj, NULL, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+			translateCausalLaw(tempObj, NULL, NULL, tempPE, unlessBody, NULL, whenBody, whereBody);
 
 			delete tempObj;
 			tempPE->detachPostOp();
@@ -1853,6 +1886,7 @@ bool Translator::translateIncrementLaw(
 	ParseElement* causee,
 	ParseElement* increment,
 	ParseElement* ifBody,
+	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody,
 	bool isIncrement
@@ -1987,7 +2021,7 @@ bool Translator::translateIncrementLaw(
 	}
 
 	// Finally, translate!
-	translateCausalLaw(head, newIf, NULL, NULL, NULL, whenBody, whereBody);
+	translateCausalLaw(head, newIf, NULL, NULL, unlessBody, NULL, whenBody, whereBody);
 
 	// Clean up!
 	for (std::list<SimpleBinaryOperator*>::iterator it = tmpBinOps.begin(); it != tmpBinOps.end(); it++) {
