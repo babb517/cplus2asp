@@ -22,6 +22,7 @@ cplus2asp_SOURCES = \
 # Linking to the binary...
 
 install-exec-hook:
+	@- rm -f $(bindir)/cplus2asp
 	ln -s $(locdir)/cplus2asp \
 	      $(bindir)/cplus2asp
 
