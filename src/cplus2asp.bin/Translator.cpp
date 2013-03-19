@@ -988,22 +988,7 @@ void Translator::translateQuery(Query const* transQuery)
 			BaseElementList maybeUndefined, undefined;
 			(*lIter)->aggregateUndefined(maybeUndefined);
 
-			// Last minute resolution of any dynamically declared 'unless' abnormality constants
-
-			for (BaseElementList::iterator uIt = maybeUndefined.begin(); uIt != maybeUndefined.end(); uIt++) {
-				Constant* ref;
-				if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
-					// found it
-					(*uIt)->ref(ref);
-				} else {
-					// it really is undefined...
-					undefined.push_back(*uIt);
-				}
-			}
-
-
-			
-			if (undefined.size()) {
+			if (!resolveDynamicDeclarations(maybeUndefined, undefined)) {
 				// One or more undefined elements.
 				// Throw an error
 				std::ostringstream tmpErr;
@@ -1096,23 +1081,14 @@ void Translator::translateCausalLaw(
 	if (whereBody) whereBody->aggregateUndefined(maybeUndefined);
 
 
-	for (BaseElementList::iterator uIt = maybeUndefined.begin(); uIt != maybeUndefined.end(); uIt++) {
-		Constant* ref;
-		if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
-			// found it
-			(*uIt)->ref(ref);
-		} else {
-			// it really is undefined...
-			undefined.push_back(*uIt);
-		}
-	}
 
 
-	if (undefined.size()) {
+	if (!resolveDynamicDeclarations(maybeUndefined, undefined))
+	{
 		// One or more undefined elements.
 		// Throw an error
 		std::ostringstream tmpErr;
-		tmpErr << "Undeclared identifiers were encountered. The follow identifiers are undeclared: ";
+		tmpErr << "Undeclared identifiers were encountered. The following identifiers are undeclared: ";
 		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); ) {
 			tmpErr << "\"";
 			(*it)->fullName(tmpErr);
@@ -1235,9 +1211,12 @@ void Translator::translateCausalLaw(
 
 
 	// Step 5, declare undefined identifiers in the unless clause.
+	maybeUndefined.clear();
 	undefined.clear();
 	if (unlessBody) {
-		unlessBody->aggregateUndefined(undefined);
+		unlessBody->aggregateUndefined(maybeUndefined);
+		resolveDynamicDeclarations(maybeUndefined, undefined);
+
 
 		ConstSortList tmpParamSorts;
 		for (BaseElementList::const_iterator it = undefined.begin(); it != undefined.end(); it++) {
@@ -2148,6 +2127,7 @@ void Translator::setErrorOutput(std::ostream &newOst)
 }
 
 
+
 // Outputs the contents of str to wherever the translator's output stream is aimed.
 void Translator::output(std::string const& str, bool endWithNewline)
 {
@@ -2197,6 +2177,29 @@ void Translator::outputToErr(std::string const& hdr, std::string const& str, boo
 
 	if(endWithNewline)
 		(*ostErrPtr) << std::endl;
+}
+
+// Attempts to resolve dynamic declarations that weren't caught previously.
+bool Translator::resolveDynamicDeclarations(BaseElementList& undefined, BaseElementList& reallyUndefined) {
+	// Track the old size.
+	size_t prevSize = reallyUndefined.size();	
+	Constant* ref;
+	
+	// Move through each of the possibly undefined constants and attempt to find a definition for it.
+	for (BaseElementList::iterator uIt = undefined.begin(); uIt != undefined.end(); uIt++) {
+
+		if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
+			// found it
+			(*uIt)->ref(ref);
+		} else {
+			// it really is undefined...
+			reallyUndefined.push_back(*uIt);
+		}
+	}
+
+
+	// Check if we've added anything to the 'really undefined list'.
+	return reallyUndefined.size() == prevSize;
 }
 
 // helper to output clauses to a stream

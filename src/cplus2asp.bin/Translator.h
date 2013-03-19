@@ -817,6 +817,15 @@ protected:
 	 */
 	void outputToErr(std::string const& hdr, std::string const& str, bool endWithNewline, bool location);
 
+
+	/**
+ 	 * Attempts to resolve dynamic declarations that weren't caught previously.
+	 * @param undefined The list of identifiers (should be constants) that appear to be undefined.
+	 * @param[out] reallyUndefined A list to add the identifiers that have not been resovled by this method to.
+	 * @return True if we managed to resolve all of the requested identifiers. False otherwise.
+	 */
+	bool resolveDynamicDeclarations(BaseElementList& undefined, BaseElementList& reallyUndefined);
+
 	/**
 	 * A helper function for translating causal laws. Called by translateCausalLaw
 	 * @param output[out] - The output stream to write the generated translation to.
