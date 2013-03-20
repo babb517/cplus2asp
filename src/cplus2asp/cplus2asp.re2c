@@ -491,14 +491,14 @@ int main(int argc, char** argv)
 	/************************************************************************************************/
 
 	Config::RunConfig runConfig;
-
+	runConfig.numSoln = config.intConfigOpt(Config::OPT_NUM_SOLN);
+	
 	do {
 		unsigned int maxmaxstep = config.intConfigOpt(Config::OPT_MAXSTEP);
 		Config::Query const* activeQuery = NULL;
 
 		runConfig.maxstep = config.intConfigOpt(Config::OPT_MAXSTEP);
 		runConfig.minstep = config.intConfigOpt(Config::OPT_MINSTEP);
-
 
 		runConfig.queryId = config.intConfigOpt(Config::OPT_QUERY);
 
