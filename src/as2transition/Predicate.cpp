@@ -33,26 +33,34 @@ std::string Predicate::sNoneValue = "none";
 // Re-creates an appropriate string representation of the predicate and returns it.
 std::string Predicate::toPredicateString(Config::Format fmt)
 {
+	std::string stripped_name;
+
+	// Strip the 'saniConst_' from the constant.
+	if (name.find("saniConst_") == 0) {
+		stripped_name = name.substr(10);
+	} else {
+		stripped_name = name;
+	}
 	// Most of the special formatting only happens to special predicates, so check that first.
 	if(predType == T_UNKNOWN) {
-		return name;
+		return stripped_name;
 	}
 
 	switch (fmt) {
 	case Config::FMT_AF_COMPRESSED_BOOL:
 		if (isBool())
-			return (isFalse() ? "-" : "") + name;
+			return (isFalse() ? "-" : "") + stripped_name;
 
 		/* no break */
 	case Config::FMT_ATOMIC_FORMULA:
 		if (hasEql)
-			return name + "=" + value;
-		else return name;
+			return stripped_name + "=" + value;
+		else return stripped_name;
 
 	case Config::FMT_STRIP_PREFIX:
 		if (hasEql)
-			return "eq(" + name + ", " + value + ")";
-		else return name;
+			return "eq(" + stripped_name + ", " + value + ")";
+		else return stripped_name;
 
 	case Config::FMT_ORIGINAL:
 	default:
@@ -61,8 +69,8 @@ std::string Predicate::toPredicateString(Config::Format fmt)
 		ret << predTypeToPrefixString(predType);
 
 		if (hasEql)
-			ret << "eq(" << name << ", " << value << ")";
-		else ret << name;
+			ret << "eq(" << stripped_name << ", " << value << ")";
+		else ret << stripped_name;
 
 
 		if (predType != T_RIGID && timeStamp != UNKNOWN_TIME) {

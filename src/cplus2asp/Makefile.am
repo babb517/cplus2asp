@@ -17,7 +17,8 @@ cplus2asp_SOURCES = \
 	Config.cpp \
 	utils.h \
 	utils.cpp \
-	cplus2asp.re2c
+	cplus2asp.re2c \
+	Interpreter.re2c
 
 
 # Linking to the binary...

@@ -104,10 +104,10 @@
 #define CONST_MAXADDITIVE					"maxAdditive"						///< Specifies the maximum additive value to use.
 
 // special query values
-#define CONST_QUERY_NONE					"none"								///< The value to provide to the query to indicate that no query should be applied.
+#define CONST_QUERY_NONE					"sat"								///< The value to provide to the query to indicate that no query should be applied.
 #define CONST_QUERY_STATES					"states"							///< The value to provide to the query to indicate that we should find the system's states.
 #define CONST_QUERY_TRANSITIONS				"transitions"						///< The value to provide to the query to indicate that we should find the system's transitions.
-
+#define CONST_MAXSTEP_INFINITE				"infinite"						///< Value used to set the maximum step to infinite.
 
 // etc
 #define HACKED_NONE_VALUE					"50000"								///< The value to treat none as if we're performing the gringo none hack.
@@ -239,6 +239,9 @@ public:
 	/// Indicates an undefined configuration setting.
 	static unsigned int const UNDEFINED;
 
+	/// Indicates an infinite value.
+	static unsigned int const INF;
+	
 	/// Indicates that the user wishes to perform a satisfiability check to find system states.
 	static unsigned int const STATES_QUERY;
 
@@ -577,7 +580,7 @@ public:
 	/**
 	 * Parses a maxstep specification in the form a single unsigned integer or an integer range %d..%d.
 	 * @param maxstep The maxstep specification.
-	 * @return A pair (maxstep,minstep) corresponding to the specification.
+	 * @return A pair (minstep,maxstep) corresponding to the specification.
 	 * If the specification is malformed both will be UNDEFINED.
 	 * If it's a single integer, minstep will be UNDEFINED.
 	 */

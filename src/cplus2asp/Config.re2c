@@ -44,6 +44,7 @@
 /* Constants */
 /***************************************************************/
 unsigned int const Config::UNDEFINED = UINT_MAX;
+unsigned int const Config::INF = UINT_MAX - 4;
 unsigned int const Config::STATES_QUERY = UINT_MAX - 3;
 unsigned int const Config::TRANSITIONS_QUERY = UINT_MAX - 2;
 unsigned int const Config::NO_QUERY = UINT_MAX - 1;
@@ -101,7 +102,7 @@ Config::Config() {
 	// Default queries which should always be made available...
 	mQueries[Config::TRANSITIONS_QUERY] = Query(Config::TRANSITIONS_QUERY, "System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
 	mQueries[Config::STATES_QUERY] = Query(Config::STATES_QUERY, "System states", CONST_QUERY_STATES, 0, 0);
-	mQueries[Config::NO_QUERY] = Query(Config::NO_QUERY, "No query", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
+	mQueries[Config::NO_QUERY] = Query(Config::NO_QUERY, "Satisfiability Check", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
 }
 
 // Install directory
@@ -253,11 +254,11 @@ bool Config::def(std::string const& constant, std::string const& value) {
 	if (constant_trimmed == CONST_MAXSTEP) {
 		std::pair<unsigned int,unsigned int> stepvals = parseMaxstep(value_trimmed);
 
-		if (stepvals.first == UNDEFINED) {
+		if (stepvals.second == UNDEFINED) {
 			bad = true;
 		} else {
-			redef = intConfigOpt(OPT_MAXSTEP, stepvals.first);
-			if (stepvals.second != UNDEFINED) intConfigOpt(OPT_MINSTEP, stepvals.second);
+			redef = intConfigOpt(OPT_MAXSTEP, stepvals.second);
+			if (stepvals.first != UNDEFINED) intConfigOpt(OPT_MINSTEP, stepvals.first);
 		}
 
 	} else if (constant_trimmed == CONST_MINSTEP) {
@@ -664,15 +665,31 @@ std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& ma
 	size_t pos;
 	std::pair<unsigned int, unsigned int> ret(UNDEFINED, UNDEFINED);
 
+	std::string tmp;
+
 	if ((pos = maxstep.find("..")) != std::string::npos) {
 		// They've provided a range. Interpret it as a minstep and maxstep.
-		if (!from_string(ret.first,maxstep.substr(pos+2))
-				|| !from_string(ret.second,maxstep.substr(0,pos))) {
-			ret.first = UNDEFINED;
-			ret.second = UNDEFINED;
-		}
-	} else if (!from_string(ret.first,maxstep)) {
+		tmp = trimWhitespace(maxstep.substr(pos+2));
+
+	} else {
+		tmp = maxstep;
+	}
+
+	if (tmp == CONST_MAXSTEP_INFINITE) {
+		ret.second = INF;	
+	} else  if (!from_string(ret.second,tmp)) {
+		// error
 		ret.first = UNDEFINED;
+		ret.second = UNDEFINED;
+	}
+
+	if (ret.second != UNDEFINED 
+		&& pos != std::string::npos 
+		&& !from_string(ret.first,trimWhitespace(maxstep.substr(0,pos)))) {
+		// error
+		ret.first = UNDEFINED;
+		ret.second = UNDEFINED;
+
 	}
 
 	return ret;

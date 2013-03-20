@@ -1,0 +1,8 @@
+% File: ’bw-cost’
+
+:- include 'bw'.
+
+:- constants
+	cost :: additiveFluent(0..maxAdditive).
+
+move(B) increments cost by 1.

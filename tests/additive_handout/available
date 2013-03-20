@@ -1,0 +1,12 @@
+% File: ’available’
+:- sorts
+person.
+:- objects :: person.
+a, b 
+:- variables :: person.
+X 
+:- constants :: additiveFluent(0..n);
+available :: exogenousAction.
+buy(person) 
+buy(X) increments available by -1.
+

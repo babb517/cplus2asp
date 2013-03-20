@@ -1,0 +1,4 @@
+
+:- query
+	0: Has(1)=0, Has(2)=2;
+	maxstep: Has(1)=2, Has(2)=3.
