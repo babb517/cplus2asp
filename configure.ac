@@ -16,9 +16,8 @@ AC_CONFIG_FILES([Makefile
 	src/cplus2asp/Makefile])
 
 
-#TODO: Disable this in release
 # Allows LEX, YACC, and RE2C to rebuild their files.
-#AM_MAINTAINER_MODE([enable])
+AM_MAINTAINER_MODE([disable])
 
 # Checks for programs.
 AC_PROG_CXX

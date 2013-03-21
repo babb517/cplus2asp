@@ -102,6 +102,7 @@
 #define CONST_MINSTEP						"minstep"							///< Specifies the minimum step to use.
 #define CONST_QUERY							"query"								///< Specifies the query to run.
 #define CONST_MAXADDITIVE					"maxAdditive"						///< Specifies the maximum additive value to use.
+#define CONST_DEFAULT					"default"							///< Specifies a default value.
 
 // special query values
 #define CONST_QUERY_NONE					"sat"								///< The value to provide to the query to indicate that no query should be applied.

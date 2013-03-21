@@ -35,10 +35,16 @@ void Interpreter::showHelp(std::ostream& output) {
 	std::cout 
 		<< "You may specify one or more of the following options, each followed by a return.\n"
 		<< std::endl
-		<< '\t' << std::setw(15) << std::left << "query=ID " << "- Selects and runs the query ID listed above.\n"
+		<< '\t' << std::setw(15) << std::left << "queries" << "- Displays the list of queries that are available to run.\n"
+		<< '\t' << std::setw(15) << std::left << "config" << "- Displays the current run configuration.\n"
+		<< '\t' << std::setw(15) << std::left << "query=ID " << "- Selects and runs an available query.\n"
 		<< '\t' << std::setw(15) << std::left << "sol=#" << "- Sets the number of solutions to find to #.\n"
-		<< '\t' << std::setw(15) << std::left << "maxstep=#" << "- Overrides the maximum step on the next query, setting it to # (or '" << CONST_MAXSTEP_INFINITE << "' for no maxstep).\n"
+		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
+		<< '\t' << std::setw(15) << std::left << "maxstep=#" << "- Overrides the maximum step on the next query.\n"
+		<< "\t\t" << "- Specifying '" << CONST_MAXSTEP_INFINITE << "' indicates that there should be no maximum step.\n"
+		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
 		<< '\t' << std::setw(15) << std::left << "minstep=#" << "- Overrides the minimum step on the next query, setting it to #.\n"
+		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
 		<< '\t' << std::setw(15) << std::left << "help" << "- Displays this dialog.\n"
 		<< '\t' << std::setw(15) << std::left << "exit" << "- Exits the program.\n";	
 }
@@ -82,6 +88,8 @@ Interpreter::Action Interpreter::lex(std::string const& commandName) {
          	re2c:define:YYMARKER = marker;
          	re2c:indent:top = 1;
 
+		'queries'		{ return SHOW_QUERIES; }
+		'config'		{ return SHOW_CONFIG; }
 		'query'			{ return SET_QUERY; }
 		'sol'			{ return SET_NUMSOLN; }
 		'maxstep'		{ return SET_MAXSTEP; }

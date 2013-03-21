@@ -41,6 +41,8 @@ public:
  	 * @brief The user actions recognized by the interpreter.
 	 */
 	typedef enum {
+		SHOW_QUERIES,
+		SHOW_CONFIG,
 		SET_QUERY,
 		SET_NUMSOLN,
 		SET_MAXSTEP,
