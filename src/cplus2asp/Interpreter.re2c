@@ -38,13 +38,17 @@ void Interpreter::showHelp(std::ostream& output) {
 		<< '\t' << std::setw(15) << std::left << "queries" << "- Displays the list of queries that are available to run.\n"
 		<< '\t' << std::setw(15) << std::left << "config" << "- Displays the current run configuration.\n"
 		<< '\t' << std::setw(15) << std::left << "query=ID " << "- Selects and runs an available query.\n"
+
 		<< '\t' << std::setw(15) << std::left << "sol=#" << "- Sets the number of solutions to find to #.\n"
-		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
+		<< '\t' << std::setw(15) << "" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value.\n"
+
 		<< '\t' << std::setw(15) << std::left << "maxstep=#" << "- Overrides the maximum step on the next query.\n"
-		<< "\t\t" << "- Specifying '" << CONST_MAXSTEP_INFINITE << "' indicates that there should be no maximum step.\n"
-		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
+		<< '\t' << std::setw(15) << "" << "- Specifying '" << CONST_MAXSTEP_INFINITE << "' indicates that there should be no maximum step.\n"
+		<< '\t' << std::setw(15) << "" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value.\n"
+
 		<< '\t' << std::setw(15) << std::left << "minstep=#" << "- Overrides the minimum step on the next query, setting it to #.\n"
-		<< "\t\t" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value."
+		<< '\t' << std::setw(15) << "" << "- Specifying '" << CONST_DEFAULT << "' for # resets the option to the default value.\n"
+
 		<< '\t' << std::setw(15) << std::left << "help" << "- Displays this dialog.\n"
 		<< '\t' << std::setw(15) << std::left << "exit" << "- Exits the program.\n";	
 }

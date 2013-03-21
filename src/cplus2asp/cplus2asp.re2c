@@ -1947,27 +1947,32 @@ bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig)
 
 				break;
 
-			case Interpreter::SET_NUMSOLN:	
-				goodInput = from_string(runconfig.numSoln, value);
+			case Interpreter::SET_NUMSOLN:
+				if (value == CONST_DEFAULT) runconfig.numSoln = Config::UNDEFINED;
+				else goodInput = from_string(runconfig.numSoln, value);
 				break;
 
 			case Interpreter::SET_MAXSTEP:
-				steps = Config::parseMaxstep(value);
-				if (steps.second == Config::UNDEFINED) goodInput = false;
+				if (value == CONST_DEFAULT) runconfig.maxstep = Config::UNDEFINED;
 				else {
-					if (steps.first != Config::UNDEFINED) runconfig.minstep = steps.first;
-					runconfig.maxstep = steps.second;
-
-					if (runconfig.minstep == Config::UNDEFINED) {
-						std::cout << "Autosetting minstep to 0." << std::endl;
-						runconfig.minstep = 0;
+					steps = Config::parseMaxstep(value);
+					if (steps.second == Config::UNDEFINED) goodInput = false;
+					else {
+						if (steps.first != Config::UNDEFINED) runconfig.minstep = steps.first;
+						runconfig.maxstep = steps.second;
+	
+						if (runconfig.minstep == Config::UNDEFINED) {
+							std::cout << "Autosetting minstep to 0." << std::endl;
+							runconfig.minstep = 0;
+						}
 					}
 				}
 
 				break;
 
 			case Interpreter::SET_MINSTEP:
-				goodInput = from_string(runconfig.minstep, value);
+				if (value == CONST_DEFAULT) runconfig.minstep = Config::UNDEFINED;
+				else goodInput = from_string(runconfig.minstep, value);
 				break;
 		
 	
@@ -2038,7 +2043,7 @@ void showConfig(Config const& config, Config::RunConfig const& runconfig, std::o
 	output << "Current configuration:\n\n";
 
 	// translation mode
-	output << "\t\t" << std::setw(30) << std::left << "Translation Mode";
+	output << "\t\t" << std::setw(30) << std::left << "Translation Mode:";
 
 	output << std::setw(20) << std::left;
 	switch (config.mode()) {
@@ -2064,7 +2069,7 @@ void showConfig(Config const& config, Config::RunConfig const& runconfig, std::o
 	tmp2 = (config.intConfigOpt(Config::OPT_NUM_SOLN) != Config::UNDEFINED) ? config.intConfigOpt(Config::OPT_NUM_SOLN) : 1;
 	tmp = (runconfig.numSoln != Config::UNDEFINED) ? runconfig.numSoln : tmp2;
 
-	output << "\t\t" << std::setw(30) << std::left << "Number of solutions";
+	output << "\t\t" << std::setw(30) << std::left << "Number of solutions:";
 
 	output << std::setw(20) << std::left;
 	if (tmp) output << tmp;
@@ -2076,11 +2081,10 @@ void showConfig(Config const& config, Config::RunConfig const& runconfig, std::o
 	output << " ]\n";
 
 	// maximum soln step
-
 	tmp2 = config.intConfigOpt(Config::OPT_MAXSTEP);
 	tmp = (runconfig.maxstep != Config::UNDEFINED) ? runconfig.maxstep : tmp2;
 
-	output << "\t\t" << std::setw(30) << std::left << "Maximum solution step";
+	output << "\t\t" << std::setw(30) << std::left << "Maximum solution step:";
 	
 	output << std::setw(20) << std::left;
 	if (tmp == Config::INF) output << CONST_MAXSTEP_INFINITE;
@@ -2098,7 +2102,7 @@ void showConfig(Config const& config, Config::RunConfig const& runconfig, std::o
 	tmp2 = config.intConfigOpt(Config::OPT_MINSTEP);
 	tmp = (runconfig.minstep != Config::UNDEFINED) ? runconfig.minstep : tmp2;
 	
-	output << "\t\t" << std::setw(30) << std::left << "Minimum solution step";
+	output << "\t\t" << std::setw(30) << std::left << "Minimum solution step:";
 	
 	output << std::setw(20) << std::left;
 	if (tmp != Config::UNDEFINED) output << tmp;
