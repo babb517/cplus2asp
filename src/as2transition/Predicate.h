@@ -40,19 +40,25 @@ class Predicate
   public:
 
 	/// An enum providing a list of the possible predicate types we can encounter.
-	enum Type { T_FLUENT, T_RIGID, T_ACTION, T_CONTRIB, T_STATIC_AB, T_DYNAMIC_AB, T_UNKNOWN };
+	enum Type { T_FLUENT, T_RIGID, T_ACTION, T_CONTRIB, T_STATIC_AB, T_DYNAMIC_AB, T_EQL, T_UNKNOWN };
 
 	/// Special values for special time steps
-	static int const UNKNOWN_TIME = INT_MIN;
-	static int const RIGID_TIME = INT_MIN+1;
+	static int const RIGID_TIME = INT_MIN;
 
+
+	/// Enum of the various types of equality that can be contained in the predicate
+	enum EqlVal {
+		HASEQL_NONE = 0,
+		HASEQL_EQ,
+		HASEQL_EQL
+	};
 	
 	/**
 	 * Constructor for a standard predicate which has no special formatting.
 	 * @param name - The full name of the predicate.
 	 */
 	Predicate(std::string const& name)
-		: name(name), timeStamp(UNKNOWN_TIME), predType(T_UNKNOWN), hasEql(false), xpred(NULL), value("")
+		: name(name), timeStamp(RIGID_TIME), predType(T_UNKNOWN), hasEql(HASEQL_NONE), xpred(NULL), value("")
 			{ /* Intentionally Left Blank */ }
 	
 	/**
@@ -64,7 +70,7 @@ class Predicate
 	 * @param value - The (optional) value the predicate has taken. The empty string if the predicate doesn't have an eql() or eq() wrapper.
 	 */
 	inline Predicate(Type predType, std::string const& name, int timeStamp, bool xpred, std::string const& value = "")
-		: name(name), timeStamp(timeStamp), predType(predType), hasEql(value != ""), xpred(xpred), value(value)
+		: name(name), timeStamp(timeStamp), predType(predType), hasEql((value != "") ? HASEQL_EQL : HASEQL_NONE), xpred(xpred), value(value)
 		{ /* Intentionally Left Blank */ }
 	
 	/**
@@ -129,7 +135,7 @@ class Predicate
 	 * Accessor for hasEql.
 	 * @return The current value of hasEql.
 	 */
-	inline bool getHasEql() const { return hasEql; }
+	inline EqlVal getHasEql() const { return hasEql; }
 	
 	/**
 	 * Re-creates an appropriate string representation of the predicate and returns it.
@@ -156,9 +162,9 @@ class Predicate
 	 * @param outName - The name of the predicate (text in the event we were unable to identify the predicate or the predicate is malformed).
 	 * @param outXPred - Whether the predicate's name is of the form 'x_<pred>', which marks it as an internal predicate.
 	 * @param outVal - The value the predicate has taken ("" if the predicate does not have an eql or eq function wrapper).
-	 * @param outTime - The timestamp for the predicate. Set to UNKNOWN_TIME if we couldn't identify the predicate or it's malformed. Set to RIGID_TIME if the predicate appears to be rigid.
+	 * @param outTime - The timestamp for the predicate. Set to RIGID_TIME if the predicate appears to be rigid.
 	 */
-	static void getPredInfo(std::string const& text, Type& outType, bool& outHasEql, std::string& outName, bool& outXPred, std::string& outVal, int& outTime);
+	static void getPredInfo(std::string const& text, Type& outType, EqlVal& outHasEql, std::string& outName, bool& outXPred, std::string& outVal, int& outTime);
 
 	/**
 	 * Creates a predicate instance from a string containing the predicate.
@@ -191,9 +197,9 @@ class Predicate
 
   protected:
 	std::string name; 		///< The full contents of the predicate (just the inner predicate if it was a specially formatted predicate).
-	int timeStamp; 			///< The time stamp the predicate occurs in (if applicable). Possibly UNKNOWN_TIME (if we don't know) or RIGID_TIME (if the predicate is rigid).
+	int timeStamp; 			///< The time stamp the predicate occurs in (if applicable). Possibly RIGID_TIME (if the predicate is rigid).
 	Type predType;			///< The type of predicate that this instance represents.
-	bool hasEql;			///< True if the predicate has an eql(<name>,<value>) or eq(<name>,<value>) function wrapper, false otherwise.
+	EqlVal hasEql;			///< True if the predicate has an eql(<name>,<value>) or eq(<name>,<value>) function wrapper, false otherwise.
 	bool xpred;				///< True if the predicate's name has the form 'x_<name>', which marks it as an internal predicate.
 	std::string value;		///< The value the predicate has taken, or "" if there is no function wrapper.
 	

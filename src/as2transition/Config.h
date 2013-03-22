@@ -67,7 +67,7 @@ public:
 		  showContribPredicates(false),
 		  showNegPredicates(false),
 		  showXPredicates(false),
-		  showUnformattedPredicates(false),
+		  showUnformattedPredicates(true),
 		  predFormat(FMT_AF_COMPRESSED_BOOL)
 		{ /* Intentionally Left Blank */ }
 

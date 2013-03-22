@@ -58,9 +58,12 @@ std::string Predicate::toPredicateString(Config::Format fmt)
 		else return stripped_name;
 
 	case Config::FMT_STRIP_PREFIX:
-		if (hasEql)
-			return "eq(" + stripped_name + ", " + value + ")";
-		else return stripped_name;
+		switch (hasEql) {
+		case HASEQL_EQL:	return "eql(" + stripped_name + ", " + value + ")";
+		case HASEQL_EQ:		return "eq("  + stripped_name + ", " + value + ")";
+		case HASEQL_NONE:	return stripped_name;
+		}
+		
 
 	case Config::FMT_ORIGINAL:
 	default:
@@ -68,16 +71,29 @@ std::string Predicate::toPredicateString(Config::Format fmt)
 
 		ret << predTypeToPrefixString(predType);
 
-		if (hasEql)
-			ret << "eq(" << stripped_name << ", " << value << ")";
-		else ret << stripped_name;
 
 
-		if (predType != T_RIGID && timeStamp != UNKNOWN_TIME) {
-			ret << ", " << timeStamp;
+
+		switch (hasEql) {
+		case HASEQL_EQ:
+			ret << "eq("  << stripped_name << ", " << value << ")";
+			break;
+		case HASEQL_EQL:
+			ret << "eql(" << stripped_name << ", " << value << ")";
+			break;
+		case HASEQL_NONE: 
+			ret << stripped_name;
+			break;
 		}
 
-		if (predType != T_UNKNOWN) ret << ")";
+		if (predType != T_RIGID && predType != T_UNKNOWN) {
+
+			if (predType != T_RIGID && timeStamp != RIGID_TIME) {
+				ret << ", " << timeStamp;
+			}
+
+			ret << ")";
+		}
 
 		return ret.str();
 	}
@@ -102,6 +118,10 @@ Predicate::Type Predicate::getPrefixType(std::string const& text, size_t* outOff
 	} else if (trimStr.size() >= 7 && !strncmp(tempStr,"ab_occ(",7)) {
 		if (outOffset) *outOffset = 7;
 		return T_DYNAMIC_AB;
+	} else if ((trimStr.size() >= 3 && !strncmp(tempStr, "eq(", 3))
+		|| (trimStr.size() >= 4 && !strncmp(tempStr, "eql(", 4))) {
+		if (outOffset) *outOffset = 0; // 0 offset so we can reparse the eql.
+		return T_RIGID;
 	} else {
 		// This isn't a specially formatted predicate, we give up.
 		if (outOffset) *outOffset = 0;
@@ -109,7 +129,7 @@ Predicate::Type Predicate::getPrefixType(std::string const& text, size_t* outOff
 	}
 }
 
-void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHasEql, std::string& outName, bool& outXPred, std::string& outVal, int& outTime)
+void Predicate::getPredInfo(std::string const& text, Type& outType, EqlVal& outHasEql, std::string& outName, bool& outXPred, std::string& outVal, int& outTime)
 {
 	// Intermediate results
 	std::string tmpName;
@@ -130,10 +150,10 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 	// we don't want to try if we don't know the type.
 	if (outType == T_UNKNOWN) {
 		outType = T_UNKNOWN;
-		outHasEql = false;
+		outHasEql = HASEQL_NONE;
 		outName = trimStr;
 		outVal = "";
-		outTime = UNKNOWN_TIME;
+		outTime = RIGID_TIME;
 		return;
 	}
 
@@ -142,13 +162,13 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 
 	// check the function specifier
 	if (size - curpos >= 3 && !strncmp(tempStr + curpos, "eq(", 3)) {
-		outHasEql = true;
+		outHasEql = HASEQL_EQ;
 		curpos += 3;
 	} else if (size - curpos >= 4 && !strncmp(tempStr + curpos, "eql(", 4)) {
-		outHasEql = true;
+		outHasEql = HASEQL_EQL;
 		curpos += 4;
 	} else {
-		outHasEql = false;
+		outHasEql = HASEQL_NONE;
 	}
 
 
@@ -174,10 +194,10 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 	// check to make sure we found it!
 	if (offset < 1) {
 		outType = T_UNKNOWN;
-		outHasEql = false;
+		outHasEql = HASEQL_NONE;
 		outName = trimStr;
 		outVal = "";
-		outTime = UNKNOWN_TIME;
+		outTime = RIGID_TIME;
 		return;
 	}
 
@@ -195,10 +215,10 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 		// make sure we found something...
 		if (offset < 1) {
 			outType = T_UNKNOWN;
-			outHasEql = false;
+			outHasEql = HASEQL_NONE;
 			outName = trimStr;
 			outVal = "";
-			outTime = UNKNOWN_TIME;
+			outTime = RIGID_TIME;
 			return;
 		}
 		outVal = StringUtils::trimWhitespace(trimStr.substr(curpos, offset));
@@ -214,28 +234,30 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 	// skip the comma if it exists...
 	if (*(tempStr + curpos) == ',') curpos++;
 
-
-	// last but not least, find ourselves the time
-	offset = (int)(StringUtils::scanAndMatchParens(tempStr + curpos, ')', size - curpos) - (tempStr + curpos));
-
-	// make sure we found something...
-
-
-	if (offset == 0 && outType == T_FLUENT) {
-		// special case: we're looking at a rigid predicate.
-		outType = T_RIGID;
+	if (outType == T_RIGID) {
 		outTime = RIGID_TIME;
+	} else {
+		// last but not least, find ourselves the time
+		offset = (int)(StringUtils::scanAndMatchParens(tempStr + curpos, ')', size - curpos) - (tempStr + curpos));
 
-	} else if (offset < 1) {
-		outType = T_UNKNOWN;
-		outHasEql = false;
-		outName = trimStr;
-		outVal = "";
-		outTime = UNKNOWN_TIME;
-		return;
-	} else if (!StringUtils::from_string<int>(outTime, StringUtils::trimWhitespace(trimStr.substr(curpos, offset)))) {
-		// can't convert to an integer time.
-		outTime = UNKNOWN_TIME;
+		// make sure we found something...
+
+
+		if (offset == 0 && outType == T_FLUENT) {
+			// special case: we're looking at a rigid predicate.
+			outTime = RIGID_TIME;
+
+		} else if (offset < 1) {
+			outType = T_UNKNOWN;
+			outHasEql = HASEQL_NONE;
+			outName = trimStr;
+			outVal = "";
+			outTime = RIGID_TIME;
+			return;
+		} else if (!StringUtils::from_string<int>(outTime, StringUtils::trimWhitespace(trimStr.substr(curpos, offset)))) {
+			// can't convert to an integer time.
+			outTime = RIGID_TIME;
+		}
 	}
 
 	return;
@@ -244,7 +266,6 @@ void Predicate::getPredInfo(std::string const& text, Type& outType, bool& outHas
 std::string Predicate::predTypeToPrefixString(Type predType) {
 	switch (predType) {
 	case T_FLUENT:
-	case T_RIGID:
 		return "h(";
 	case T_ACTION:
 	case T_CONTRIB:
@@ -253,6 +274,7 @@ std::string Predicate::predTypeToPrefixString(Type predType) {
 		return "ab_(";
 	case T_DYNAMIC_AB:
 		return "ab_occ(";
+	case T_RIGID:
 	case T_UNKNOWN:
 	default:
 		return "";

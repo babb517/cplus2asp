@@ -244,7 +244,7 @@ void processAndOutputAnswerSet(
 	// Go through the other time steps, outputting them in order.
 	for(size_t j = 0; j < vecPredicates.size(); j++)
 	{	// Make sure we don't accidentally output the "misc" time step yet, and that we don't accidentally output the "timeless" step again.
-		if(vecPredicates[j]->getTimeStep() != Predicate::UNKNOWN_TIME && vecPredicates[j]->getTimeStep() != Predicate::RIGID_TIME)
+		if (vecPredicates[j]->getTimeStep() != Predicate::RIGID_TIME)
 		{
 			output = vecPredicates[j]->outputTimeStep(
 							config,
@@ -256,16 +256,17 @@ void processAndOutputAnswerSet(
 	}
 
 	// output the "misc" step if it's called for
-	tsiTempInfo = getSolutionTimeStep(vecPredicates, Predicate::UNKNOWN_TIME);
-	if (config.showUnformattedPredicates && tsiTempInfo) {
-		std::cerr << "outputing misc step... \n";
-		output = tsiTempInfo->outputTimeStep(
-						config,
-						ostOut
-				);
+	// We no longer have an explicit 'unknown' time. It's part of the rigid time.
+	//tsiTempInfo = getSolutionTimeStep(vecPredicates, Predicate::UNKNOWN_TIME);
+	//if (config.showUnformattedPredicates && tsiTempInfo) {
+	//	std::cerr << "outputting misc step... \n";
+	//	output = tsiTempInfo->outputTimeStep(
+	//					config,
+	//					ostOut
+	//			);
 
-		if (output) ostOut << std::endl;
-	}
+	//	if (output) ostOut << std::endl;
+	//}
 
 	// Done with this solution, add an extra separating end line.
 	ostOut << endl;

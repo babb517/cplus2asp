@@ -29,7 +29,7 @@
 // Constructor.
 TimeStepInfo::TimeStepInfo()
 {
-	timeStep = Predicate::UNKNOWN_TIME;
+	timeStep = Predicate::RIGID_TIME;
 	predicates = NULL;
 }
 
@@ -140,11 +140,7 @@ int TimeStepInfo::outputTimeStep( Config const& config, std::ostream& outStream 
 
 	int counter = 0;
 
-	if (timeStep == Predicate::RIGID_TIME) {
-		outStream << "\tRIGID CONSTANTS: ";
-	} else if (timeStep == Predicate::UNKNOWN_TIME) {
-		outStream << "\tMISC CONSTANTS: ";
-	} else {
+	if (timeStep != Predicate::RIGID_TIME) {
 		// Output time step header and appropriate trailing whitespace.
 		outStream << "\t" << timeStep << ": ";
 	}
