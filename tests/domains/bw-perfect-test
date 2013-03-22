@@ -1,7 +1,7 @@
 % File 'bw-perfect-test'
 % A query in the blocks world with blocks a, b, c
 
-:- include 'domains/bw-perfect'.
+:- include 'bw-perfect'.
 
 :- objects
   a,b,c                 :: block.

@@ -3,7 +3,7 @@
 %  enhanced by classifying blocks into large and small -- a
 %  distinction that doesn't depend on the state
 
-:- include 'domains/bw-serializable'.
+:- include 'bw-serializable'.
 
 :- constants
   large(block)          :: boolean.

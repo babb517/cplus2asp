@@ -1,7 +1,7 @@
 % File 'bw-serializable-test'
 % Two queries in the blocks world with blocks a,b,c,d
 
-:- include 'domains/bw-serializable'.
+:- include 'bw-serializable'.
 
 :- objects
   a,b,c,d                    :: block.

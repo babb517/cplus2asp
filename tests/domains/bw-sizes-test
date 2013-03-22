@@ -2,7 +2,7 @@
 % A query in the blocks world with blocks a,b,c,d.
 %  Block d is large; the others are small
 
-:- include 'domains/bw-sizes'.
+:- include 'bw-sizes'.
 
 :- objects
   a,b,c,d               :: block.

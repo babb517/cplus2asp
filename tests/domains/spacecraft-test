@@ -6,7 +6,7 @@
   mass -> 1;
   maxForce -> 2.
 
-:- include 'domains/spacecraft'.
+:- include 'spacecraft'.
 
 :- query
 maxstep :: 1;

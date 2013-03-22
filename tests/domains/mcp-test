@@ -2,7 +2,7 @@
 
 :- maxAdditive :: 3.
 
-:- include 'domains/mcp'.
+:- include 'mcp'.
 
 :- query
 maxstep :: 6..7;

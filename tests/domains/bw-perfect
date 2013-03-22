@@ -2,7 +2,7 @@
 % Serializable scenarios in the blocks world, with impossible
 %  configurations of blocks eliminated
 
-:- include 'domains/bw-serializable'.
+:- include 'bw-serializable'.
 
 :- constants
   above(block,location) :: sdFluent.
