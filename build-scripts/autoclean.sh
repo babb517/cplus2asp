@@ -1,4 +1,19 @@
+# Recursive cleaning
+echo "Cleaning as2transition..."
+cd externals/as2transition
+./clean.sh "$@"
+cd ../..
+
+
+echo "Cleaning cplus2asp..."
+
 # Simple Script file for cleaning up autoconf files
+if [ -e 'Makefile' -a -e 'config.status' ]
+then
+	echo "Cleaning up the build files..."
+	make clean
+fi 
+
 echo "Cleaning up autoconf files..."
 rm -rf aclocal.m4 autom4te.cache config.h config.h.in config.log config.status stamp-h1 configure 
 rm -f build-scripts/depcomp  build-scripts/install-sh  build-scripts/missing  build-scripts/ylwrap 

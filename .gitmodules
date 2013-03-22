@@ -1,0 +1,3 @@
+[submodule "externals/as2transition"]
+	path = externals/as2transition
+	url = git://github.com/babb517/as2transition

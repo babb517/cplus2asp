@@ -10,11 +10,12 @@ AC_CONFIG_AUX_DIR([build-scripts])
 
 # Setup Automake
 AM_INIT_AUTOMAKE
+
 AC_CONFIG_FILES([Makefile
-	src/as2transition/Makefile
 	src/cplus2asp.bin/Makefile
 	src/cplus2asp/Makefile])
 
+AC_CONFIG_SUBDIRS([externals/as2transition])
 
 # Allows LEX, YACC, and RE2C to rebuild their files.
 AM_MAINTAINER_MODE([disable])

@@ -29,7 +29,7 @@ libtool
 # Compiled Binaries
 /src/cplus2asp/cplus2asp
 /src/cplus2asp.bin/cplus2asp.bin
-/src/as2transition/as2transition
+/external/as2transition/src/as2transition
 /build*/
 *.o
 *.la
