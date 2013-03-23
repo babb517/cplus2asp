@@ -15,7 +15,20 @@ AC_CONFIG_FILES([Makefile
 	src/cplus2asp.bin/Makefile
 	src/cplus2asp/Makefile])
 
-AC_CONFIG_SUBDIRS([externals/as2transition])
+AC_CHECK_FILE(
+	[externals/as2transition/configure.ac],
+	[AS2TRANS="true"],
+	[AS2TRANS="false"]
+)
+
+if test x"$AS2TRANS" == x"true"
+then
+	AC_CONFIG_SUBDIRS([externals/as2transition])
+else
+	AC_MSG_WARN([as2transition was not found in the project directory. Please download as2transition from https://github.com/babb517/as2transition and place the files in the externals/as2transition directory.])
+fi
+
+AM_CONDITIONAL(HAVE_AS2TRANSITION,"$AS2TRANS")
 
 # Allows LEX, YACC, and RE2C to rebuild their files.
 AM_MAINTAINER_MODE([disable])

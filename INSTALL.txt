@@ -2,3 +2,20 @@ In order to install system cplus2asp, please ensure that your system has autotoo
 (autoconf, autoheader, automake, aclocal) installed (automake must be version 1.9 
 or higher) and run the following command:
 	./bootstrap && ./configure && make && sudo make install
+
+The system requires as2transition to run correctly. If your system has Git then
+as2transition will be downloaded and compiled automatically while execuiting
+the command above. Otherwise, you will need to download the Zip file for
+as2transition (located at https://github.com/babb517/as2transition/archive/master.zip),
+unzip it, and link it to 'externals/as2transition' subdirectory. Assuming that you're
+in the directory containing your cplus2asp root directory, this can be done with
+the following commands:
+
+	wget --output-document=as2transition.zip https://github.com/babb517/as2transition/archive/master.zip
+	mkdir -p as2transition
+	unzip as2transition.zip -d as2transition
+	rmdir cplus2asp/externals/as2transition
+	ln -s as2transition cplus2asp/externals/as2transition
+
+
+
