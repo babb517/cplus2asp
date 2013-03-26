@@ -844,7 +844,7 @@ protected:
 	 * @param whereBody - The part of the law's body associated with the where keyword ("...where whereBody.").
 	 * @return
 	 */
-	static std::ostream& makeCausalTranslation(
+	std::ostream& makeCausalTranslation(
 		std::ostream& output,
 		StmtList& extraStmts,
 		IPart ipart,

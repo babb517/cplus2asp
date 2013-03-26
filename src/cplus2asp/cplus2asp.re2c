@@ -1915,9 +1915,7 @@ bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig)
 
 			if (std::cin.eof()) {
 				// gracefully handle ctrl-d
-				std::cin.clear();
-				std::cin.ignore();
-				continue;
+				return false;
 			}
 
 

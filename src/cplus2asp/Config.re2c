@@ -383,7 +383,6 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 	// General command
 	out << command(tool) << " " << opts(tool);
 
-	out << " " << compileInputCommand(tool);
 	
 	// Add step specific instructions
 	switch (tool) {
@@ -555,6 +554,7 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 		break;
 	}
 
+	out << " " << compileInputCommand(tool);
 
 	return out.str();
 }

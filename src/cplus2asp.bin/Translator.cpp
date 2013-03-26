@@ -1397,10 +1397,14 @@ std::ostream& Translator::makeCausalTranslation(
 
 			// Translate the unless body wrapped in negation.
 			output << "not (";
-			localContext = Context(Context::POS_BODY, ipart,
+
+			std::string tmp = 
 					unlessBody->hasConstants(ParseElement::MASK_ACTION)
-							? actionTimeStamp
-							: baseTimeStamp, NULL, NULL, true, false, &extraStmts);
+							? dynamicTimeStamp + "-1"
+							: staticTimeStamp; 
+
+			localContext = Context(Context::POS_BODY, ipart, tmp,
+					NULL, NULL, true, false, &extraStmts);
 			bindAndTranslate(output, unlessBody, localContext, false, true);
 			output << ")";
 		}
