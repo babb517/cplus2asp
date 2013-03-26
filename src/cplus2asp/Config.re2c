@@ -276,8 +276,8 @@ bool Config::def(std::string const& constant, std::string const& value) {
 			redef = intConfigOpt(OPT_QUERY, NO_QUERY);
 		} else if (value_trimmed == CONST_QUERY_STATES) {
 			// The user has requested that we find the sytem's states.
-			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
-		} else if (value_trimmed == CONST_QUERY_STATES) {
+			redef = intConfigOpt(OPT_QUERY, STATES_QUERY);
+		} else if (value_trimmed == CONST_QUERY_TRANSITIONS) {
 			// The user has requested that we find the system's transitions.
 			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
 		} else if (from_string(tmpVal,value_trimmed)) {
