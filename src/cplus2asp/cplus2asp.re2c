@@ -213,13 +213,15 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out);
  */
 OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outConf);
 
-/**
- * [interactive] Queries the user to select an appropriate query number (and optional solution count) among the defined queries.
- * @param config The program's configuration options.
- * @param[out] runconfig The run's configurations that will be updated.
- * @return True if the program should continue execution, false otherwise.
- */
-bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig);
+ /**
+  * [interactive] Queries the user to select an appropriate query number (and optional solution count) among the defined queries.
+  * @param config The program's configuration options.
+  * @param runconfig The run's configurations that will be updated.
+  * @param first Whether this is the first run or not.
+  * @param[out] runconfig The run's configurations that will be updated.
+  * @return True if the program should continue execution, false otherwise.
+  */
+bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig, bool first = false);
 
 /**
  * Displays the queries which have been found.
@@ -500,7 +502,7 @@ int main(int argc, char** argv)
 
 	Config::RunConfig runConfig;
 	runConfig.numSoln = config.intConfigOpt(Config::OPT_NUM_SOLN);
-	
+	bool first = true;	
 	do {
 		unsigned int maxmaxstep = config.intConfigOpt(Config::OPT_MAXSTEP);
 		Config::Query const* activeQuery = NULL;
@@ -525,7 +527,7 @@ int main(int argc, char** argv)
 			if (runConfig.queryId == Config::UNDEFINED && !config.boolConfigOpt(Config::OPT_SUPPRESS_INTERACTION)) {
 
 				// The query hasn't been specified, try prompting them for it
-				if (!queryUserForQuery(config, runConfig)) {
+				if (!queryUserForQuery(config, runConfig, first)) {
 
 					// They elected to exit instead of answer a simple question.
 					// Life moves on but we do not.
@@ -755,6 +757,7 @@ int main(int argc, char** argv)
 				);
 
 
+		first = false;
 
 	} while
 			// The outer loop should run as long as:
@@ -1889,7 +1892,7 @@ void scanForConstants(Config& config, std::string const& file) {
 
 
 // [interactive] Queries the user to select an appropriate query number (and optional solution count) among the defined queries.
-bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig)
+bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig, bool first)
 {
 	std::string line, value;
 	Config::Query const* query;
@@ -1898,10 +1901,11 @@ bool queryUserForQuery(Config const& config, Config::RunConfig& runconfig)
 	std::pair<unsigned int, unsigned int> steps;
 
 
-	std::cout << std::endl;
-	showQueries(config, std::cout);
-	std::cout << std::endl;
-	Interpreter::showHelp(std::cout);
+	if (first) {
+		showQueries(config, std::cout);
+		std::cout << std::endl;
+		Interpreter::showHelp(std::cout);
+	}
 
 	while (!goodInput) {
 
