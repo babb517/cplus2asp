@@ -1307,6 +1307,7 @@ void Translator::translateCausalLaw(
 		ossOutputBuffer.str("");
 	}
 
+
 	// write the resulting statements to the output
 	outputStmts(stmts);
 
@@ -1635,7 +1636,7 @@ bool Translator::translateConstraintLaw(
 			if (tempUOP) {
 				tempUOP->detachPostOp();
 				delete tempUOP;
-			} else {
+			} else if (tempPE != constraint) {
 				// Put the constraint's postop back, just in case.
 				((SimpleUnaryOperator*)constraint)->postOp(tempPE);
 			}

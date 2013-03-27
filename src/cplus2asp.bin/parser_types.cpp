@@ -583,10 +583,10 @@ std::ostream& SimpleBinaryOperator::fullName(std::ostream& out) const
 		out << translateOpType(opType());
 		postOp()->fullName(out);
 	}
-	else if(!preOp()) {
+	else if(!preOp() && postOp()) {
 		postOp()->fullName(out);
 	}
-	else if(!postOp()) {
+	else if(!postOp() && preOp()) {
 		preOp()->fullName(out);
 	}
 	return out;
