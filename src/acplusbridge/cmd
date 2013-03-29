@@ -1,0 +1,1 @@
+g++ main.cpp NetworkClient.cpp -lboost_system -lboost_thread --std=c++0x

@@ -7,5 +7,5 @@ EXTRA_DIRS = externals/as2transition
 endif
 
 # A list of subdirectories we need to work on.
-SUBDIRS = src/cplus2asp src/cplus2asp.bin $(EXTRA_DIRS)
+SUBDIRS = src/cplus2asp src/cplus2asp.bin src/acplusbridge $(EXTRA_DIRS)
 
