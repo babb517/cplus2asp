@@ -388,6 +388,7 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 	switch (tool) {
 	case TC_END:
 	case TC_TRANSLATOR:
+		out << " " << compileInputCommand(tool);
 
 		// The translator should be told to output the symbol table
 		//TODO
@@ -421,6 +422,8 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 			out << " " << stdFile();
 		if (boolConfigOpt(OPT_INCL_ADDITIVE))
 			out << " " << additiveFile();
+		
+		out << " " << compileInputCommand(tool);
 
 		// The preprocessor should be directed to the temp output location if we
 		// are going to be sending it to the grounder (or solver).
@@ -437,6 +440,7 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 		// * Query information.
 		// * Minimum step information
 		// * Maximum step information.
+		out << " " << compileInputCommand(tool);
 
 		// # solutions
 		if (subconfig) {
@@ -500,7 +504,20 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 
 
 		if (mode() == MODE_REACTIVE && run(TC_REACTIVE_BRIDGE)) {
+
+#ifdef NO_REACTIVE_BRIDGE
+			out << " --port=" << intConfigOpt(OPT_EXT_PORT);
+#else
+			out << " --port=" << intConfigOpt(OPT_INT_PORT);
+#endif
+
 			// If we're running in reactive mode and are set to run the reactive bridge then we should run the solver in the background
+			out << " &";
+		} else if (mode() == MODE_REACTIVE) {
+			// we aren't running the reactive bridge.
+			// connect to the external port instead.
+			out << " --port=" << intConfigOpt(OPT_EXT_PORT);
+
 			out << " &";
 		} else {
 			// Silence the solver warnings by default
@@ -509,6 +526,7 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 
 		break;
 	case TC_GROUNDER:
+		out << " " << compileInputCommand(tool);
 
 		// Include special constant definitions
 		if (subconfig) {
@@ -540,21 +558,28 @@ std::string Config::compileCommandLine(Toolchain tool, RunConfig const* subconfi
 		break;
 
 	case TC_REACTIVE_BRIDGE:
+#ifdef NO_REACTIVE_BRIDGE
+		// Don't do anything!
+		out.str("");
+		out << "true";
+#else
 		// The reactive client doesn't need to know much.
 		// Just the ports to use and where to find the symbol table.
+		out << " " << compileInputCommand(tool);
 
 		// Note: Symbol table file provided through stdin.
-		out << " --oclingo-port " << intConfigOpt(OPT_INT_PORT);
-		out << " --client-port " << intConfigOpt(OPT_EXT_PORT);
-		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none-alias " << HACKED_NONE_VALUE;
+		out << " --oclingo-port=" << intConfigOpt(OPT_INT_PORT);
+		out << " --client-port=" << intConfigOpt(OPT_EXT_PORT);
+		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none=" << HACKED_NONE_VALUE;
+#endif
 		break;
 
 	case TC_POSTPROC:
-		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none-alias " << HACKED_NONE_VALUE;
+		out << " " << compileInputCommand(tool);
+		if (boolConfigOpt(OPT_NONE_HACK)) out << " --none=" << HACKED_NONE_VALUE;
 		break;
 	}
 
-	out << " " << compileInputCommand(tool);
 
 	return out.str();
 }
