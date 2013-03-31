@@ -176,6 +176,7 @@ bool Config::mode(Mode newMode) {
 		break;
 	case MODE_REACTIVE:
 		if (!customCmd(TC_GROUNDER)) mCommands[TC_GROUNDER] = DEF_GRD_REACTIVE_CMD;
+		if (!customCmd(TC_POSTPROC)) mRun[TC_POSTPROC] = false;
 		if (!customCmd(TC_SOLVER)) mCommands[TC_SOLVER] = DEF_SO_REACTIVE_CMD;
 		break;
 	case MODE_UNKNOWN:
