@@ -1481,7 +1481,7 @@ void Translator::translateShowStmt(ParseElementList const& atomicFormulas) {
 	// default to hidden.
 	if (!blnEncounteredShowStmt) {
 		blnEncounteredShowStmt = true;
-		stmts.push_back(Statement("#hide.", IPART_BASE));
+		stmts.push_back(Statement("#hide h/2.", IPART_BASE));
 	}
 
 
