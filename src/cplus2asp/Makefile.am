@@ -1,9 +1,11 @@
 include $(top_srcdir)/src/Makefile.shared
 
+# Compatibility hack
+locdir = $(pkglibdir)
 
-pkglib_PROGRAMS = cplus2asp
+loc_PROGRAMS = cplus2asp
 
-pkglib_DATA = \
+loc_DATA = \
 	cplus2asp_additive.f2lp \
 	cplus2asp_std.f2lp \
 	cplus2asp_additive.of2lp \
@@ -24,11 +26,11 @@ cplus2asp_SOURCES = \
 
 install-data-hook:
 	@- rm -f $(bindir)/cplus2asp
-	$(LN_S) $(pkglibdir)/cplus2asp \
+	$(LN_S) $(locdir)/cplus2asp \
 	      $(bindir)/cplus2asp
-	chmod -R a+r $(pkglibdir)
-	find $(pkglibdir) -type d -exec chmod a+x {} \;
-	chmod a+x $(pkglibdir)/cplus2asp
+	chmod -R a+r $(locdir)
+	find $(locdir) -type d -exec chmod a+x {} \;
+	chmod a+x $(locdir)/cplus2asp
 
 uninstall-hook:
 	@- rm -f $(bindir)/cplus2asp
