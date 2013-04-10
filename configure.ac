@@ -6,13 +6,16 @@ AC_INIT(cplus2asp, 2.0, jbabb1@asu.edu)
 AC_CONFIG_SRCDIR([src/cplus2asp/utils.cpp])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_AUX_DIR([build-scripts])
-
+AC_CONFIG_MACRO_DIR([build-scripts])
+m4_include([build-scripts/boost.m4])
 
 # Setup Automake
 AM_INIT_AUTOMAKE
+AC_SUBST([PROJECT_ROOT],`pwd`)
 
 AC_CONFIG_FILES([Makefile
 	src/cplus2asp.bin/Makefile
+	src/acplusbridge/Makefile
 	src/cplus2asp/Makefile])
 
 AC_CHECK_FILE(
@@ -34,6 +37,7 @@ AM_CONDITIONAL(HAVE_AS2TRANSITION,"$AS2TRANS")
 AM_MAINTAINER_MODE([disable])
 
 # Checks for programs.
+C_PROG_LIBTOOL 
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LN_S
@@ -43,6 +47,32 @@ AC_PROG_YACC
 AC_PATH_PROG([RE2C],[re2c],[false])
 AC_SUBST(RE2C)
 AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
+
+LT_INIT
+
+# BOOST Libraries
+BOOST_REQUIRE([1.36])
+BOOST_ASIO()							# Required by acplusbridge
+BOOST_BIND()							# Required by acplusbridge
+
+BOOST_FIND_HEADER(
+	["boost/timer/timer.hpp"], 
+	[
+		AC_MSG_WARN(["Could not locate the boost timer library. Some benchmarking functions will be disabled."])
+		AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "y" ])
+	],
+	[
+		BOOST_TIMER()
+		AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "x"])
+	])
+#BOOST_TIMER()							# Required by acplusbridge
+
+
+BOOST_FILESYSTEM()						# Required by cplus2asp
+BOOST_FUNCTION()						# Required by acplusbridge
+BOOST_IOSTREAMS([])						# Required by cplus2asp						
+BOOST_THREADS([])						# Required by acplusbridge
+
 
 AC_PATH_PROG([ICLINGO],[iclingo],[false])
 AC_PATH_PROG([OCLINGO],[oclingo],[false])

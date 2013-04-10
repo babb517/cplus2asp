@@ -34,7 +34,7 @@
 #include <string>
 #include <vector>
 #include <map>
-
+#include <list>
 
 /*********************************************************************************************/
 /* Configuration Defaults */
@@ -44,23 +44,23 @@
 #define DEF_RUNNING_MODE					MODE_INCREMENTAL					///< The default running mode.
 #define DEF_INCL_STD						true								///< Whether to include standard files by default.
 #define DEF_INCL_ADDITIVE					false								///< Whether to include additive files by default.
-#define DEF_DISCARD_INT						true								///< Whether to discard intermediate files by default.
 #define DEF_DISCARD_F2LP					true								///< Whether to discard intermediate F2LP files by default.
 #define DEF_SUPPRESS_INTERACTION			false								///< Whether to suppress user interaction by default.
-#define DEF_SQUELCH_SOLVER					true								///< Whether we should suppress warnings from the solver by default.
-#define DEF_NONE_HACK						true								///< Whether we should simulate none being an integral type by default.
+#define DEF_NONE_HACK						false								///< Whether we should simulate none being an integral type by default.
 #define DEF_SHIFT							false								///< Whether we should assert the --shift flag, which shifts disjunction into the body of the rules.
 
 #define DEF_NUM_SOLN						1									///< Default # of solutions to find.
 #define DEF_INTERNAL_PORT					35981								///< Default port # to use to communicate w/ oClingo.
 
+#define DEF_STATS							false								///< Default for whether we should show solver stats.
+
 // Default commands
 #define DEF_TRANS_CMD						"cplus2asp.bin"						///< Default translator command.
-#define DEF_PREPROC_CMD						"f2lp -i"							///< Default preprocessor command.
+#define DEF_PREPROC_CMD						"f2lp"								///< Default preprocessor command.
 #define DEF_GRD_CMD							""									///< Default grounder command.
 #define DEF_SO_CMD							"iclingo"							///< Default solver command.
 #define DEF_POSTPROC_CMD					"as2transition"						///< Default postprocessor command.
-#define DEF_REACTIVE_BRIDGE_CMD				"cplus2asp_rclient"					///< Default reactive client command. TODO
+#define DEF_REACTIVE_BRIDGE_CMD				"acplusbridge"						///< Default reactive client command. TODO
 
 #define DEF_GRD_REACTIVE_CMD				""									///< The default grounder to use in reactive mode.
 #define DEF_SO_REACTIVE_CMD					"oclingo"							///< The default solver to use in reactive mode.
@@ -90,28 +90,27 @@
 #define F2LP_INPUT_FILE						".f2lp_input.fof"
 #define F2LP_OUTPUT_FILE					".solver_input.lp"
 
-#define INT_TRANS_SYMTAB_FILE				".cplus2asp_trans.symtab"			///< The file to store the symbol table at.
-#define INT_TRANS_FILE						".cplus2asp_trans.out"				///< Name of the intermediate output from the translator.
-#define INT_PREPROC_FILE					".cplus2asp_pre.out"				///< Name of our intermediate output from the pre-processor.
-#define INT_GRD_FILE 						".cplus2asp_gr.out"					///< Name of our intermediate output from the grounder.
-#define INT_SO_FILE							".cplus2asp_so.out"					///< Name of our intermediate output from the solver.
-#define INT_SO_ERR_FILE						".cplus2asp_so.err"					///< Name of our intermediate file for solver warnings.
+#define DEF_INT_TRANS_FILE					".cplus2asp_trans.out"				///< Name of the intermediate output from the translator.
+#define DEF_INT_PREPROC_FILE				".cplus2asp_pre.out"				///< Name of our intermediate output from the pre-processor.
+#define DEF_INT_GRD_FILE 					".cplus2asp_gr.out"					///< Name of our intermediate output from the grounder.
+#define DEF_INT_SO_FILE						".cplus2asp_so.out"					///< Name of our intermediate output from the solver.
 
 // Known constant names
 #define CONST_MAXSTEP						"maxstep"							///< Specifies the maximum step to use.
 #define CONST_MINSTEP						"minstep"							///< Specifies the minimum step to use.
 #define CONST_QUERY							"query"								///< Specifies the query to run.
 #define CONST_MAXADDITIVE					"maxAdditive"						///< Specifies the maximum additive value to use.
-#define CONST_DEFAULT					"default"							///< Specifies a default value.
+#define CONST_DEFAULT						"default"							///< Specifies a default value.
 
 // special query values
 #define CONST_QUERY_NONE					"sat"								///< The value to provide to the query to indicate that no query should be applied.
 #define CONST_QUERY_STATES					"states"							///< The value to provide to the query to indicate that we should find the system's states.
 #define CONST_QUERY_TRANSITIONS				"transitions"						///< The value to provide to the query to indicate that we should find the system's transitions.
-#define CONST_MAXSTEP_INFINITE				"infinite"						///< Value used to set the maximum step to infinite.
+#define CONST_MAXSTEP_INFINITE				"infinite"							///< Value used to set the maximum step to infinite.
+
 
 // etc
-#define HACKED_NONE_VALUE					"50000"								///< The value to treat none as if we're performing the gringo none hack.
+#define DEF_NONE_HACK_VAL					"50000"								///< The value to treat none as if we're performing the gringo none hack.
 
 /**
  * A basic structure to hold and manage various configuration options for the cplus2asp system.
@@ -155,12 +154,10 @@ public:
 		// boolean
 		OPT_INCL_STD = OPT_BEGIN,		///< Whether we should include the standard files.
 		OPT_INCL_ADDITIVE,				///< Whether we should include the standard additive files.
-		OPT_DISCARD_INTERMEDIATE,		///< Whether we should discard all intermediate files when we're done.
 		OPT_DISCARD_F2LP,				///< Whether we should discard all F2LP intermediate files when we're done.
 		OPT_SUPPRESS_INTERACTION,		///< Whether we should operate in silent mode.
-		OPT_SQUELCH_SOLVER,				///< Whether we should silence the solver's warnings
-		OPT_NONE_HACK,					///< Whether we should simulate none as an integral type to circumvent a gringo bug that prevents grounding otherwise.
 		OPT_SHIFT,						///< Whether we should assert the '--shift' flag, which tells gringo to shift disjunction into the body of the rules.
+		OPT_STATS,						///< Whether we should show solving stats.
 
 		// integer
 		OPT_MINSTEP,					///< The currently configured minimum step, or UNDEFINED.
@@ -258,6 +255,9 @@ public:
 	/***************************************************************/
 private:
 
+	std::string mPath;								///< The path to this executable.
+	std::string mErrFile;							///< A temporary error file to use for each tool being run.
+
 	Mode mRunningMode;								///< The currently configured running mode.
 	unsigned char mCustomRunningMode;				///< Whether the running mode has been manually set.
 
@@ -267,6 +267,12 @@ private:
 
 	QueryMap mQueries;								///< The set of all known queries.
 
+	std::string		mNoneAlias;						///< The alias for the 'none' object, or "".
+	unsigned char  	mCustomNone;					///< Whether the none alias has been modified.
+
+	std::string		mSymTabFile;					///< The name of the file to store the symbol table in.
+	unsigned char	mCustomSymTab;					///< Whether the symbol table file has been manually set.
+
 	// Toolchain configuration
 	std::string 	mCommands	[TC_LENGTH];		///< The command to use for each step in the toolchain.
 	unsigned char 	mCustomCmd 	[TC_LENGTH];		///< Whether each toolchain command has been custom set.
@@ -274,8 +280,10 @@ private:
 	unsigned char	mCustomRun	[TC_LENGTH];		///< Whether each toolchain component has been custom set to run or not.
 	std::string 	mOpts	 	[TC_LENGTH];		///< The options to use for each part of the toolchain.
 	unsigned char	mCustomOpts [TC_LENGTH];		///< Whether each toolchain component's options have been changed or not.
+	std::string		mOutFiles 	[TC_LENGTH];		///< The files that each toolchain component is to be bound to.
+	unsigned char	mCustomOut	[TC_LENGTH];		///< Whether each toolchain output file has been custom set to run or not.
 	InputList		mInputs 	[TC_LENGTH];		///< The files which are designated dynamically as input for each of the toolchain components.
-	ConstantMap		mConstDefs;								///< The constants which have been defined and should be passed to the grounder.
+	ConstantMap		mConstDefs;						///< The constants which have been defined and should be passed to the grounder.
 
 public:
 	/***************************************************************/
@@ -283,9 +291,10 @@ public:
 	/***************************************************************/
 	/**
 	 * Default Constructor
+	 * @param name The name of this executable.
 	 * Initializes the configuration to defaults.
 	 */
-	Config();
+	Config(std::string const& name = "");
 
 	/**
 	 * Destructor
@@ -298,39 +307,13 @@ public:
 	/***************************************************************/
 
 	/// Install directory
-	std::string installDir() const;
+	std::string const& installDir() const;
 
 	/// standard file
-	inline std::string stdFile() const
-		{ return (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) ?
-				installDir() + "/" + CCALC2_ASP_STD_DYNAMIC_FILE
-				: installDir() + "/" + CCALC2_ASP_STD_FILE;
-		}
+	std::string stdFile() const;
 
 	/// Additive file
-	inline std::string additiveFile() const
-		{ return (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) ?
-				installDir() + "/" + CCALC2_ASP_ADDITIVE_DYNAMIC_FILE
-				: installDir() + "/" + CCALC2_ASP_ADDITIVE_FILE;
-		}
-
-	/// Intermediate translator file
-	inline std::string intTransFile() const 				{ return INT_TRANS_FILE; }
-
-	/// Intermediate symbol table file from the translator.
-	inline std::string intTransSymTabFile() const			{ return INT_TRANS_SYMTAB_FILE; }
-
-	/// Intermediate preprocessor file
-	inline std::string intPreprocFile() const				{ return INT_PREPROC_FILE; }
-
-	/// Intermediate grounder file
-	inline std::string intGrdFile() const					{ return INT_GRD_FILE; }
-
-	/// Intermediate solver file
-	inline std::string intSoFile() const					{ return INT_SO_FILE; }
-
-	/// Intermediate file to store solver errors.
-	inline std::string intSoErrFile() const					{ return INT_SO_ERR_FILE; }
+	std::string additiveFile() const;
 
 	/***************************************************************/
 	/* Basic accessors / mutators */
@@ -343,6 +326,7 @@ public:
 	inline Mode mode() const										{ return mRunningMode; }
 	///@return Whether the running mode has been manually modified.
 	inline bool customMode() const									{ return (bool)mCustomRunningMode; }
+
 
 	// config options
 	///@return The boolean value of the specified option.
@@ -366,6 +350,7 @@ public:
 	///@return Whether the command options have been manually modififed.
 	inline bool customOpts(Toolchain tool) const					{ return (bool)mCustomOpts[tool]; }
 
+
 	// constants
 	inline bool isDefined(std::string const& constant) const;
 	std::string const* def(std::string const& constant) const;
@@ -379,6 +364,21 @@ public:
 	unsigned int queryMaxStep(unsigned int queryID) const;
 	unsigned int queryMinStep(unsigned int queryID) const;
 
+	// etc
+	///@return The file we should use for stderr from our children.
+	inline std::string const& errFile() const						{ return mErrFile; }
+	///@return A description of the output file for the provided tool.
+	inline std::string const& output(Toolchain tool) const			{ return mOutFiles[tool]; }
+	///@return Whether the output file for the specified tool has been manually modified.
+	inline bool customOut(Toolchain tool) const						{ return (bool)mCustomOut[tool]; }
+	///@return The current value configured as the alias for 'none'.
+	inline std::string const& noneAlias() const						{ return mNoneAlias; }
+	///@return Whether the none alias has been manually modified.
+	inline bool customNoneAlias() const								{ return mCustomNone; }
+	///@return The name of the file to store the symbol table in.
+	inline std::string const& symTabFile() const					{ return mSymTabFile; }
+	///@return Whether the symbol table file has been manually set.
+	inline bool customSymTabFile() const							{ return mCustomSymTab; }
 
 
 	/// Basic Mutators.
@@ -407,6 +407,22 @@ public:
 
 	/// @return Whether the option has been previously set.
 	bool opts(Toolchain tool, std::string const& val);
+
+
+	/// Sets the target output file for the toolchain component.
+	/// @param file The new output file.
+	/// @return True if this overrode a previous configuration.
+	bool output(Toolchain tool, std::string const& file);
+	
+	/// Sets a new value to use as a none alias.
+	/// @param alias the new alias to use.
+	/// @return True if this overrode a previous configuration.
+	bool noneAlias(std::string const& alias);
+
+	/// Sets the file to output the symbol table to.
+	/// @param  file The new file for the symbol table.
+	/// @return True if this overrode a previous configuration.
+	bool symTabFile(std::string const& file);
 
 	/**
 	 * Attempts to add a query to the list of known queries.
@@ -556,6 +572,14 @@ public:
 	 * @return A command to send to the system to call the element.
 	 */
 	std::string compileCommandLine(Toolchain tool, RunConfig const* subconfig = NULL) const;
+	
+	/**
+	 * Compiles the set of arguments used to call a specific element in the toolchain.
+	 * @param tool The toolchain element we want to compile the call for.
+	 * @param subconfig The subconfiguration used to override settings for this specific run.
+	 * @param[out] arglist The compiled list of arguments. The list is not cleared.
+	 */
+	void compileArgs(Toolchain tool,  std::list<std::string>& arglist, RunConfig const* subconfig = NULL) const;
 
 	/**
 	 * Sets the toolchain to run everything up to the desired tool and nothing else.
@@ -587,15 +611,19 @@ public:
 	 */
 	static std::pair<unsigned int, unsigned int> parseMaxstep(std::string const& maxstep);
 
+	/// Whether the output from the provided toolchain component should be captured and filtered.
+	// TODO
+	bool captureOutput(Toolchain tool);
+
 
 protected:
 
 	/**
 	 * Compiles a command which aggregates all the appropriate input files for a toolchain tool into stdout.
 	 * @param tool The tool to compile the inputs for.
-	 * @return A command which results in all the tool's input files being sent to stdout.
+	 * @param[out] arglist The list of args to append the input args to.
 	 */
-	std::string compileInputCommand(Toolchain tool) const;
+	void compileInputArgs(Toolchain tool, std::list<std::string>& arglist) const;
 
 
 	/**

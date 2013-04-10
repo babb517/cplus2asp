@@ -15,8 +15,9 @@ then
 fi 
 
 echo "Cleaning up autoconf files..."
-rm -rf aclocal.m4 autom4te.cache config.h config.h.in config.log config.status stamp-h1 configure 
+rm -rf aclocal.m4 autom4te.cache config.h config.h.in config.log config.status stamp-h1 configure libtool
 rm -f build-scripts/depcomp  build-scripts/install-sh  build-scripts/missing  build-scripts/ylwrap 
+rm -f build-scripts/config.guess build-scripts/config.sub build-scripts/ltmain.sh
 find . -name 'Makefile.in' -exec rm -f {} \;
 find . -name '.deps' -exec rm -rf {} \;
 

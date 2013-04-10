@@ -28,6 +28,9 @@
 #include <string>
 #include <vector>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include "types.h"
 
 #include "DataStructs/Context.h"
@@ -1178,8 +1181,9 @@ void Translator::translateCausalLaw(
 		type = RULE_STATIC;
 		baseTimeStamp = staticTimeStamp;
 	}
+
 	// fluent dynamic laws...
-	else if (head->hasConstants(ParseElement::MASK_FLUENT | ParseElement::MASK_TRUE_FALSE) && !head->hasConstants(ParseElement::MASK_ACTION)
+	else if (!head->hasConstants(ParseElement::MASK_ACTION)
 			&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_ACTION))
 			&& (!assumingBody || !assumingBody->hasConstants(ParseElement::MASK_ACTION))
 			&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_DYNAMIC_AB)))
@@ -1473,8 +1477,6 @@ std::ostream& Translator::makeCausalTranslation(
 // Handles a ':- show' declaration, adding the corresponding #show statements to the translation footer.
 void Translator::translateShowStmt(ParseElementList const& atomicFormulas) {
 	StmtList stmts;
-	Context localContext;
-	std::ostringstream tmp;
 
 	// By default, user defined atoms are shown in the answer set.
 	// The presence of a show statement overrides this and makes them all
@@ -1491,41 +1493,58 @@ void Translator::translateShowStmt(ParseElementList const& atomicFormulas) {
 		// Sanity check: Non-null parse elements.
 		if (!(*it)) continue;
 
+
 		if ((*it)->getType() == ParseElement::PELEM_CONSTLIKE) {
 			// It's a bare constant. Take this to be a shortcut for 'c=v' where V is a variable ranging of the constant's domain
 			ConstantLikeElement* constlike = ((ConstantLikeElement*)(*it));
-			if (constlike->domain() && constlike->domain()->var())
+			if (constlike->domain())
 			{
-				std::string tmpname = constlike->domain()->var()->fullTransName();
-				localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR, tmpname, NULL, NULL, false, false, &stmts);
-				tmp << "#show ";
-				(*it)->translate(tmp, localContext);
-				tmp << ".";
-
-				stmts.push_back(Statement(tmp.str(), IPART_BASE));
-
+				makeShowStmt(*it, stmts, constlike->domain()->var());
 			} else {
 				// This appears to be missing one or more references...
 				// Just try a normal translation and hope for the best.
-				localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR,  NULL, NULL, false, false, &stmts);
-				tmp << "#show ";
-				(*it)->translate(tmp, localContext);
-				tmp << ".";
-				stmts.push_back(Statement(tmp.str(), IPART_BASE));
+				makeShowStmt(*it, stmts);
 			}
 		} else {
 			// It's must be 'c=v'. We can translate this without any further ado
-			localContext = Context(Context::POS_BODY, IPART_BASE, Context::ANON_STR,  NULL, NULL, false, false, &stmts);
-			tmp << "#show ";
-			(*it)->translate(tmp, localContext);
-			tmp << ".";
-			stmts.push_back(Statement(tmp.str(), IPART_BASE));
+			makeShowStmt(*it, stmts);
 		}
-		tmp.str("");
 	}
 
 	// Add the statements to the footer.
 	addToFooter(stmts);
+}
+
+// Makes a '#show' statement for the provided elemenvoid Translator::makeShowStmt(ParseElement* elem, StmtList& extraStmts, Variable* eql) {
+void Translator::makeShowStmt(ParseElement* elem, StmtList& stmts, Variable const* eql) {
+	Context localContext;
+	bool action = elem->hasConstants(ParseElement::MASK_ACTION); 
+	std::stringstream tmp;
+
+	if (!action) {
+		if (eql) localContext = Context(Context::POS_BODY, IPART_BASE, Context::BASE_STR, eql->fullTransName(), NULL, NULL, false, false, &stmts);
+		else localContext = Context(Context::POS_BODY, IPART_BASE, Context::BASE_STR, NULL, NULL, false, false, &stmts);
+		tmp << "#show ";
+		elem->translate(tmp, localContext);
+		tmp << ".";
+		stmts.push_back(Statement(tmp.str(), IPART_BASE));
+		tmp.str("");
+	}
+
+
+	if (eql) localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
+		dynamicTimeStamp + ((action) ? "-1" : ""), 
+		eql->fullTransName(), NULL, NULL, false, false, &stmts);
+	else localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
+		dynamicTimeStamp + ((action) ? "-1" : ""), 
+		NULL, NULL, false, false, &stmts);
+	
+	tmp << "#show ";
+	elem->translate(tmp, localContext);
+	tmp << ".";
+	stmts.push_back(Statement(tmp.str(), IPART_CUMULATIVE));
+
+
 }
 
 // Transforms declarative laws ("inertial p", "exogenous a(X)", "rigid q", etc.) to basic form and calls the translator for them.
@@ -2005,7 +2024,7 @@ bool Translator::translateIncrementLaw(
 	}
 
 	// Finally, translate!
-	translateCausalLaw(head, newIf, NULL, NULL, unlessBody, NULL, whenBody, whereBody);
+	translateCausalLaw(head, newIf, NULL, NULL, unlessBody, whenBody, NULL, whereBody);
 
 	// Clean up!
 	for (std::list<SimpleBinaryOperator*>::iterator it = tmpBinOps.begin(); it != tmpBinOps.end(); it++) {
@@ -2361,8 +2380,50 @@ void Translator::outputStmts(StmtList const& stmts) {
 }
 
 // Dumpts the symbol table to the output stream.
-std::ostream& Translator::outputSymbolTable(std::ostream& out) {
+std::ostream& Translator::outputSymbolTable(std::ostream& out) const {
+	using boost::property_tree::ptree;
+
+	ptree table, *node;
+
+	for (Sort const* s : sorts) {
+		node = &table.put(std::string("sorts.sort"), s->fullName());
+		for (Object const* obj : *s) {
+			(node->put("object", obj->fullName())).put("<xmlattr>.trans_name", obj->fullTransName());
+		}
+
+		for (SortList::const_iterator it = s->beginSubsorts(); it != s->endSubsorts(); it++) {
+			node->put("subsort", (*it)->fullName());
+			for (Object const* obj : **it) {
+				(node->put("object", obj->fullName())).put("<xmlattr>.trans_name", obj->fullTransName());
+			}
+		}
+
+	}
+
+	write_xml(out, table);
+
+/*
+	for (Object const* o : objects) {
+
+	}
+
+	for (Variable const* v : variables) {
+
+	}
+
+	for (Constant const* c : constants) {
+
+	}
+
+	for (Query const* q : queries) {
+
+	}
+
+	table.
+*/
+	// Basically we want to dump all of symbols out via XML
+
 	// TODO
-	out << "<Not yet implemented>\n";
+//	out << "<Not yet implemented>\n";
 	return out;
 }

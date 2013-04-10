@@ -46,6 +46,7 @@ public:
 	static std::string const FALSE_STR;		///< Concrete default string to instantiate 'false' default values.
 	static std::string const EMPTY_STR;		///< Concrete default string to instantiate empty timestamps.
 	static std::string const ANON_STR;		///< Concrete default string to instantiate anonymous values / timestamps.
+	static std::string const BASE_STR;		///< Concrete default string to instantiate base timestamps.
 private:
 	Position mPos;				///< The location which the expression occurs within the program.
 	IPart mPart;				///< The incremental module we are currently working in.

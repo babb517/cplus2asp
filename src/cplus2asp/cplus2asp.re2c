@@ -28,6 +28,7 @@
  */
 
 /* History:
+ * v3.2 - Major revision of command-line arguments. Revised command line calls to provide system portability.
  * v3.1 - Restructured the interactive interface for more user friendly interactions.
  * v3.0 - Restructured options parser. Added incremental translation functionality. Added automated detection and handling of additive/abnormal constants.
  * v2.3 - Implemented "-from[PROG]" and "-to[PROG]" options to give better control over running a partial tool chain.
@@ -59,22 +60,28 @@
 #include <list>
 #include <climits> // for PATH_MAX, INT_MIN
 #include <cstring>
-#include <sys/types.h>
-#include <unistd.h> // for realpath()
 #include <errno.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <cstdlib>
 #include <iomanip>
+#include <exception>
+
+#include <boost/filesystem.hpp>
+#include <boost/iostreams/device/file_descriptor.hpp>
+#include "boost/process.hpp"
+#include "boost/process/mitigate.hpp"
 
 #include "Config.h"
 #include "utils.h"
 #include "Interpreter.h"
 
 using namespace std;
+namespace bp = boost::process;
+namespace bfs = boost::filesystem;
+namespace bio = boost::iostreams;
 
 #define VERSION_MAJOR 3
-#define VERSION_MINOR 1
+#define VERSION_MINOR 2
 #define VERSION_REV 0
 
 #ifndef PATH_MAX
@@ -86,6 +93,7 @@ enum Option {
 	OPT_AUTO,
 	OPT_BRIDGE,
 	OPT_BRIDGE_OPTS,
+	OPT_BRIDGE_OUT,
 	OPT_CONST,
 	OPT_FRM_BRIDGE,
 	OPT_FRM_GRD,
@@ -95,6 +103,8 @@ enum Option {
 	OPT_FROM_TRAN,
 	OPT_GRD,
 	OPT_GRD_OPTS,
+	OPT_GRD_OUT,
+	OPT_GRINGO_NONE_HACK,
 	OPT_JUST_GRD,
 	OPT_JUST_PRE,
 	OPT_JUST_POST,
@@ -108,22 +118,20 @@ enum Option {
 	OPT_MODE_INCREMENTAL,
 	OPT_MODE_REACTIVE,
 	OPT_NO_DEL,
-	OPT_SHIFT,
-	OPT_SHIFT_TRUE,
-	OPT_SHIFT_FALSE,
 	OPT_NO_STD,
-	OPT_GRINGO_NONE_HACK,
-	OPT_GRINGO_NONE_HACK_TRUE,
-	OPT_GRINGO_NONE_HACK_FALSE,
 	OPT_PORT_INTERNAL,
 	OPT_PORT_EXTERNAL,
 	OPT_POSTPROC,
 	OPT_POSTPROC_OPTS,
+	OPT_POSTPROC_OUT,
 	OPT_PREPROC,
 	OPT_PREPROC_OPTS,
+	OPT_PREPROC_OUT,
+	OPT_SHIFT,
 	OPT_SO,
 	OPT_SO_OPTS,
-	OPT_SO_WARN,
+	OPT_SO_OUT,
+	OPT_STATS,
 	OPT_TO_BRIDGE,
 	OPT_TO_GRD,
 	OPT_TO_PRE,
@@ -132,6 +140,7 @@ enum Option {
 	OPT_TO_TRANS,
 	OPT_TRANS,
 	OPT_TRANS_OPTS,
+	OPT_TRANS_OUT,
 	OPT_VERSION,
 	OPT_HELP,
 	OPT_QUERY,
@@ -147,6 +156,7 @@ enum StatusFlags
 {
 	TC_STAT_OK = 0,												///< Universal OK.
 	TC_STAT_BG = 130,											///< Exit code indicating that the task is running in the background.
+	TC_STAT_IO_ERR = -8274,										///< Psuedo exit code indicating that we couldn't open the output file.
 	TC_STAT_TOOLSKIPPED = INT_MIN,								///< Psuedo return code indicating that the tool execution was skipped for some reason.
 	TC_STAT_TRANS_CPLUS2ASP_ABNORMALITY_MASK = 0x80,			///< Bitmask to determine if cplus2asp detected abnormalities.
 	TC_STAT_TRANS_CPLUS2ASP_ADDITIVE_MASK = 0x40,				///< Bitmask to determine if cplus2asp detected additive fluents.
@@ -184,9 +194,10 @@ enum OptionStatus
 /**
  * Parses a string and determines what (if any) command line option it contains.
  * @param opt - The string to parse.
+ * @param val A value for the option, where applicable (NULL otherwise).
  * @return The command line option contained within the string (or OPT_UNKNOWN).
  */
-Option parseOption(char const* opt);
+Option parseOption(char const* opt, char const*& val);
 
 /**
  * Shows the version dialog.
@@ -271,6 +282,17 @@ void scanForConstants(Config& config, std::string const& file);
  */
 int runTool(Config const& config, Config::Toolchain tool, std::string const& name, Config::RunConfig const* subconfig = NULL);
 
+
+/**
+ * @brief Processes the provided error file applying any error filters and printing the rest.
+ * @param config The system configuration.
+ * @param tool The tool that generated the error file.
+ * @param file The error file.
+ * @return True if the file exists and was successfully opened, false otherwise.
+ */
+bool processErrors(Config const& config, Config::Toolchain tool, std::string const& file);
+
+
 /**
  * Cleans up the intermediate files generated during program execution.
  * @param config The program's configuration.
@@ -286,6 +308,14 @@ void cleanup(Config const& config, bool const* ran);
  */
 bool echoFile(std::ostream& out, std::string const& filename);
 
+/**
+ * Attempts to echo the solver stats from the specified file.
+ * @param out The output stream to print to.
+ * @param filename The file to read from.
+ * @return True if the file exists and contains stats data that was printed, false otherwise.
+ */
+bool echoStats(std::ostream& out, std::string const& filename);
+
 int main(int argc, char** argv)
 {
 
@@ -296,7 +326,7 @@ int main(int argc, char** argv)
 	int intSystemResult = 0; 							// Holds what comes back from system().
 	
 
-	Config config;										// The almighty system configuration.
+	Config config(argv[0]);								// The almighty system configuration.
 
 	bool ran[Config::TC_LENGTH];						// Variable used to track which toolchain components we have ran so far.
 	memset(ran, 0, Config::TC_LENGTH);
@@ -368,6 +398,13 @@ int main(int argc, char** argv)
 		// It Ran!
 		ran[Config::TC_TRANSLATOR] = true;
 
+		if (!config.run(Config::TC_PREPROC)) {
+			if (!echoFile(std::cout, config.output(Config::TC_TRANSLATOR))) {
+				error("Unable to read from the translator output file '%s'", true, -1, config.output(Config::TC_TRANSLATOR).c_str());
+			}
+		}
+
+
 		// check the status and make sure all is well...
 		if((intSystemResult & ~TC_STAT_TRANS_CPLUS2ASP_ABNORMALITY_MASK & ~TC_STAT_TRANS_CPLUS2ASP_ADDITIVE_MASK) != TC_STAT_OK)
 		{
@@ -407,6 +444,12 @@ int main(int argc, char** argv)
 		// It Ran!
 		ran[Config::TC_PREPROC] = true;
 
+		if (!config.run(Config::TC_GROUNDER) && !config.run(Config::TC_SOLVER)) {
+			if (!echoFile(std::cout, config.output(Config::TC_PREPROC))) {
+				error("Unable to read from the pre-processor output file '%s'", true, -1, config.output(Config::TC_PREPROC).c_str());
+			}
+		}
+		
 		// check the status and make sure all is well...
 		if(intSystemResult != TC_STAT_OK)
 		{
@@ -469,6 +512,8 @@ int main(int argc, char** argv)
 			}
 		}
 
+		/*
+		// TODO: Should we require a port?
 		if (config.run(Config::TC_SOLVER)) {
 			if (config.intConfigOpt(Config::OPT_EXT_PORT) == Config::UNDEFINED
 					&& config.mode() == Config::MODE_REACTIVE) {
@@ -492,6 +537,7 @@ int main(int argc, char** argv)
 				}
 			}
 		}
+		*/
 
 	}
 
@@ -606,6 +652,11 @@ int main(int argc, char** argv)
 			if ((intSystemResult = runTool(config, Config::TC_GROUNDER, "grounder", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
 				// It Ran!
 				ran[Config::TC_GROUNDER] = true;
+				if (!config.run(Config::TC_SOLVER)) {
+					if (!echoFile(std::cout, config.output(Config::TC_GROUNDER))) {
+						error("Unable to read from the grounder output file '%s'", true, -1, config.output(Config::TC_GROUNDER).c_str());
+					}
+				}
 
 				// check the status and make sure all is well...
 				if(intSystemResult != TC_STAT_OK)
@@ -663,6 +714,12 @@ int main(int argc, char** argv)
 				ran[Config::TC_SOLVER] = true;
 				bool ok = true;
 
+				if (!config.run(Config::TC_POSTPROC)) {
+					if (!echoFile(std::cout, config.output(Config::TC_SOLVER))) {
+						error("Unable to read from the solver output file '%s'", true, -1, config.output(Config::TC_SOLVER).c_str());
+					}
+				}
+				
 				// check the status and make sure all is well...
 				if (intSystemResult == TC_STAT_SO_CLINGO_FOUND_SOLUTIONS) {
 					// Looks like we have solutions... YAY!
@@ -675,12 +732,6 @@ int main(int argc, char** argv)
 					ok = false;
 				}
 
-				if (!ok || !config.boolConfigOpt(Config::OPT_SQUELCH_SOLVER)) {
-					// echo the warnings, if any
-					if (!echoFile(std::cerr, config.intSoErrFile())) {
-						error("Cannot display solver errors. The error file does not exist.", true, 0);
-					}
-				}
 
 				if (!ok) {
 					// something went wrong
@@ -697,6 +748,9 @@ int main(int argc, char** argv)
 			debug("Entering post-processor subroutine.", true);
 			if (config.mode() != Config::MODE_REACTIVE) {
 				if ((intSystemResult = runTool(config, Config::TC_POSTPROC, "post-processor", &runConfig)) != TC_STAT_TOOLSKIPPED)  {
+					if (!echoFile(std::cout, config.output(Config::TC_POSTPROC))) {
+						error("Unable to read from the post-processor output file '%s'", true, -1, config.output(Config::TC_POSTPROC).c_str());
+					}
 					// It Ran!
 					ran[Config::TC_POSTPROC] = true;
 
@@ -721,7 +775,6 @@ int main(int argc, char** argv)
 			// NOTE: If we really are in reactive mode then they solver is still running the background!
 			debug("Entering reactive bridge subroutine.", true);
 
-			// TODO: The reactive bridge is currently disabled as it is not yet implemented.
 			if (config.mode() == Config::MODE_REACTIVE) { 
 #ifdef NO_REACTIVE_BRIDGE
 			warning("The reactive bridge has not yet been completed. Due to this, the system will run as if the reactive bridge has been disabled and you will need to connect to oClingo directly.", true);
@@ -797,14 +850,14 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 	std::pair<unsigned int, unsigned int> steps;
 	unsigned int tmpInt;
 	Config::Mode mode;
-
+	bool tmpBool;
 
 
 
 	for(int i = 1; i < argc; i++)
 	{
 		debug("Parsing option '%s'.", true, argv[i]);
-		switch (parseOption(argv[i])) {
+		switch (parseOption(argv[i], tmpptr)) {
 
 		case OPT_AUTO:
 			// This is supposed to be an automated run, don't ask the user for anything.
@@ -816,29 +869,43 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 		case OPT_BRIDGE:
 			// They are specifying a specific command for the bridge.
 
-			if (++i < argc) {
-				if (outConf.command(Config::TC_REACTIVE_BRIDGE, argv[i])) {
-					warning("Detected redefinition of bridge command. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
 			}
+
+			if (outConf.command(Config::TC_REACTIVE_BRIDGE, tmpptr)) {
+				warning("Detected redefinition of bridge command. Continuing with value '%s'",true,tmpptr);
+			}
+
 			break;
 
 		case OPT_BRIDGE_OPTS:
 
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_REACTIVE_BRIDGE, argv[i])) {
-					warning("Detected redefinition of bridge command options. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected pass-through options following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+			}
+
+			if (outConf.opts(Config::TC_REACTIVE_BRIDGE, tmpptr)) {
+				warning("Detected redefinition of bridge command options. Continuing with value '%s'",true,tmpptr);
 			}
 			break;
+		case OPT_BRIDGE_OUT:
+
+			error("Redirecting the reactive bridge's output is currently unsupported.", true, 0);
+			return OPT_STAT_BAD_ARG;
+
 		case OPT_CONST:
 			// Constant Declaration...
 			if(++i < argc && (tmpptr = strchr(argv[i],'=')) != NULL)
@@ -906,68 +973,70 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 		case OPT_GRD:
 			// They're giving us a specific executable to use as the grounder instead of the default.
 			// Make sure a second argument follows, and save the new grounder.
-			if (++i < argc) {
-				if (outConf.command(Config::TC_GROUNDER, argv[i])) {
-					warning("Detected redefinition of grounder command. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
 			}
+
+			if (outConf.command(Config::TC_GROUNDER, tmpptr)) {
+				warning("Detected redefinition of grounder command. Continuing with value '%s'",true,tmpptr);
+			}
+
 			break;
 
 		case OPT_GRD_OPTS:
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_GROUNDER, argv[i])) {
-					warning("Detected redefinition of grounder command options. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for options but they didn't deliver
+					error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+			}
+
+			if (outConf.opts(Config::TC_GROUNDER, tmpptr)) {
+				warning("Detected redefinition of grounder command options. Continuing with value '%s'",true, tmpptr);
+			}
+
+			break;
+
+		case OPT_GRD_OUT:
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (outConf.output(Config::TC_GROUNDER, tmpptr)) {
+				warning("Detected redefinition of the grounder output file. Continuing with value '%s'",true, tmpptr);
 			}
 			break;
 
 		case OPT_GRINGO_NONE_HACK:
 			// Specifying a none_hack value.
-			if (++i < argc) {
 
-				bool val;
-				if (!strcmp(argv[i], "true")) {
-					val = true;
-				} else if (!strcmp(argv[i], "false")) {
-					val = false;
-				} else {
-					error("Expected a boolean value 'true' or 'false' following the '%s' flag. Exiting.", true, 0, argv[i-1]);
-					return OPT_STAT_BAD_ARG;
-				}
+			if (!tmpptr) {
+				warning("Option '%s' has been deprecated in favor of specifying an explicit none alias value.",true,argv[i]);
 
-				if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, val)) {
-					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
-				}
-
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a boolean value 'true' or 'false following the '%s' flag. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+				tmpptr = DEF_NONE_HACK_VAL;
 			}
-			break;
 
-		case OPT_GRINGO_NONE_HACK_TRUE:
-			// They want us to treat none as an integral type to circumvent a
-			// bug in gringo that prevents grounding of certain domains otherwise.
-			if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, true)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+
+			if (outConf.noneAlias(tmpptr)) {
+				warning("Detected redefinition of the none alias option. Continuing with value '%s'",true, tmpptr);
 			}
-			break;
-			
-		case OPT_GRINGO_NONE_HACK_FALSE:
-			// They want us NOT to treat none as an integral type to circumvent a
-			// bug in gringo that prevents grounding of certain domains otherwise.
-			if (outConf.boolConfigOpt(Config::OPT_NONE_HACK, false)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
-			}
+
 			break;
 
 
@@ -1008,135 +1077,126 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 
 		case OPT_MAXSTEP:
 
-			if (++i >= argc) {
-				error("Expected a maximum step following option '%s'. Exiting.",true,0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
-			} else if ((steps = Config::parseMaxstep(argv[i])).second == Config::UNDEFINED) {
-				error("'%s' is not a valid step value. Exiting.",true,0, argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+						error("Expected a maximum step following option '%s'. Exiting.",true,0, argv[i-1]);
+						return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if ((steps = Config::parseMaxstep(tmpptr)).second == Config::UNDEFINED) {
+				error("'%s' is not a valid step value. Exiting.",true,0, tmpptr);
 				return OPT_STAT_BAD_ARG;
 			} else if (outConf.intConfigOpt(Config::OPT_MAXSTEP, steps.second)
 					|| (steps.first != Config::UNDEFINED && outConf.intConfigOpt(Config::OPT_MINSTEP, steps.first)))
 			{
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+				warning("Detected a redefinition of the maximum step. Continuing with the value '%s'.",true,tmpptr);
 			}
 			break;
 
 		case OPT_MINSTEP:
 
-			if (++i >= argc) {
-				error("Expected a minimum step following option '%s'. Exiting.",true,0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
-			} else if (!from_string(tmpInt, argv[i])) {
-				error("'%s' is not a valid step value. Exiting.",true,0, argv[i]);
+			if (!tmpptr) {
+
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					error("Expected a minimum step following option '%s'. Exiting.",true,0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+
+			}
+
+	
+			if (!from_string(tmpInt, tmpptr)) {
+				error("'%s' is not a valid step value. Exiting.",true,0, tmpptr);
 				return OPT_STAT_BAD_ARG;
 			} else if (outConf.intConfigOpt(Config::OPT_MINSTEP, tmpInt)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+				warning("Detected a redefinition of the minimum step. Continuing with value '%s'.",true,tmpptr);
 			}
 
 			break;
 
 		case OPT_MODE_SELECT:
-
-			if (++i < argc) {
-
-				if (!strcmp(argv[i],ARG_MODE_STATIC_MANUAL)) {
-					mode = Config::MODE_STATIC_MANUAL;
-				} else if (!strcmp(argv[i],ARG_MODE_STATIC_AUTO)) {
-					mode = Config::MODE_STATIC_AUTO;
-				} else if (!strcmp(argv[i],ARG_MODE_INCREMENTAL)) {
-					mode = Config::MODE_INCREMENTAL;
-				} else if (!strcmp(argv[i],ARG_MODE_REACTIVE)) {
-					mode = Config::MODE_INCREMENTAL;
+			tmpBool = false;
+			if (!tmpptr) {
+				tmpBool = true;
+				if (++i < argc) {
+					tmpptr = argv[i];
 				} else {
 					error("Expected a mode option (one of '%s', '%s', '%s', or '%s') following option '%s'. Exiting.",true,0,
-							ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, OPT_MODE_REACTIVE, argv[i-1]);
+							ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, ARG_MODE_REACTIVE, argv[i-1]);
 					return OPT_STAT_BAD_ARG;
 				}
+			}
 
-				if (outConf.mode(mode)) {
-					warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, argv[i]);
-				}
 
+			if (!strcmp(argv[i],ARG_MODE_STATIC_MANUAL)) {
+				mode = Config::MODE_STATIC_MANUAL;
+			} else if (!strcmp(argv[i],ARG_MODE_STATIC_AUTO)) {
+				mode = Config::MODE_STATIC_AUTO;
+			} else if (!strcmp(argv[i],ARG_MODE_INCREMENTAL)) {
+				mode = Config::MODE_INCREMENTAL;
+			} else if (!strcmp(argv[i],ARG_MODE_REACTIVE)) {
+				mode = Config::MODE_INCREMENTAL;
 			} else {
 				error("Expected a mode option (one of '%s', '%s', '%s', or '%s') following option '%s'. Exiting.",true,0,
-						ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, ARG_MODE_REACTIVE, argv[i-1]);
+						ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, OPT_MODE_REACTIVE, (tmpBool) ? argv[i-1] : argv[i]);
 				return OPT_STAT_BAD_ARG;
 			}
 
-			break;
+			if (outConf.mode(mode)) {
+				warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, tmpptr);
+			}
 
-		case OPT_MODE_STATIC_AUTO:
-			if (outConf.mode(Config::MODE_STATIC_AUTO)) {
-				warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, ARG_MODE_STATIC_AUTO);
-			}
-			break;
-
-		case OPT_MODE_STATIC_MANUAL:
-			if (outConf.mode(Config::MODE_STATIC_MANUAL)) {
-				warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, ARG_MODE_STATIC_MANUAL);
-			}
-			break;
-		case OPT_MODE_INCREMENTAL:
-			if (outConf.mode(Config::MODE_INCREMENTAL)) {
-				warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, ARG_MODE_INCREMENTAL);
-			}
-			break;
-
-		case OPT_MODE_REACTIVE:
-			if (outConf.mode(Config::MODE_REACTIVE)) {
-				warning("Detected a redefinition of the program's running mode. Continuing with value '%s.", true, ARG_MODE_REACTIVE);
-			}
 			break;
 
 		case OPT_NO_DEL:
+			tmpBool = false;
+			warning("The option '%s' has been deprecated in favor of the '--[PROG]-output=[OUTFILE] option.", true, argv[i]);
+
+			tmpBool = outConf.output(Config::TC_TRANSLATOR, DEF_INT_TRANS_FILE) 
+					|/* non-shortcutting bitwise or */ outConf.output(Config::TC_PREPROC, DEF_INT_PREPROC_FILE)
+					| outConf.output(Config::TC_GROUNDER, DEF_INT_GRD_FILE)
+					| outConf.output(Config::TC_SOLVER, DEF_INT_SO_FILE);
+
 			// Shut off deleting intermediate files.
-			if (outConf.boolConfigOpt(Config::OPT_DISCARD_INTERMEDIATE, false)
-					|/*non-short-circuiting*/ outConf.boolConfigOpt(Config::OPT_DISCARD_F2LP, false)) {
+			if (tmpBool) {
 				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
 			}
 			break;
-
 
 		case OPT_SHIFT:
-
-			// Specifying a shift value.
-			if (++i < argc) {
-
-				bool val;
-				if (!strcmp(argv[i], "true")) {
-					val = true;
-				} else if (!strcmp(argv[i], "false")) {
-					val = false;
-				} else {
-					error("Expected a boolean value 'true' or 'false' following the '%s' flag. Exiting.", true, 0, argv[i-1]);
-					return OPT_STAT_BAD_ARG;
-				}
-
-				if (outConf.boolConfigOpt(Config::OPT_SHIFT, val)) {
-					warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
-				}
-
+			if (!tmpptr) {
+				// default true
+				tmpptr = "true";
+			}
+			
+			bool val;
+			if (!strcmp(tmpptr, "true")) {
+				val = true;
+			} else if (!strcmp(tmpptr, "false")) {
+				val = false;
 			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a boolean value 'true' or 'false following the '%s' flag. Exiting.",true,0,argv[i-1]);
+				error("Invalid shift value. Expected a Boolean value ('true' or 'false'). Exiting.", true, 0, argv[i]);
 				return OPT_STAT_BAD_ARG;
 			}
-			break;
 
-		case OPT_SHIFT_FALSE:
-			// Allow the solver to shift disjunction into the body.
-			if (outConf.boolConfigOpt(Config::OPT_SHIFT, false)) {
+			if (outConf.boolConfigOpt(Config::OPT_SHIFT, val)) {
 				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
 			}
+
 			break;
 
-		case OPT_SHIFT_TRUE:
-			// Do not allow the solve to shift disjunction into the body.
-			if (outConf.boolConfigOpt(Config::OPT_SHIFT, true)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+		case OPT_STATS:
+			// Don't include standard files in the final product.
+			if (outConf.boolConfigOpt(Config::OPT_STATS, true)) {
+				warning("The option '%s' has overridden one or more previous choices.",true, argv[i]);
 			}
-			break;
 
+			break;
 		case OPT_NO_STD:
 			// Don't include standard files in the final product.
 			if (outConf.boolConfigOpt(Config::OPT_INCL_STD, false)) {
@@ -1146,30 +1206,42 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 
 		case OPT_PORT_EXTERNAL:
 			// Set the external port to use in reactive mode
-			int tmp;
+			if (!tmpptr) {
 
-			if (++i >= argc) {
-				error("Expected a port number following option '%s'. Exiting.",true,0, argv[i-1]);
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					error("Expected a port number following option '%s'. Exiting.",true,0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+
+			if (!from_string(tmpInt, tmpptr) || tmpInt < 1) {
+				error("'%s' is not a valid port. Exiting.",true,0, tmpptr);
 				return OPT_STAT_BAD_ARG;
-			} else if (!from_string(tmp, argv[i]) || tmp < 1) {
-				error("'%s' is not a valid port. Exiting.",true,0, argv[i]);
-				return OPT_STAT_BAD_ARG;
-			} else if (outConf.boolConfigOpt(Config::OPT_EXT_PORT, false)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+			} else if (outConf.intConfigOpt(Config::OPT_EXT_PORT, tmpInt)) {
+				warning("Detected a redefinition of the external port. Continuing with value '%s'.",true,tmpptr);
 			}
 
 			break;
 
 		case OPT_PORT_INTERNAL:
 			// Set the internal port to use in reactive mode
-			if (++i >= argc) {
-				error("Expected a port number following option '%s'. Exiting.",true,0, argv[i-1]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					error("Expected a port number following option '%s'. Exiting.",true,0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (!from_string(tmpInt, tmpptr) || tmpInt < 1) {
+				error("'%s' is not a valid port. Exiting.",true,0, tmpptr);
 				return OPT_STAT_BAD_ARG;
-			} else if (!from_string(tmp, argv[i]) || tmp < 1) {
-				error("'%s' is not a valid port. Exiting.",true,0, argv[i]);
-				return OPT_STAT_BAD_ARG;
-			} else if (outConf.boolConfigOpt(Config::OPT_EXT_PORT, false)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i-1]);
+			} else if (outConf.intConfigOpt(Config::OPT_INT_PORT, tmpInt)) {
+				warning("Detected a redefinition of the internal port. Continuing with value '%s'.",true,tmpptr);
 			}
 
 			break;
@@ -1177,86 +1249,163 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 		case OPT_POSTPROC:
 			// They're giving us a specific executable to use as the post-processor instead of the default.
 			// Make sure a second argument follows, and save the new post-processor.
-			if (++i < argc) {
-				if (outConf.command(Config::TC_POSTPROC, argv[i])) {
-					warning("Detected redefinition of post-processor command. Continuing with value '%s'",true,argv[i]);
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
 			}
+
+			if (outConf.command(Config::TC_POSTPROC, tmpptr)) {
+				warning("Detected redefinition of post-processor command. Continuing with value '%s'.",true,argv[i]);
+			}
+	
 			break;
 
 		case OPT_POSTPROC_OPTS:
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_POSTPROC, argv[i])) {
-					warning("Detected redefinition of post-processor command options. Continuing with value '%s'",true,argv[i]);
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for options but they didn't deliver
+					error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+			}
+
+
+			if (outConf.opts(Config::TC_POSTPROC, tmpptr)) {
+				warning("Detected redefinition of post-processor command options. Continuing with value '%s'",true,tmpptr);
+			}
+
+			break;
+
+		case OPT_POSTPROC_OUT:
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (outConf.output(Config::TC_POSTPROC, tmpptr)) {
+				warning("Detected redefinition of the post-processor output file. Continuing with value '%s'",true, tmpptr);
 			}
 			break;
 
 		case OPT_PREPROC:
 			// They're giving us a specific executable to use as the pre-processor instead of the default.
 			// Make sure a second argument follows, and save the new pre-processor.
-			if (++i < argc) {
-				if (outConf.command(Config::TC_PREPROC, argv[i])) {
-					warning("Detected redefinition of pre-processor command. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+			}
+
+			if (outConf.command(Config::TC_PREPROC, tmpptr)) {
+				warning("Detected redefinition of pre-processor command. Continuing with value '%s'",true,tmpptr);
 			}
 			break;
 
 		case OPT_PREPROC_OPTS:
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_PREPROC, argv[i])) {
-					warning("Detected redefinition of pre-processor command options. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for options but they didn't deliver
+					error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+
 			}
+
+
+			if (outConf.opts(Config::TC_PREPROC, tmpptr)) {
+				warning("Detected redefinition of pre-processor command options. Continuing with value '%s'",true,tmpptr);
+			}
+
 			break;
 
+		case OPT_PREPROC_OUT:
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (outConf.output(Config::TC_PREPROC, tmpptr)) {
+				warning("Detected redefinition of the pre-processor output file. Continuing with value '%s'",true, tmpptr);
+			}
+			break;
 
 		case OPT_SO:
 			// They're giving us a specific executable to use as the solver instead of the default.
 			// Make sure a second argument follows, and save the new solver.
-			if (++i < argc) {
-				if (outConf.command(Config::TC_SOLVER, argv[i])) {
-					warning("Detected redefinition of solver command. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
+			}
+
+			if (outConf.command(Config::TC_SOLVER, tmpptr)) {
+				warning("Detected redefinition of solver command. Continuing with value '%s'",true,tmpptr);
 			}
 			break;
 
 		case OPT_SO_OPTS:
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_SOLVER, argv[i])) {
-					warning("Detected redefinition of solver command options. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for options but they didn't deliver
+					error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
-				return OPT_STAT_BAD_ARG;
 			}
+
+
+			if (outConf.opts(Config::TC_SOLVER, tmpptr)) {
+				warning("Detected redefinition of solver command options. Continuing with value '%s'",true, tmpptr);
+			}
+
 			break;
 
-		case OPT_SO_WARN:
-			// They want to see the warnings issued by the solver.
-			if (outConf.boolConfigOpt(Config::OPT_SQUELCH_SOLVER, false)) {
-				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
+		case OPT_SO_OUT:
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (outConf.output(Config::TC_SOLVER, tmpptr)) {
+				warning("Detected redefinition of the solver output file. Continuing with value '%s'",true, tmpptr);
 			}
 			break;
 
@@ -1304,26 +1453,58 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 		case OPT_TRANS:
 			// They're giving us a specific executable to use as the translator instead of the default.
 			// Make sure a second argument follows, and save the new grounder.
-			if (++i < argc) {
-				if (outConf.command(Config::TC_TRANSLATOR, argv[i])) {
-					warning("Detected redefinition of translator command. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for a command but they didn't deliver.
-				error("Expected a command following option '%s'. Exiting.",true,0,argv[i-1]);
-				return OPT_STAT_BAD_ARG;
 			}
+
+
+			if (outConf.command(Config::TC_TRANSLATOR, tmpptr)) {
+				warning("Detected redefinition of translator command. Continuing with value '%s'.",true,tmpptr);
+			}
+
 			break;
 
 		case OPT_TRANS_OPTS:
-			if (++i < argc) {
-				if (outConf.opts(Config::TC_TRANSLATOR, argv[i])) {
-					warning("Detected redefinition of translator command options. Continuing with value '%s'",true,argv[i]);
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for options but they didn't deliver
+					error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+					return OPT_STAT_BAD_ARG;
 				}
-			} else {
-				// setup for options but they didn't deliver
-				error("Expected pass-through options following the option '%s'. Exiting.", true, 0, argv[i-1]);
+			}
+
+
+			if (outConf.opts(Config::TC_TRANSLATOR, tmpptr)) {
+				warning("Detected redefinition of translator command options. Continuing with value '%s'.",true,tmpptr);
+			}
+
+			break;
+
+		case OPT_TRANS_OUT:
+
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					// setup for a command but they didn't deliver.
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (outConf.output(Config::TC_TRANSLATOR, tmpptr)) {
+				error("Unable to open '%s' for reading/writing.",true,0,tmpptr);
 				return OPT_STAT_BAD_ARG;
+			} else if (tmpInt > 0) {
+				warning("Detected redefinition of the translator output file. Continuing with value '%s'",true, tmpptr);
 			}
 			break;
 
@@ -1457,10 +1638,13 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 /**
  * Parses a string and determines what (if any) command line option it contains.
  * @param opt - The string to parse.
+ * @param[out] val A string with the value for the option (where applicable) or NULL. 
  * @return The command line option contained within the string (or OPT_UNKNOWN).
  */
-Option parseOption(char const* opt) {
+Option parseOption(char const* opt, char const*& val) {
 	char const* marker;
+
+	val = NULL;
 
 	/*!re2c
 			re2c:define:YYCTYPE = "char";
@@ -1471,59 +1655,81 @@ Option parseOption(char const* opt) {
 
 			"-auto"|"--automated"					{ return OPT_AUTO; }
 			"-c"|"--const"							{ return OPT_CONST; }
+			"-br="|"--bridge="						{ val = opt; return OPT_BRIDGE; }
 			"-br"|"--bridge"						{ return OPT_BRIDGE; }
-			"-bropt"|"--bridge--opts"				{ return OPT_BRIDGE_OPTS; }
+			"-bropt="|"--bridge-opts="				{ val = opt; return OPT_BRIDGE_OPTS; }
+			"-bropt"|"--bridge-opts"				{ return OPT_BRIDGE_OPTS; }
+			"-brout="|"--bridge-output="			{ val = opt; return OPT_BRIDGE_OUT; }
+			"-brout"|"--bridge-output"				{ return OPT_BRIDGE_OUT; }
 			"-frombr"|"--from-bridge"				{ return OPT_FRM_BRIDGE; }
 			"-fromgr"|"--from-grounder"				{ return OPT_FRM_GRD; }
 			"-frompre"|"--from-pre-processor"		{ return OPT_FRM_PRE; }
 			"-frompost"|"--from-post-processor"		{ return OPT_FRM_POST; }
 			"-fromso"|"--from-solver"				{ return OPT_FROM_SO; }
 			"-fromtrans"|"--from-translator"		{ return OPT_FROM_TRAN; }
+			"-gr="|"--grounder="					{ val = opt; return OPT_GRD; }
 			"-gr"|"--grounder"						{ return OPT_GRD; }
+			"-gropt="|"--grounder-opts="			{ val = opt; return OPT_GRD_OPTS; }
 			"-gropt"|"--grounder-opts"				{ return OPT_GRD_OPTS; }
-			"-nh"									{ return OPT_GRINGO_NONE_HACK_TRUE; }
-			"--none-hack"							{ return OPT_GRINGO_NONE_HACK_TRUE; }
-			"--none-hack=true"						{ return OPT_GRINGO_NONE_HACK_TRUE; }
-			"--none-hack=false"						{ return OPT_GRINGO_NONE_HACK_FALSE; }
+			"-grout="|"--grounder-output="			{ val = opt; return OPT_GRD_OUT; }
+			"-grout"|"--grounder-output"			{ return OPT_GRD_OUT; }
+			"-nh="|"--none-hack="					{ val = opt; return OPT_GRINGO_NONE_HACK; }
+			"-na="|"--none-alias="					{ val = opt; return OPT_GRINGO_NONE_HACK; }
 			"-i"|"--internal-port"					{ return OPT_PORT_INTERNAL; }
 			"-justgr"|"--just-grounder"				{ return OPT_JUST_GRD; }
 			"-justpre"|"--just-pre-processor"		{ return OPT_JUST_PRE; }
 			"-justpost"|"--just-post-processor"		{ return OPT_JUST_POST; }
 			"-justso"|"--just-solver"				{ return OPT_JUST_SO; }
 			"-justtrans"|"--just-translator"		{ return OPT_JUST_TRANS; }
-			"-m"									{ return OPT_MODE_SELECT; }
-			"--mode=static-auto"					{ return OPT_MODE_STATIC_AUTO; }
-			"--mode=static-manual"					{ return OPT_MODE_STATIC_MANUAL; }
-			"--mode=incremental"					{ return OPT_MODE_INCREMENTAL; }
-			"--mode=reactive"						{ return OPT_MODE_REACTIVE; }
+			"-m="|"--mode="							{ val = opt; return OPT_MODE_SELECT; }
+			"-m"|"--mode"							{ return OPT_MODE_SELECT; }
+			"-max="|"--maxstep="					{ val = opt; return OPT_MAXSTEP; }
 			"-max"|"--maxstep"						{ return OPT_MAXSTEP; }
+			"-min="|"--minstep="					{ val = opt; return OPT_MINSTEP; }
 			"-min"|"--minstep"						{ return OPT_MINSTEP; }
-			"-nodel"|"--no-delete"					{ return OPT_NO_DEL; }
 			"-nostd"|"--no-standard"				{ return OPT_NO_STD; }
-			"-s"									{ return OPT_SHIFT_TRUE; }
-			"--shift"								{ return OPT_SHIFT_TRUE; }
-			"--shift=true"							{ return OPT_SHIFT_TRUE; }
-			"--shift=false"							{ return OPT_SHIFT_FALSE; }
+			"-s"|"--shift"							{ return OPT_SHIFT; }
+			"--stats"								{ return OPT_STATS; }
+			"-p="|"--port="							{ val = opt; return OPT_PORT_EXTERNAL; }
 			"-p"|"--port"							{ return OPT_PORT_EXTERNAL; }
+			"-post="|"--post-processor="			{ val = opt; return OPT_POSTPROC; }
 			"-post"|"--post-processor"				{ return OPT_POSTPROC; }
+			"-postopt="|"--post-processor-opts="	{ val = opt; return OPT_POSTPROC_OPTS; }
 			"-postopt"|"--post-processor-opts"		{ return OPT_POSTPROC_OPTS; }
+			"-postout="|"--post-processor-output="	{ val = opt; return OPT_POSTPROC_OUT; }
+			"-postout"|"--post-processor-output"	{ return OPT_POSTPROC_OUT; }
+			"-pre="|"--pre-processor="				{ val = opt; return OPT_PREPROC; }
 			"-pre"|"--pre-processor"				{ return OPT_PREPROC; }
+			"-preopt="|"--pre-processor-opts="		{ val = opt; return OPT_PREPROC_OPTS; }
 			"-preopt"|"--pre-processor-opts"		{ return OPT_PREPROC_OPTS; }
+			"-preout="|"--pre-processor-output="	{ val = opt; return OPT_PREPROC_OUT; }
+			"-preout"|"--pre-processor-output"		{ return OPT_PREPROC_OUT; }
+			"-so="|"--solver="						{ val = opt; return OPT_SO; }
 			"-so"|"--solver"						{ return OPT_SO; }
+			"-soopt="|"--solver-opts="				{ val = opt; return OPT_SO_OPTS; }
 			"-soopt"|"--solver-opts"				{ return OPT_SO_OPTS; }
-			"-sw"|"--solver-warnings"				{ return OPT_SO_WARN; }
+			"-soout="|"--solver-output="			{ val = opt; return OPT_SO_OUT; }
+			"-soout"|"--solver-output"				{ return OPT_SO_OUT; }
 			"-togr"|"--to-grounder"					{ return OPT_TO_GRD; }
 			"-topre"|"--to-pre-processor"			{ return OPT_TO_PRE; }
 			"-topost"|"--to-post-processor"			{ return OPT_TO_POST; }
 			"-toso"|"--to-solver"					{ return OPT_TO_SO; }
 			"-totrans"|"--to-translator"			{ return OPT_TO_TRANS; }
 			"-tobr"|"--to-bridge"					{ return OPT_TO_BRIDGE;	}
+			"-trans="|"--translator="				{ val = opt; return OPT_TRANS; }
 			"-trans"|"--translator"					{ return OPT_TRANS; }
+			"-transopt="|"--translator-opts="		{ val = opt; return OPT_TRANS_OPTS; }
 			"-transopt"|"--translator-opts"			{ return OPT_TRANS_OPTS; }
+			"-transout="|"--translator-output="		{ val = opt; return OPT_TRANS_OUT; }
+			"-transout"|"--translator-output"		{ return OPT_TRANS_OUT; }
 			"-v"|"--version"						{ return OPT_VERSION; }
+			"-q="|"--query="						{ val = opt; return OPT_QUERY; }
 			"-q"|"--query"							{ return OPT_QUERY; }
 			"-?"|"--help"							{ return OPT_HELP; }
 
+			"-nodel"|"--no-delete"					{ return OPT_NO_DEL; }
+			"-nh"|"--none-hack"						{ return OPT_GRINGO_NONE_HACK; }
+			"-na"|"--none-alias"					{ return OPT_GRINGO_NONE_HACK; }
 
 			"-add"|"--additive"						{ return OPT_UNSUPPORTED_ADDITIVE; }
 			"-fromgrso"|"--from-grounder-solver"	{ return OPT_UNSUPPORTED_GRSO; }
@@ -1550,7 +1756,7 @@ Option parseOption(char const* opt) {
  * @return out.
  */
 std::ostream& showHelp(std::string const& execName, std::ostream& out) {
-	out   << "Usage: " << execName << " INPUT_FILES [OPTIONS] [CONSTANTS] [NUM_SOLUTIONS]" << endl
+	out   << "Usage: " << execName << " <INPUT_FILES> [<OPTIONS>] [<CONSTANTS>] [<NUM_SOLUTIONS>]" << endl
 		  << endl
 		  << "Calls cplus2asp.bin (translator), f2lp (pre-processor), gringo (grounder)," << endl
 		  << "clasp (solver), and as2transition (post-processor) on the input files" << endl
@@ -1558,14 +1764,14 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "\"standard\" CCalc to ASP translation support files and outputting the results " << endl
 		  << "from as2transition." << endl
 		  << endl
-		  << "  INPUT_FILES ----------- A series of files in CCalc, ASP, or f2lp syntax." << endl
+		  << "  <INPUT_FILES> --------- A series of files in CCalc, ASP, or f2lp syntax." << endl
 		  << "                          At least one input file is required." << endl
 		  << "                          Any input files that have extensions \".f2lp\" or \".lp\"" << endl
 		  << "                          will automatically not be passed to the translator." << endl
 		  << endl
-		  << "  OPTIONS --------------- Optional arguments that change the program's behavior." << endl
+		  << "  <OPTIONS> ------------- Optional arguments that change the program's behavior." << endl
 		  << endl
-		  << "  CONSTANTS ------------- Constant definitions that are passed to the grounder." << endl
+		  << "  <CONSTANTS> ----------- Constant definitions that are passed to the grounder." << endl
 		  << "                          There are three special constants that are often seen in" << endl
 		  << "                          CCalc programs, and so can be useful to manually set." << endl
 		  << "                          These are not required to be defined if special \"hint\"" << endl
@@ -1576,7 +1782,7 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          * minstep ----- The minimum time step to consider." << endl
 		  << "                          * query   ----- The query number (i.e., label) to select." << endl
 		  << endl
-		  << "  NUM_SOLUTIONS --------- The desired number of solutions for the solver to find." << endl
+		  << "  <NUM_SOLUTIONS> ------- The desired number of solutions for the solver to find." << endl
 		  << "                          This should be a non-negative integer (0 or greater)." << endl
 		  << "                          If not specified, defaults to 1." << endl
 		  << endl
@@ -1585,9 +1791,8 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "  --automated ----------- Makes the program run in automated mode, so it won't prompt" << endl
 		  << "                          or ask for any information from the user." << endl
 		  << endl
-		  << "  CONST=VALUE" << endl
-		  << "  -c CONST=VALUE" << endl
-		  << "  --const CONST=VALUE --- Declares a constant & value pair to pass to gringo." << endl
+		  << "  <CONST>=<VALUE>, -c <CONST>=<VALUE>" << endl
+		  << "  --const <CONST>=<VALUE> Declares a constant & value pair to pass to gringo." << endl
 		  << "                          You will probably need to at least declare values for" << endl
 		  << "                          the constants maxstep, query, and possibly maxAdditive." << endl
 		  << endl
@@ -1595,9 +1800,9 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "  -v" << endl
 		  << "  --version ------------- Outputs version information." << endl
 		  << endl
-		  << "  -m [MODE]" << endl
-		  << "  --mode=[MODE] --------- Sets the program to run in the specified running mode." << endl
-		  << "                          [MODE] can be one of the following: " << endl
+		  << "  -m <MODE, -m=<MODE>, --mode <MODE>" << endl
+		  << "  --mode=<MODE> --------- Sets the program to run in the specified running mode." << endl
+		  << "                          <MODE> can be one of the following: " << endl
 		  << "                          * static-auto --- uses a static translation and automatically " << endl
 		  << "                                            advances the queries maximum time step." << endl
 		  << "                          * static-manual - uses a static translation and queries the " << endl
@@ -1610,79 +1815,85 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                                            solver in order to dynamically adding abnormality " << endl
 		  << "                                            constants during execution."  << endl
 		  << endl
-		  << " -q [QUERY]" << endl
-		  << " --query [QUERY] -------- Sets the query to use from those available in the C+ domain. " << endl
-		  << "                          [QUERY] should be a positive integer and should be defined in " << endl
+		  << " -q <QUERY>, -q=<QUERY>, --query <QUERY>, query=<QUERY>"  << endl
+		  << " --query=<QUERY> -------- Sets the query to use from those available in the C+ domain. " << endl
+		  << "                          <QUERY> should be a positive integer and should be defined in " << endl
 		  << "                          the domain file." << endl
 		  << endl
-		  << " -max [STEP]" << endl
-		  << " --maxstep [STEP] ------- Sets the maximum step to solve for to [STEP]. [STEP] must be a " << endl
+		  << " -max <STEP>, -max=<STEP>, --maxstep <STEP>, maxstep=<STEP>" << endl
+		  << " --maxstep=<STEP> ------- Sets the maximum step to solve for to <STEP>. <STEP> must be a " << endl
 		  << "                          positive integer or a finite positive range (i.e. '1..5')." << endl
 		  << "                          A range is seen as shorthand for a combined minimum and maximum " << endl
 		  << "                          step definition." << endl
 		  << endl
-		  << " -min [STEP]" << endl
-		  << " --minstep [STEP] ------- Sets the minimum step to solve for to [STEP]. [STEP] must be a " << endl
+		  << " -min <STEP>, -min=<STEP>, --minstep <STEP>, minstep=<STEP>" << endl
+		  << " --minstep=<STEP> ------- Sets the minimum step to solve for to <STEP>. <STEP> must be a " << endl
 		  << "                          positive integer." << endl
 		  << endl
-		  << " -p [PORT]" << endl
-		  << " --port [PORT] ---------- Sets the port used to connect with external client programs. " << endl
-		  << "                          This option is only valid in reactive mode." << endl
-		  << " -i [PORT]" << endl
-		  << " --internal-port [PORT] - Sets the port used for internal communication between the " << endl
+// TODO: Uncomment this when we have the reactive bridge complete w/ remote program support.
+#ifndef NO_REACTIVE_BRIDGE
+#if 0
+		  << " -p <PORT]" << endl
+		  << " --port [PORT] ---------- Sets the port used to connect with external client programs instead " << endl
+		  << "                          of using the console to gather online input. This option is only " << endl
+		  << "                          valid in reactive mode." << endl
+#endif
+		  << " -i <PORT>, -i=<PORT>, --internal-port <PORT>" << endl
+		  << " --internal-port=<PORT> - Sets the port used for internal communication between the " << endl
 		  << "                          reactive solver and bridge. This option is only valid in " << endl
 		  << "                          reactive mode." << endl
+#else
+		  << " -p <PORT>, -p=<PORT>, --port <PORT>" << endl
+		  << " --port=<PORT> ---------- Sets the port used to connect with external client programs." << endl
+#endif
 		  << endl
-		  << " -nh" << endl
-		  << " --none-hack={true,false} Indicates that we should simulate the 'none' value as a integral " << endl
-		  << "                          type. This is helpful for circumventing a bug in Gringo 3.0.4 that " << endl
+		  << " -na[=<VALUE>]" << endl
+		  << " --none-alias[=<VALUE>]   Indicates that we should simulate 'none' with <VALUE> [default: '" << DEF_NONE_HACK_VAL << "']" << endl
+		  << "                          This is helpful for circumventing a bug in Gringo 3.0.4 that " << endl
 		  << "                          sometimes prevents domains from properly grounding due to " << endl
 		  << "                          unification issues." << endl
 		  << endl
-		  << " -s" << endl
-		  << " --shift={true,false} --- Allows the sovler to shift disjunction in the head of a rule generated by the" << endl
-		  << "                          pre-processor into the body. This is useful when the preprocessor generates" << endl
-		  << "                          disjunctive rules and a disjunctive solver isn't available. May not be" << endl
-		  << "                          guaranteed to preserve stable models." << endl
+		  << " -s[=<BOOLEAN>]" << endl
+		  << " --shift[=<BOOLEAN>] ---- Sets whether to allow the solver to shift disjunction in the head of a rule " << endl
+		  << "                          generated by the pre-processor into the body. This is useful when " << endl
+		  << "                          the preprocessor generate disjunctive rules and a disjunctive " << endl
+		  << "                          solver isn't available. May not be guaranteed to preserve stable " << endl
+		  << "                          models." << endl
+		  << endl
+		  << " --stats ---------------- Indicates additional solving statistics should be requested from" << endl
+		  << "                          the solver and displayed after each solver run." << endl
 		  << endl
 		  << "Extra Program Options:" << endl
-		  << "  Options with [PROG] or [PROGRAM] in their name affect individual" << endl
-		  << "  programs in the tool chain, depending on [PROG] or [PROGRAM]'s value." << endl
-		  << "  Any option with [PROG] in its name should have [PROG] replaced with one of:" << endl
+		  << "  Options with <PROG> or <PROGRAM> in their name affect individual" << endl
+		  << "  programs in the tool chain, depending on <PROG> or <PROGRAM>'s value." << endl
+		  << "  Any option with <PROG> in its name should have <PROG> replaced with one of:" << endl
 		  << "    gr (grounder), pre (pre-processor), post (post-processor), so (solver)," << endl
 		  << "    trans (translator), or br (reactive bridge)." << endl
-		  << "  Replace [PROGRAM] in the applicable options with one of the following:" << endl
+		  << "  Replace <PROGRAM> in the applicable options with one of the following:" << endl
 		  << "    grounder, pre-processor, post-processor, solver, translator, or bridge." << endl
 		  << endl
-		  << "  -[PROG] PATH" << endl
-		  << "  --[PROGRAM] PATH -------- Gives a new path to the desired tool chain program." << endl
+		  << "  -<PROG> <PATH>, -<PROG>=<PATH>, --<PROGRAM> <PATH> " << endl
+		  << "  --<PROGRAM>=<PATH> ------ Gives a new path to the desired tool chain program." << endl
 		  << endl
-		  << "  -[PROG]opt \"OPTS\"" << endl
-		  << "  --[PROGRAM]-opts \"OPTS\" - Passes OPTS to the given tool chain program." << endl
+		  << "  -<PROG>opt <OPTS>, -<PROG>opt=<OPTS>, --<PROGRAM>-opts <OPTS>" << endl
+		  << "  --<PROGRAM>-opts=<OPTS> -- Passes <OPTS> to the given tool chain program." << endl
 		  << endl
-		  << "  -from[PROG]" << endl
-		  << "  --from-[PROGRAM] -------- Starts running the tool chain from the given program." << endl
+		  << "  -<PROG>out <FILE>, -<PROG>out=<FILE>, --<PROGRAM>-output <FILE>" << endl
+		  << "  --[PROGRAM]-output=<FILE> Write the output of the specified tool to <FILE>." << endl
 		  << endl
-		  << "  -just[PROG]" << endl
-		  << "  --just-[PROGRAM] -------- Removes all but the given program from the tool chain." << endl
+		  << "  -from<PROG> " << endl
+		  << "  --from-<PROGRAM> -------- Starts running the tool chain from the given program." << endl
 		  << endl
-		  << "  -nodel" << endl
-		  << "  --no-delete ------------- Stops the program from deleting intermediate files created" << endl
-		  << "                            during processing, grounding, and solving." << endl
+		  << "  -just<PROG>" << endl
+		  << "  --just-<PROGRAM> -------- Removes all but the given program from the tool chain." << endl
 		  << endl
 		  << "  -nostd" << endl
 		  << "  --no-standard ----------- Removes the standard translation files from the call to the" << endl
 		  << "                            pre-processor. Useful if supplying different \"standard\"" << endl
 		  << "                            files, or for debugging of input file errors." << endl
 		  << endl
-		  << "  -to[PROG]" << endl
-		  << "  --to-[PROGRAM] ---------- Stops running the tool chain after the given program." << endl
-		  << endl
-		  << "  -sw" << endl
-		  << "  --solver-warnings ------- Displays all warnings originating from the solver." << endl
-		  << "                            These are disabled by default as a number of warnings" << endl
-		  << "                            regarding undefined atoms are normal due to the standard" << endl
-		  << "                            files." << endl
+		  << "  -to<PROG>" << endl
+		  << "  --to-<PROGRAM> ---------- Stops running the tool chain after the given program." << endl
 		  << endl
 		  << "  Example: " << execName << " myProgram.cp" << endl
 		  << "           would translate and process the file \"myProgram.cp\"," << endl
@@ -1728,7 +1939,7 @@ void scanFilesForConstants(Config& config, bool ranTranslator) {
 	if(config.run(Config::TC_TRANSLATOR))
 	{	// Start with the output from the translator.
 		debug("Starting with the translator output file...",true);
-		scanForConstants(config, config.intTransFile());
+		scanForConstants(config, config.output(Config::TC_TRANSLATOR));
 	}
 
 
@@ -2170,8 +2381,10 @@ unsigned int queryUserForConstant(Config const& config, std::string const& const
 }
 
 int runTool(Config const& config, Config::Toolchain tool, std::string const& name, Config::RunConfig const* subconfig) {
-	std::string tmpCmd;
 	int ret = TC_STAT_TOOLSKIPPED;
+
+	bio::file_descriptor_sink fsink, errsink;
+
 
 	if (!config.run(tool)) {
 		debug("Skipping %s execution.", true, name.c_str());
@@ -2179,70 +2392,173 @@ int runTool(Config const& config, Config::Toolchain tool, std::string const& nam
 		pragma("No input files for the %s have been specified. Skipping it.", true, name.c_str());
 	} else {
 		// Run the translator...
-		tmpCmd = config.compileCommandLine(tool, subconfig);
-		debug("Running the %s with command: %s",true,name.c_str(), tmpCmd.c_str());
-		int stat = system(tmpCmd.c_str());
-		ret = WEXITSTATUS(stat);
+//		std::string tmpCmd = config.compileCommandLine(tool, subconfig);
+		std::list<std::string> arglist;
+		config.compileArgs(tool, arglist, subconfig);
+		debug("Running the '%s' (program: '%s') with command: '%s'",true,name.c_str(), config.command(tool).c_str(), config.compileCommandLine(tool, subconfig).c_str());
+
+		
+		try {
+			fsink = bio::file_descriptor_sink(config.output(tool), std::ios_base::trunc);
+		} catch (std::ios_base::failure& e) {
+			debug("Caught exception '%s'.", true, e.what());
+		}
+
+
+	
+		if (!fsink.is_open()) {
+			if (config.customOut(tool))
+				error("Unable to open '%s' for writing.", true, 0, config.output(tool).c_str());
+			else
+				error("Unable to open temporary file '%s' for writing.", true, 0, config.output(tool).c_str());
+			return TC_STAT_IO_ERR;
+		}
+
+
+		try {
+			errsink = bio::file_descriptor_sink(config.errFile(), std::ios_base::trunc);
+		} catch (std::ios_base::failure& e) {
+			debug("Caught exception '%s'.", true, e.what());
+		}
+
+		if (!errsink.is_open()) {
+			error("Unable to open temporary file '%s' for writing.", true, 0, config.errFile().c_str());
+			return TC_STAT_IO_ERR;
+		}
+
+		
+
+		if (tool == Config::TC_REACTIVE_BRIDGE) {
+
+			bp::child c = bp::execute(
+				bp::initializers::run_exe(bp::search_path(config.command(tool))),
+				bp::initializers::set_args(arglist)
+			);
+
+		} else {
+	
+			bp::child c = bp::execute(
+				bp::initializers::run_exe(bp::search_path(config.command(tool))),
+				bp::initializers::set_args(arglist),
+				bp::initializers::bind_stdout(fsink),
+				bp::initializers::bind_stderr(errsink)
+//				bp::initializers::start_in_dir(boost::filesystem::current_path().string())
+			);	
+		
+			if (config.mode() != Config::MODE_REACTIVE || tool != Config::TC_SOLVER) {
+					int tmp = bp::wait_for_exit(c);
+					ret = BOOST_PROCESS_EXITSTATUS(tmp);
+			} else ret = TC_STAT_BG;
+		}
+
+		// TODO: Do I need to close the sink?
+
+
+
+		debug("Command exited with status '%d'.", true, ret);
+
+		if (!processErrors(config, tool, config.errFile())) {
+			warning("Could not read from the error stream file.", true);
+		}
+
+//		int stat = system(tmpCmd.c_str());
+//		ret = WEXITSTATUS(stat);
 	}
 
 	return ret;
 }
 
-void cleanup(Config const& config, bool const* ran) {
-	std::ostringstream builder;
-	std::string tmpCmd;
-	bool filesToDelete = false;
+/**
+ * @brief Processes the provided error file applying any error filters and printing the rest.
+ * @param config The system configuration.
+ * @param tool The tool that generated the error file.
+ * @param file The error file.
+ * @return True if the file exists and was successfully opened, false otherwise.
+ */
+bool processErrors(Config const& config, Config::Toolchain tool, std::string const& file) {
+	std::ifstream in(file.c_str());
+	std::string line;
+	bool show;
 
-	builder << "rm";
+	if (in.fail()) {
+		return false;
+	}
+
+	while (std::getline(in, line)) {
+		show = true;
+
+		switch (tool) {
+		case Config::TC_TRANSLATOR:
+			
+			break;
+		case Config::TC_PREPROC:
+
+			break;
+		case Config::TC_GROUNDER:
+
+			break;
+		case Config::TC_SOLVER:
+
+			// Filter the usual warnings.
+			if (line.find("never defined") != std::string::npos) {
+				if (
+					line.find("constant_sort/2") != std::string::npos
+					|| line.find("rigid/1") != std::string::npos
+					|| line.find("inertialFluent/1") != std::string::npos
+					|| line.find("abFluent/1") != std::string::npos
+					|| line.find("exogenousAction/1") != std::string::npos
+					|| line.find("abAction/1") != std::string::npos
+					|| line.find("attribute/1") != std::string::npos
+					|| line.find("additiveAction/1") != std::string::npos
+					|| line.find("staticAbnormality/1") != std::string::npos
+					|| line.find("dynamicAbnormality/1") != std::string::npos
+					|| line.find("action_attribute/2") != std::string::npos
+					|| line.find("staticAbnormality/1") != std::string::npos
+					|| line.find("noconcurrency/0") != std::string::npos
+					|| line.find("strong_noconcurrency/0") != std::string::npos
+					|| line.find("false/0") != std::string::npos
+					)
+					show = false;
+			}
+
+			break;
+		case Config::TC_POSTPROC:
+
+			break;
+		case Config::TC_REACTIVE_BRIDGE:
+
+			break;
+		}
+
+		if (show) std::cerr << line << std::endl;
+	}
+
+	in.close();
+
+	return true;
+}
+
+void cleanup(Config const& config, bool const* ran) {
+	debug("Deleting appropriate temporary files.", true);
 
 	if (config.boolConfigOpt(Config::OPT_DISCARD_F2LP)) {
 		// Discard F2LP intermediates...
 		if (ran[Config::TC_PREPROC]) {
-			builder << " " << F2LP_INPUT_FILE << " " << F2LP_OUTPUT_FILE;
-			filesToDelete = true;
+			bfs::remove(F2LP_INPUT_FILE);
+			bfs::remove(F2LP_OUTPUT_FILE);
 		}
 	}
 
-	if (config.boolConfigOpt(Config::OPT_DISCARD_INTERMEDIATE)) {
-		if (ran[Config::TC_TRANSLATOR]) {
-			builder << " " << config.intTransFile() << " " << config.intTransSymTabFile();
-			filesToDelete = true;
-		}
+	bfs::remove(config.errFile());
 
-		if (ran[Config::TC_PREPROC]) {
-			builder << " " << config.intPreprocFile();
-			filesToDelete = true;
-		}
-
-		if (ran[Config::TC_GROUNDER]) {
-			builder << " " << config.intGrdFile();
-			filesToDelete = true;
-		}
-
-		if (ran[Config::TC_SOLVER]) {
-			builder << " " << config.intSoFile();
-			builder << " " << config.intSoErrFile();
-			filesToDelete = true;
-		}
+	for (int i = 0; i < (int)Config::TC_LENGTH; i++) {
+		if (!config.customOut((Config::Toolchain)i))
+			bfs::remove(config.output((Config::Toolchain)i));	
 	}
 
-	builder << " 2> /dev/null";
-
-	if (filesToDelete) {
-		tmpCmd = builder.str();
-		debug("Deleting temporary files with command '%s'.", true, tmpCmd.c_str());
-		system(tmpCmd.c_str());
-	} else {
-		debug("There are no files to delete.", true);
-	}
 }
 
-/**
- * Attempts to echo the specified file to the specified output stream.
- * @param out The output stream to print to.
- * @param filename The file to open.
- * @return True if the file exists, false otherwise.
- */
+// Attempts to echo the specified file to the specified output stream.
 bool echoFile(std::ostream& out, std::string const& filename) {
 	std::ifstream file(filename.c_str());
 	char buf[4096];
@@ -2255,6 +2571,33 @@ bool echoFile(std::ostream& out, std::string const& filename) {
 		file.read(buf, 4096);
 		out.write(buf, file.gcount());
 	}
+
+	return true;
+}
+
+// Attempts to echo the solver stats from the specified file.
+bool echoStats(std::ostream& out, std::string const& filename) {
+	std::string tmp;
+	bool found = false;
+	
+
+	std::ifstream file(filename.c_str());
+
+	if (file.fail()) {
+		return false;
+	}
+
+	while (std::getline(file, tmp)) {
+		if (!strncmp("Models", tmp.c_str(), strlen("Models"))) {
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) return false;
+	do {
+		out << tmp << std::endl;
+	} while (std::getline(file, tmp));
 
 	return true;
 }

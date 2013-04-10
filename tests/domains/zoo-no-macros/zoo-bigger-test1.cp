@@ -1,5 +1,11 @@
 % File 'zoo-bigger-test1': The Big Cage Shuffle
 
+:- include 'zoo/landscape.cp'.
+:- include 'zoo/animals.cp'.
+:- include 'zoo/movement.cp'.
+:- include 'zoo/actions.cp'.
+:- include 'zoo/example.cp'.
+
 :- sorts
   animal >> (elephant; horse; dog).
 
@@ -32,17 +38,6 @@ caused -largeSpecies(dogSpecies).
   silver                       :: horse;
   snoopy                       :: dog.
 
-:- begin_asp.
-#hide h(eql(accessible(_,_),_),_).
-#hide h(eql(adult(_),_)).
-#hide h(eql(largeSpecies(_),_)).
-#hide h(eql(loc(_),_)).
-#hide h(eql(neighbor(_,_),_)).
-#hide h(eql(side1(_),_)).
-#hide h(eql(side2(_),_)).
-#hide h(eql(sides(_,_,_),_)).
-#hide h(eql(sp(_),_)).
-:- end_asp.
 
 % All gates are closed, there's an animal in each cage 
 % except cage A, and homer is outside. 
@@ -51,14 +46,21 @@ caused -largeSpecies(dogSpecies).
 :- variables
   T      :: step.
 
+:- constants
+	visited(animal, cage) :: inertialFluent.
+
+caused visited(ANML, C) if loc(P)=C & pos(ANML)=P.
+
+:- show pos(ANML); visited(ANML, C).
+
 :- query 
 label :: 0;
-maxstep :: 19;    
 0: -opened(G),
+	(loc(P)=C & pos(ANML)=P) <-> visited(ANML, C),
     pos(homer)=11,
     pos(jumbo)=8,
     pos(silver)=20,
     pos(snoopy)=21;
-[\/ T | T:loc(pos(ANML))=C].
+maxstep: visited(ANML, C).
 
 

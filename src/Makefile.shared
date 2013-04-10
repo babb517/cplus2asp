@@ -1,23 +1,24 @@
 # Shared configuration for all makefiles to include.
 
-SUFFIXES = 
-
 #libtool
-ACLOCAL_AMFALGS = -I build-scripts
+ACLOCAL_AMFLAGS = -I build-scripts
+
+AM_CXXFLAGS = -I$(PROJECT_ROOT)/externals --std=c++0x
+AM_CFLAGS = -I$(PROJECT_ROOT)/externals
+AM_CPPFLAGS = -I$(PROJECT_ROOT)/externals --std=c++0x
 
 # Debugging Flags
 if DEBUG
-AM_CPPFLAGS = -DDEBUG
-AM_CFLAGS = -g3 -O0 
-AM_CXXFLAGS = -g3 -O0 --std=c++0x
+AM_CPPFLAGS += -DDEBUG -g3 -O0
+AM_CFLAGS += -g3 -O0 
+AM_CXXFLAGS += -DDEBUG -g3 -O0
 else
-AM_CPPFLAGS = -DNDEBUG
-AM_CFLAGS = -O3 
-AM_CXXFLAGS = -O3 --std=c++0x
+AM_CPPFLAGS += -DNDEBUG -O3
+AM_CFLAGS += -O3 
+AM_CXXFLAGS += -DNDEBUG -O3
 endif
 
 # RE2C rules
-SUFFIXES += .re2c
 if MAINTAINER_MODE 
 if HAVE_RE2C
 .re2c.cpp:
@@ -36,11 +37,10 @@ else
 endif
 
 #Flex / Bison Config
-AM_YFLAGS = -d 
+AM_YFLAGS = -d
 
 
 # additional flex rules
-SUFFIXES += .l .ll .lpp
 if MAINTAINER_MODE
 if HAVE_FLEX
 .l.h:

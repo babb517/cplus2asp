@@ -146,6 +146,13 @@ public:
 	 */
 	bool addObject(Object* obj, bool checkDuplicate = false);
 
+	/// Gets an iterator for the beginning of the objects list.
+	/// Does not include objects in subsorts.
+	inline ObjectList::const_iterator begin() const					{ return mObjs.begin(); }
+
+	/// Gets an iterator for the end of the objects list.
+	/// Does not include objects in subsorts.
+	inline ObjectList::const_iterator end() const					{ return mObjs.end(); }
 	/**
 	 * Adds a subsort to the sort.
 	 * @param subsort The subsort to add.

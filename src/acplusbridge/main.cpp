@@ -29,14 +29,12 @@
  */
 
 /* History:
- * <v0.1 - Alpha development.
+ * v0.1 - Alpha development.
  */
 
-#include <iostream>
-#include <string>
 
-#include "NetworkClient.h"
-#include "boost/bind.hpp"
+#include "Driver.h"
+#include "externals/as2transition/src/TransitionFormatter.h"
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
@@ -46,56 +44,111 @@
 /**
  * @brief Displays the help dialog/
  * @param out The output stream to write the help dialog to.
+ * @param the name of this application.
  */
-void showHelp(std::ostream& out);
+void showHelp(std::ostream& out, char const* name);
 
-/**
- * Processes a packet received by oclingo.
- * @param msg The packet that was received.
- */
-void processOclingoPacket(char const* msg); 
+/// Prints the version string to out.
+void printVersion(std::ostream& out) {
+	out << VERSION_MAJOR << "." << VERSION_MINOR << "." << VERSION_REV;
+}
 
 int main(int argc, char const* argv[])
 {
-  try
-  {
-	// TODO: Command line options
-    if (argc != 3)
-    {
-     	std::cerr << "Usage: '" << argv[0] << "' <host> <port>\n";
-      	return 1;
-    }
+	Driver driver;
+
+	// -------------------------------------------------- Option Parsing.
+
+	for (int i = 1; i < argc; i++) {
+		if (!driver.formatter().parseOption(argv[i], true)) {
+			if (!strcmp(argv[i], "--no-history")) {
+				// don't add history-enforcing constraints
+				driver.enforceHistory(false);
+
+			} else  if (!strncmp(argv[i], "--port=", strlen("--port="))) {
+				if (strlen(argv[i]) <= strlen("--port=") ||!driver.port(argv[i] + strlen("--port="))) { 
+					std::cerr << "Error: '" << argv[i] << "' is not a valid port specification.\n";
+					showHelp(std::cout, argv[0]);
+					return 1;
+				}
+			} else if (!strcmp(argv[i], "-p")) {
+				if (++i < argc) {
+					if (!driver.port(argv[i])) { 
+						std::cerr << "Error: '" << argv[i] << "' is not a valid port.\n";
+						showHelp(std::cout, argv[0]);
+						return 1;
+					}
+				} else {
+					std::cerr << "Error: Expected a port number following '" << argv[i-1] << "'.\n";
+					showHelp(std::cout, argv[0]);
+					return 1;
+				}
+			} else if (!strncmp(argv[i], "--host=", strlen("--host="))) {
+				if (strlen(argv[i]) <= strlen("--host=") ||!driver.host(argv[i] + strlen("--host="))) { 
+					std::cerr << "Error: '" << argv[i] << "' is not a valid host specification.\n";
+					showHelp(std::cout, argv[0]);
+					return 1;
+				}
+			} else if (!strcmp(argv[i], "--time") || !strcmp(argv[i],"-t")) {
+#ifdef BOOST_TIMER
+				// display time
+				driver.displayTime(true);
+#else
+				std::cerr << "Warning: The '" << argv[i] << "' flag requires that the Boost.Timer library is present at compile time. " << std::endl;
+				std::cerr << "Warning: Ignoring '" << argv[i] << "'" << std::endl;
+#endif
+			} else if (!strcmp(argv[i], "-h")) {
+				if (++i < argc) {
+					if (!driver.host(argv[i])) { 
+						std::cerr << "Error: '" << argv[i] << "' is not a host.\n";
+						showHelp(std::cout, argv[0]);
+						return 1;
+					}
+				} else {
+					std::cerr << "Error: Expected a host name following '" << argv[i-1] << "'.\n";
+					showHelp(std::cout, argv[0]);
+					return 1;
+				}
+			} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i],"-?") || !strcmp(argv[i],"?")) {
+				showHelp(std::cout, argv[0]);
+				return 0;
+			} else {
+				std::cerr << "Error: Unknown option: '" << argv[i] << "'.\n";
+				return 1;
+			}
+		}
+	}
 
 
-    NetworkClient client(argv[1], argv[2], boost::function<void(char const*)>(&processOclingoPacket));
-
-
-    std::string input;
-    while (std::getline(std::cin, input))
-    {
-		// Just send it straight to oClingo
-		// TODO
-		client.write(input + "\0");
-    }
-
-    client.close();
-  }
-  catch (std::exception& e)
-  {
-    std::cerr << "Error: " << e.what() << "\n";
-  }
-
-  return 0;
+	// ----------------------------------------------------- The hard work.
+	return driver.run();
 }
 
 // Displays the help dialog/
-void showHelp(std::ostream& out) {
-	// TODO
+void showHelp(std::ostream& out, char const* name) {
+	out << name << " version "; printVersion(out); out													<< std::endl
+	<< "USAGE: " << name << " [OPTIONS]"																<< std::endl
+																										<< std::endl
+	<< "Available Options: "																			<< std::endl
+	<< "  --no-history OR "																				<< std::endl
+	<< "        Prevents the automatic addition of history-enforcing constraints to oClingo, allowing "	<< std::endl
+	<< "        past steps to be replanned. "															<< std::endl
+	<< "  --port=PORT OR -p PORT "																		<< std::endl
+	<< "        Specifies the port to connect to oClingo with. [Default: " << Driver::DEF_OCLINGO_PORT << " ]."	<< std::endl
+	<< "  --host=HOST OR -h HOST "																		<< std::endl
+	<< "        Specifies the host that oClingo is running on. [Default: " << Driver::DEF_OCLINGO_HOST << " ]." << std::endl
+	<< "  --time OR -t "																				<< std::endl
+	<< "        Prints the time oClingo took to respond after each iteration."							<< std::endl
+#ifndef BOOST_TIMER
+	<< "        NOTICE: Requires recompilation with the Boost.Timer library."							<< std::endl
+#endif
+	<< "  --version OR -v "																				<< std::endl
+	<< "        Displays the version of the program."													<< std::endl
+	<< "  --help OR -? OR ?"																			<< std::endl
+	<< "        Shows this dialog."																		<< std::endl
+																										<< std::endl;
+
+	out << "AS2Transition Options: " << std::endl;
+	as2transition::TransitionFormatter::help(out, true);
 }
 
-// Processes a packet received by oclingo.
-void processOclingoPacket(char const* msg) {
-	// Pipe it straight to the user for now
-	// TODO
-	std::cout << msg;
-} 

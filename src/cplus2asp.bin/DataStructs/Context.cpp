@@ -40,6 +40,7 @@ std::string const Context::TRUE_STR = "true";
 std::string const Context::FALSE_STR = "false";
 std::string const Context::EMPTY_STR = "";
 std::string const Context::ANON_STR = "_";
+std::string const Context::BASE_STR = "0";
 
 
 /************************************************************/

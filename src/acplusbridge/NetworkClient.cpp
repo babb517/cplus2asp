@@ -34,7 +34,31 @@
 #include "NetworkClient.h"
 
 // size of read buffer
-size_t const NetworkClient::READ_BUFFER_SIZE = 4096;
+size_t const NetworkClient::READ_BUFFER_DEFAULT = 4096;
+
+
+// Queues a packet for asynchronous writing.
+void NetworkClient::write(std::string const& msg, bool eom) {
+
+	mInternalMutex.lock();
+
+	bool write_in_progress = !mWriteBuf.empty();
+	mWriteBuf.push_back("");
+	mWriteBuf.back() = msg; 
+	if (eom) mWriteBuf.back() += '\0';
+
+	mInternalMutex.unlock();
+	
+	if (!write_in_progress)
+	{
+		// Request to write if we aren't already.
+		boost::asio::async_write(mSocket,
+	  		boost::asio::buffer(mWriteBuf.front().data(), mWriteBuf.front().size()),
+	  		boost::bind(&NetworkClient::handler_write, this,
+				boost::asio::placeholders::error));
+	}
+
+}
 
 
 // Handles a request to connect to a server.
@@ -43,11 +67,11 @@ void NetworkClient::handler_connect(const boost::system::error_code& error,
 	if (!error)
 	{
 		// Queue the first reqd.
-		boost::asio::async_read(mSocket,
-  			boost::asio::buffer(mReadBuf, READ_BUFFER_SIZE),
+		mSocket.async_receive(
+  			boost::asio::buffer(mReadBuf, mReadBufSz),
   			boost::bind(&NetworkClient::handler_read, this,
-				boost::asio::placeholders::error));
-		std::cout << "Connected.\n";
+				boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+		mOpen = true;
 	
 	}
 	else if (mEndpointIterator!= boost::asio::ip::tcp::resolver::iterator())
@@ -59,61 +83,38 @@ void NetworkClient::handler_connect(const boost::system::error_code& error,
 		mSocket.async_connect(endpoint,
 			boost::bind(&NetworkClient::handler_connect, this,
 				boost::asio::placeholders::error, ++mEndpointIterator));
-		std::cout << "Error Connecting.\n";
+		std::cerr << "Error Connecting.\n";
 	}
 }
 
 // Handles a read from the network.
-void NetworkClient::handler_read(const boost::system::error_code& error) {
-	if (!error) {
+void NetworkClient::handler_read(const boost::system::error_code& error, size_t bytes) {
+	mExternalMutex.lock();
 
-		std::cout << "Got input '" << mReadBuf << "'.\n";
-		mExternalMutex.lock();
+	// Notify the superior party
+	mCallback(error, mReadBuf, bytes);
 
-		// Notify the superior party
-		mCallback(mReadBuf);
+	mExternalMutex.unlock();
 
-		mExternalMutex.unlock();
-
-		// make sure to go request another packet.
-		boost::asio::async_read(mSocket,
-  			boost::asio::buffer(mReadBuf, READ_BUFFER_SIZE),
-  			boost::bind(&NetworkClient::handler_read, this,
-				boost::asio::placeholders::error));
-	}
-	else
-	{
-		// Bad stuff
-		do_close();
-	}
+	// make sure to go request another packet.
+	mSocket.async_receive(
+  		boost::asio::buffer(mReadBuf, mReadBufSz),
+  		boost::bind(&NetworkClient::handler_read, this,
+			boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 }
 
-// Queues a packet for asynchronous writing.
-void NetworkClient::do_write(std::string const& msg) {
-	bool write_in_progress = !mWriteBuf.empty();
-	mWriteBuf.push_back("");
-	mWriteBuf.back() = msg;
-	std::cout << "Queueing write '" << msg << "'.\n";
-
-	if (!write_in_progress)
-	{
-		// Request to write if we aren't already.
-		boost::asio::async_write(mSocket,
-	  		boost::asio::buffer(mWriteBuf.front().c_str(), mWriteBuf.front().size()),
-	  		boost::bind(&NetworkClient::handler_write, this,
-				boost::asio::placeholders::error));
-	}
-}
 
 // Sends the next packet over the network.
 void NetworkClient::handler_write(const boost::system::error_code& error) {
 	if (!error)
 	{
+			mInternalMutex.lock();
 			mWriteBuf.pop_front();
-			std::cout << "Writing '" << mWriteBuf.front() << "'.\n";
+			mInternalMutex.unlock();
+
 			if (!mWriteBuf.empty()) {
 				boost::asio::async_write(mSocket,
-					boost::asio::buffer(mWriteBuf.front().c_str(), mWriteBuf.front().size()),
+					boost::asio::buffer(mWriteBuf.front().data(), mWriteBuf.front().size()),
 					boost::bind(&NetworkClient::handler_write, this,
 						boost::asio::placeholders::error));
 			}
@@ -126,6 +127,7 @@ void NetworkClient::handler_write(const boost::system::error_code& error) {
 // closes the socket
 void NetworkClient::do_close() {
 	mSocket.close();
+	mOpen = false;
 }
 
 

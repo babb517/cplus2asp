@@ -97,9 +97,8 @@ occ(eql(V_additiveAction,Value),t-1) <-
 #hide additiveInteger/1.
 #hide nnAdditiveInteger/1.
 
-#hide action(contribution(_,_)).
-#hide constant_sort(contribution(_,_),_).
-#hide occ(eql(contribution(_,_),_),_).
+#hide additiveFluent/1.
+#hide afValue/1.
 
 #hide sort(additiveFluent).
 #hide sort(additiveAction).

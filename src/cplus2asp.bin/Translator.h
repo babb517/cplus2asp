@@ -791,7 +791,7 @@ public:
 	 * Instructs the translator to output its symbol table to the specified location.
 	 * @param out The output stream to dump the symbol table to.
 	 */
-	std::ostream& outputSymbolTable(std::ostream& out);
+	std::ostream& outputSymbolTable(std::ostream& out) const;
 
 protected:
 
@@ -860,6 +860,16 @@ protected:
 		ParseElement* followingBody,
 		ParseElement* whereBody
 		);
+
+
+	/**
+	 * @brief Makes a '#show' statement for the provided element.
+	 * @param elem The atomic formula  to construct the show statement for.
+	 * @param[out] stmts The list to add the resulting statement to.
+	 * @param eql The variable to set the constant to (required if elem is a bare constant).
+	 */
+	void makeShowStmt(ParseElement* elem, StmtList& stmts, Variable const* eql = NULL); 
+
 
 };
 
