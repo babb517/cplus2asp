@@ -157,6 +157,7 @@ enum StatusFlags
 	TC_STAT_OK = 0,												///< Universal OK.
 	TC_STAT_BG = 130,											///< Exit code indicating that the task is running in the background.
 	TC_STAT_IO_ERR = -8274,										///< Psuedo exit code indicating that we couldn't open the output file.
+	TC_STAT_EXEC_ERR = -8273,									///, Psuedo exit code indicating that the tool failed to execute.
 	TC_STAT_TOOLSKIPPED = INT_MIN,								///< Psuedo return code indicating that the tool execution was skipped for some reason.
 	TC_STAT_TRANS_CPLUS2ASP_ABNORMALITY_MASK = 0x80,			///< Bitmask to determine if cplus2asp detected abnormalities.
 	TC_STAT_TRANS_CPLUS2ASP_ADDITIVE_MASK = 0x40,				///< Bitmask to determine if cplus2asp detected additive fluents.
@@ -1133,17 +1134,17 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			}
 
 
-			if (!strcmp(argv[i],ARG_MODE_STATIC_MANUAL)) {
+			if (!strcmp(tmpptr,ARG_MODE_STATIC_MANUAL)) {
 				mode = Config::MODE_STATIC_MANUAL;
-			} else if (!strcmp(argv[i],ARG_MODE_STATIC_AUTO)) {
+			} else if (!strcmp(tmpptr,ARG_MODE_STATIC_AUTO)) {
 				mode = Config::MODE_STATIC_AUTO;
-			} else if (!strcmp(argv[i],ARG_MODE_INCREMENTAL)) {
+			} else if (!strcmp(tmpptr,ARG_MODE_INCREMENTAL)) {
 				mode = Config::MODE_INCREMENTAL;
-			} else if (!strcmp(argv[i],ARG_MODE_REACTIVE)) {
+			} else if (!strcmp(tmpptr,ARG_MODE_REACTIVE)) {
 				mode = Config::MODE_INCREMENTAL;
 			} else {
-				error("Expected a mode option (one of '%s', '%s', '%s', or '%s') following option '%s'. Exiting.",true,0,
-						ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, OPT_MODE_REACTIVE, (tmpBool) ? argv[i-1] : argv[i]);
+				error("Unexpected value '%s'. Expected a mode option (one of '%s', '%s', '%s', or '%s'). Exiting.",true,0,
+						tmpptr, ARG_MODE_STATIC_AUTO, ARG_MODE_STATIC_MANUAL, ARG_MODE_INCREMENTAL, OPT_MODE_REACTIVE);
 				return OPT_STAT_BAD_ARG;
 			}
 
@@ -2446,8 +2447,13 @@ int runTool(Config const& config, Config::Toolchain tool, std::string const& nam
 			);	
 		
 			if (config.mode() != Config::MODE_REACTIVE || tool != Config::TC_SOLVER) {
-					int tmp = bp::wait_for_exit(c);
-					ret = BOOST_PROCESS_EXITSTATUS(tmp);
+					try {
+						int tmp = bp::wait_for_exit(c);
+						ret = BOOST_PROCESS_EXITSTATUS(tmp);
+					} catch (boost::system::system_error& e) {
+						debug("Caught exception '%s'.", true, e.what());
+						ret = TC_STAT_EXEC_ERR;
+					}
 			} else ret = TC_STAT_BG;
 		}
 
@@ -2478,7 +2484,7 @@ int runTool(Config const& config, Config::Toolchain tool, std::string const& nam
 bool processErrors(Config const& config, Config::Toolchain tool, std::string const& file) {
 	std::ifstream in(file.c_str());
 	std::string line;
-	bool show;
+	bool show, unificationError = false;
 
 	if (in.fail()) {
 		return false;
@@ -2520,6 +2526,11 @@ bool processErrors(Config const& config, Config::Toolchain tool, std::string con
 					)
 					show = false;
 			}
+			else if (line.find("convert") != std::string::npos
+					&& line.find("none") != std::string::npos) {
+				unificationError = true;
+
+			}
 
 			break;
 		case Config::TC_POSTPROC:
@@ -2531,6 +2542,12 @@ bool processErrors(Config const& config, Config::Toolchain tool, std::string con
 		}
 
 		if (show) std::cerr << line << std::endl;
+	}
+
+	if (unificationError) {
+		error("Detected an error that appears to be caused by a bug in Gringo 3.0.5 which prevents", true, 0);
+		error("  certain programs from being grounded properly. Adding '--none-alias[=VALUE]' to", true, 0);
+		error("  the command-line arguments may fix this problem.", true, 0); 
 	}
 
 	in.close();

@@ -63,6 +63,8 @@ constant_sort(contribution(V_action,V_additiveAction),additiveInteger) <-
 
 % By default, all contributions to additive constants are 0.
 
+
+
 %-------------------------------------------------------------
 #cumulative t. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
@@ -87,6 +89,26 @@ occ(eql(V_additiveAction,Value),t-1) <-
    constant_sort(V_additiveAction,V_sort) & 
    sort_object(V_sort,Value).
 
+% Additional type checking.
+
+%-------------------------------------------------------------
+#base. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+:- h(eql(V_additiveFluent, V_object),0),
+	constant_sort(V_additiveFluent, V_sort),
+	not sort_object(V_sort, V_object).
+
+%-------------------------------------------------------------
+#cumulative t. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+:- h(eql(V_additiveFluent, V_object),t),
+	constant_sort(V_additiveFluent, V_sort),
+	not sort_object(V_sort, V_object).
+	
+:- occ(eql(V_additiveAction, V_object),t-1),
+	constant_sort(V_additiveAction, V_sort),
+	not sort_object(V_sort, V_object).
 %-------------------------------------------------------------
 #base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
@@ -98,6 +120,7 @@ occ(eql(V_additiveAction,Value),t-1) <-
 #hide nnAdditiveInteger/1.
 
 #hide additiveFluent/1.
+#hide additiveAction/1.
 #hide afValue/1.
 
 #hide sort(additiveFluent).

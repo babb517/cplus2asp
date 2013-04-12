@@ -86,6 +86,14 @@ occ(eql(V_additiveAction,Value),V_astep-1) <-
    constant_sort(V_additiveAction,V_sort) & 
    sort_object(V_sort,Value).
 
+:- h(eql(V_additiveFluent, V_object),V_step),
+	constant_sort(V_additiveFluent, V_sort),
+	not sort_object(V_sort, V_object).
+	
+:- occ(eql(V_additiveAction, V_object), V_astep-1),
+	constant_sort(V_additiveAction, V_sort),
+	not sort_object(V_sort, V_object).
+
 % Hide additive integer delcarations and contributions from the answer sets.
 #hide sort(additiveInteger).
 #hide sort(nnAdditiveInteger).
@@ -93,6 +101,7 @@ occ(eql(V_additiveAction,Value),V_astep-1) <-
 #hide nnAdditiveInteger/1.
 
 #hide additiveFluent/1.
+#hide additiveAction/1.
 #hide afValue/1.
 
 #hide sort(additiveFluent).
