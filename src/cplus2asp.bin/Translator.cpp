@@ -345,6 +345,9 @@ Translator::Translator(Language lang)
 	Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, true, (ConstSortList*)&tmpList);
 	tmpList.clear();
 	addSymbol(contribution);
+
+	// Computed sort for LUA functions
+	this->createInternalSort("computed", NULL);
 	
 	// we want to use a dynamic translation.
 	setStaticTranslation(false);
@@ -614,6 +617,34 @@ void Translator::translateObjectDecl(Object const* transObj, Sort const* sortObj
 		output(stmtBuilder.str(), IPART_BASE, true);
 	}
 }
+
+
+// Handles a LUA call by adding the result to the computed sort.
+void Translator::handleLUACall(ObjectLikeElement const* lua_elem) {
+	StmtList stmts;
+	Sort *sortObj = getSort("computed");
+	ClauseList extraClauses, freeVars;
+
+	Context c(Context::POS_TERM, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
+
+	std::stringstream stmtBuilder;					// Used to build each individual statement required for this declaration.
+	stmtBuilder << sortObj->fullTransName() << "(";
+	lua_elem->translate(stmtBuilder, c);
+	stmtBuilder << ")";
+	
+
+	if (extraClauses.size()) {
+		stmtBuilder << " <- ";
+		outputClauses(stmtBuilder, extraClauses, false);
+	}
+	
+	stmtBuilder << ".";
+
+	// Output the statement
+	output(stmtBuilder.str(), IPART_BASE, true);
+}
+
+
 
 // Translates a Sort element into an ASP-compatible sort declaration.
 void Translator::translateSortDecl(Sort const* transSort)
@@ -1347,7 +1378,7 @@ void Translator::makeShowStmt(ParseElement* elem, StmtList& stmts, Variable cons
 		eql->fullTransName(), NULL, NULL, false, false, &stmts);
 	else localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
 		tmpstr, 
-		NULL, NULL, NULL, false, false, &stmts);
+		"", NULL, NULL, false, false, &stmts);
 	
 	tmp.str("");
 	tmp << "#show ";

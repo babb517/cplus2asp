@@ -846,7 +846,7 @@ bool BaseLikeElement::guessParamSorts(ConstSortList& outSorts) {
 
 
 // Translator helper method for params.
-std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context, bool internal) const
+std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context, bool internal, bool force) const
 {
 	Context localContext;
 	if (internal)
@@ -855,7 +855,7 @@ std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& conte
 		localContext = context.mkPos(Context::POS_TERM);
 
 	int i = 0;
-	if(arity()) {
+	if(arity() || force) {
 		out <<  "(";
 		for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++)
 		{	
@@ -1023,20 +1023,23 @@ std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context) 
 	{	// Use the canonical translated object name if it's available.
 		if(((Object const*)ref())->isLua()) out << "#spatom{@";//need to make f2lp pass this through to ASP
 		out << ref()->baseTransName();
-		if(((Object const*)ref())->isLua()) {
-				if (context.getPos() != Context::POS_ARITHEXPR
-						&& context.getPos() != Context::POS_TERM)
-					out << " == 1";
-				out << "}";
-		}
 	}
 	else
 	{	// Otherwise, just wing it with this instance's base name.
 		out << Translator::sanitizeObjectName(baseName());
 	}
 
-	translateParams(out, context);
+	translateParams(out, context, false, ((Object const*)ref())->isLua());
 	out << translateAfterParen();
+
+
+	if(((Object const*)ref())->isLua()) {
+			if (context.getPos() != Context::POS_ARITHEXPR
+					&& context.getPos() != Context::POS_TERM)
+				out << " == 1";
+			out << "}";
+	}
+
 	return out;
 }
 

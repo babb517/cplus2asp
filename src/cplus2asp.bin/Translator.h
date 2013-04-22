@@ -300,6 +300,13 @@ public:
 	 * @param sortObj - The Sort element the object belongs to.
 	 */
 	void translateObjectDecl(Object const* transObj, Sort const* sortObj);
+
+	/**
+	 * Handles a LUA call by adding the result to the computed sort.
+	 * @param lua_elem The lua call to handle.
+	 */
+	void handleLUACall(ObjectLikeElement const* lua_elem);
+
 	/**
 	 * Translates a Sort element into an ASP-compatible sort declaration.
 	 * Sends the result to ostOut.

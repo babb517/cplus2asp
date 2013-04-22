@@ -49,6 +49,10 @@ sort_object(boolean,V_boolean).
 boolean(true).
 boolean(false).
 
+sort(computed).
+#domain computed(V_computed).
+sort_object(computed,V_computed).
+
 % Constants hierarchy
 
 % Meta-constants to group categories of constants.

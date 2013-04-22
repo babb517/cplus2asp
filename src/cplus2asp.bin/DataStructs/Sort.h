@@ -124,7 +124,7 @@ public:
 	 * denote boolean values.
 	 * @return True if it is the special boolean sort.
 	 */
-	inline bool isBooleanSort() const 								{ return baseName() == "boolean"; }
+	inline bool isBooleanSort() const 								{ return baseName() == "boolean" || baseName() == "boolean*"; }
 
 	/**
 	 * Examines its own name and determines if it is a special internal

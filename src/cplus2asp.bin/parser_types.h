@@ -613,7 +613,7 @@ public:
 	inline ParseElementList::const_iterator paramsEnd() const 		{ return mParams.end(); }
 
 	/// Gets the number of parameters the element has.
-	inline size_t arity() const									{ return mParams.size(); }
+	inline size_t arity() const										{ return (ref() ? ref()->arity() : mParams.size()); }
 
 
 	/// Clears the list of parameters without deallocating them.
@@ -633,10 +633,11 @@ public:
 	 * @param[out] out The stream to output to.
 	 * @param context The context used for translation.
 	 * @param internal Whether to indicate that the parameters should be treated as internal or not.
+	 * @param force Whether to force the presence of parens regardless of the presence of arguments.
 	 * @return A parentheses-surrounded, comma-separated list of translated
 	 * params, or a blank string if params is empty.
 	 */
-	virtual std::ostream& translateParams(std::ostream& out, Context& context, bool internal = false) const;
+	virtual std::ostream& translateParams(std::ostream& out, Context& context, bool internal = false, bool force = false) const;
 	
 	/**
 	 * Destructor. Deallocates contents of params.

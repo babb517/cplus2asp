@@ -63,6 +63,8 @@ Object::Object(std::string const& name, ObjectType type, bool internal, SortList
 Object::Object(std::string const& name, ObjectType type, bool internal, size_t params)
 	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ, internal)
 {
+	mFullName = baseName();
+	mFullTransName = baseName();
 	mObjType = type;
 	for (; params > 0; params--) {
 		mParams.push_back(NULL);

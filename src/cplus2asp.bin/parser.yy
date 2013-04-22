@@ -288,7 +288,7 @@ ltsyyossErr.clear();
  * @param sortIdent - The name of the sort to check and find.
  * @return A pointer to the associated instantiated sort obect, or NULL if the sort wasn't found.
  */
-Sort* checkDynamicSortDecl(std::string* sortIdent);
+Sort* checkDynamicSortDecl(std::string const& sortIdent);
 
 %}
 
@@ -772,13 +772,12 @@ constant_binder:			  		sort_identifier_with_ab
 	else if(constType != Constant::CONST_UNKNOWN)
 	{	// Basic constant binder with Boolean domain.
 		$$->constType = constType;
-		std::string domainName = "boolean";
-		$$->domain = checkDynamicSortDecl(&domainName);
+		$$->domain = checkDynamicSortDecl("boolean");
 	}
 	else
 	{	// If it wasn't a real constant type, it's just a shortcut for "rigid(identifier)".
 		$$->constType = Constant::CONST_RIGID;
-		$$->domain = checkDynamicSortDecl(&tempIdent);
+		$$->domain = checkDynamicSortDecl(tempIdent);
 		if($$->domain == NULL)
 		{
 			ltsyystartParseError(ltsyylloc);
@@ -806,7 +805,7 @@ constant_binder:			  		sort_identifier_with_ab
 	$$->constType = constType;
 	if($3 != NULL)
 	{
-		$$->domain = checkDynamicSortDecl($3);
+		$$->domain = checkDynamicSortDecl(*$3);
 		deallocateItem($3);
 	}
 	if($$->domain == NULL)
@@ -820,9 +819,7 @@ constant_binder:			  		sort_identifier_with_ab
 	// Attribute binder with Boolean(*) domain.
 	$$ = new PT_constant_binder_t;
 	$$->constType = Constant::CONST_ATTRIBUTE;
-	std::string* domainName = new std::string("boolean*");
-	$$->domain = checkDynamicSortDecl(domainName);
-	deallocateItem(domainName);
+	$$->domain = checkDynamicSortDecl("boolean*");
 	if($3 != NULL)
 	{
 		$$->parent = $3;
@@ -840,10 +837,8 @@ constant_binder:			  		sort_identifier_with_ab
 	$$->constType = Constant::CONST_ATTRIBUTE;
 	if($3 != NULL)
 	{
-		std::string* domainName = new std::string(*$3);
-		(*domainName) += "*";
+		std::string domainName = *$3 + "*";
 		$$->domain = checkDynamicSortDecl(domainName);
-		deallocateItem(domainName);
 		if($$->domain == NULL)
 		{
 			ltsyystartParseError(ltsyylloc);
@@ -1476,7 +1471,7 @@ variable_binding:			  		sort_outer_identifier
 	$$ = mainTrans.getSort(*$1);
 	if($$ == NULL)
 	{
-		$$ = checkDynamicSortDecl($1); // Reports appropriate errors, we just need to YYERROR if that happens.
+		$$ = checkDynamicSortDecl(*$1); // Reports appropriate errors, we just need to YYERROR if that happens.
 	}
 	deallocateItem($1);
 	if($$ == NULL)
@@ -2604,19 +2599,20 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 {
 	// Guess what kind of instance this might be, go with the best match.
 
-	Element* elem = mainTrans.getSymbol(*$2);
+	Element* elem = NULL;
 
 	if ($1) {
 
-		if (!elem) elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
-		else if (elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
+		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
+		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
-
 		$$ = new ObjectLikeElement(*$2, (Object*)elem);
+		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
-	} else if (elem) {
+
+	} else if ((elem = mainTrans.getSymbol(*$2))) {
 
 		switch(elem->getElemType()) {
 		case Element::ELEM_CONST:
@@ -2642,21 +2638,46 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 	deallocateItem($1);
 	deallocateItem($2);
 }
-							| lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R
+							| lua_indicator T_IDENTIFIER T_PAREN_L T_PAREN_R
 {
-	Element* elem = mainTrans.getSymbol(*$2, $4->size());
+	// special case for empty parameter list LUA call 'a()'.
+	Element* elem = NULL;
 
 	if ($1) {
 
-		if (!elem) elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, $4->size());
-		else if (elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
+		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
+		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
+			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			elem = NULL;
+		}
+		$$ = new ObjectLikeElement(*$2, (Object*)elem);
+		mainTrans.handleLUACall((ObjectLikeElement*)$$);
+
+	} else {
+		// not a LUA call.
+		YYERROR;
+	}
+
+	deallocateItem($1);
+	deallocateItem($2);
+}
+
+							| lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R
+{
+	Element* elem = NULL;
+
+	if ($1) {
+
+		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, $4->size());
+		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
 
 		$$ = new ObjectLikeElement(*$2, (Object*)elem, $4);
+		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
-	} else if (elem) {
+	} else if ((elem = mainTrans.getSymbol(*$2, $4->size()))) {
 
 		switch(elem->getElemType()) {
 		case Element::ELEM_CONST:
@@ -2987,39 +3008,37 @@ COMPARISON:					  	T_DBL_EQ
 %%
 
 // Tries to find an existing normal sort or declare a starred ("something*") sort.
-Sort* checkDynamicSortDecl(std::string* sortIdent)
+Sort* checkDynamicSortDecl(std::string const& sortIdent)
 {
-	Sort* retVal = mainTrans.getSort(*sortIdent);
+	Sort* retVal = mainTrans.getSort(sortIdent);
 	// Allow dynamic instantiation of starred sorts.
-	if(retVal == NULL && sortIdent->length() > 0 && (*sortIdent)[sortIdent->length()-1] == '*')
+	if(retVal == NULL && sortIdent.length() > 0 && sortIdent[sortIdent.length()-1] == '*')
 	{
 		// Verify that the non-starred version exists before instantiating the starred version.
-		std::string* nonStarIdent = new std::string;
-		(*nonStarIdent) = sortIdent->substr(0, sortIdent->length()-1);
-		Sort *nonStarSort = mainTrans.getSort(*nonStarIdent);
+		std::string nonStarIdent = sortIdent.substr(0, sortIdent.length()-1);
+		Sort *nonStarSort = mainTrans.getSort(nonStarIdent);
 		if(nonStarSort == NULL)
 		{	
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "Sort \"" << *nonStarIdent << "\" not declared, can't dynamically use \"" << *sortIdent << "\" as the domain of another declaration.";
+			ltsyyossErr << "Sort \"" << nonStarIdent << "\" not declared, can't dynamically use \"" << sortIdent << "\" as the domain of another declaration.";
 			ltsyyreportError();
 		}
 		else
 		{
 			// No need to add unstarred version to subsorts, that's done automatically.
-			retVal = mainTrans.addSort(*sortIdent, false, NULL, true, false);
+			retVal = mainTrans.addSort(sortIdent, false, NULL, true, false);
 			if(retVal == NULL)
 			{
 				ltsyystartParseError(ltsyylloc);
-				ltsyyossErr << "Bad domain declaration \"" << *sortIdent << "\".";
+				ltsyyossErr << "Bad domain declaration \"" << sortIdent << "\".";
 				ltsyyreportError();
 			}
 		}
-		deallocateItem(nonStarIdent);
 	}
-	else if(retVal == NULL)
+	if(retVal == NULL)
 	{	// The domain isn't an undeclared starred case, it's just undeclared.
 		ltsyystartParseError(ltsyylloc);
-		ltsyyossErr << "Sort \"" << *sortIdent << "\" not declared, can't use as the domain of another declaration.";
+		ltsyyossErr << "Sort \"" << sortIdent << "\" not declared, can't use as the domain of another declaration.";
 		ltsyyreportError();
 	}
 	return retVal;
