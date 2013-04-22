@@ -36,11 +36,12 @@ class Element
 {
 public:
 	/// An enum of the sub-classes of Element (including Element itself).
-	enum ElementType { ELEM_CONST, ELEM_ELEM, ELEM_OBJ, ELEM_SORT, ELEM_VAR };
+	enum ElementType { ELEM_CONST, ELEM_ELEM, ELEM_OBJ, ELEM_SORT, ELEM_VAR, _ELEM_TYPE_COUNT };
 private:
 	std::string mBaseName; 				///< The original base name of this element.
 	std::string mBaseTransName; 		///< The translated (i.e., ASP-compatible) base name of this element.
 	enum ElementType mElemType; 		///< Used to identify what kind of Element an instance is.
+	bool mInternal;						///< Whether or not this is a symbol internal to the translator.
 
 public:
 
@@ -49,8 +50,9 @@ public:
 	 * @param baseName - The C+ name of an element.
 	 * @param baseTransName - The ASP-compatible name of an element.
 	 * @param type - The type of element which is being instantiated.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 */
-	Element(std::string const& baseName, std::string const& baseTransName, ElementType type);
+	Element(std::string const& baseName, std::string const& baseTransName, ElementType type, bool internal);
 
 
 	/**
@@ -95,9 +97,18 @@ public:
 	 */
 	virtual std::string const& fullTransName() const = 0;
 
+
+	/// Gets the arity of the element.
+	virtual size_t arity() const = 0;
+
 	/// Gets the type of element being represented.
 	ElementType getElemType() const { return mElemType; }
 
+
+	/// Determines if this symbol is internal to the translator
+	inline bool internal() const { return mInternal; }
+	/// Sets if this symbol is internal to the translator
+	inline void internal(bool internal) { mInternal = internal; }
 
 	/// Gets the base name of the element.
 	inline std::string const& baseName() const { return mBaseName; }
@@ -109,6 +120,10 @@ public:
 	 * Destructor. Does nothing, as there's nothing to destroy.
 	 */
 	virtual ~Element();
+
+
+	/// converts the element type to a string representation.
+	static std::string elemTypeToString(ElementType type);
 
 };
 

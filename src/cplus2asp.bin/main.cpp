@@ -29,6 +29,15 @@
  */
 
 /* History:
+ *   3.0 - Full support for symbol table.
+ *       - Full support for the language BC.
+ *   2.0 - Incremental translation for C+ programs.
+ *       - Support for the language aC+.
+ *       - Partial implementation of symbol table output.
+ *       - Better options for controlling return values for scripting.
+ *       - Major changes to translation routines to fix numerous bugs.
+ *       - Enhanced support for CCalc input language.
+ *       - Some experimental BC features.
  * <v2.0 - Release
  *       - Fixed a number of bugs in the existing translation.
  *       - Added support for abnormal C+ constructs ('staticAbnormality', 'dynamicAbnormality', 'when', 'following').
@@ -60,7 +69,7 @@
 #include "ltsglobals.h"
 #include "flexer.h"
 
-#define VERSION_MAJOR 2
+#define VERSION_MAJOR 3
 #define VERSION_MINOR 0
 #define VERSION_REV 0
 
@@ -206,6 +215,32 @@ int main(int argc, char *argv[])
 					blnBadArgs = true; // Set up for receiving an argument but none given, bad command line.
 				}
 			}
+			else if (!strcmp(argv[i], "-l")) 
+			{
+				if(i + 1 < argc)
+				{
+					i++;
+					Translator::Language l;
+					if (Translator::strToLanguage(argv[i], l))
+						mainTrans.lang(l);
+					else
+						blnBadArgs = true;
+				}
+				else
+				{
+					blnBadArgs = true; // Set up for receiving an argument but none given, bad command line.
+				}
+
+			}
+			else if (!strncmp(argv[i], "--language=", strlen("--language="))) 
+			{
+				Translator::Language l;
+				if (Translator::strToLanguage(argv[i] + strlen("--language="), l))
+					mainTrans.lang(l);
+				else
+					blnBadArgs = true;
+
+			}
 			else
 			{	// If there's no "header", it's probably an input file.
 				// If it's not a number, it's probably an input file. Make sure it exists, and then save it to the list.
@@ -243,23 +278,32 @@ int main(int argc, char *argv[])
 						<< std::endl
 						<< "Normal Program Options:" << std::endl
 						<< "  -s" << std::endl
-						<< "  --static Outputs a static translation of the CCalc source file," << std::endl
-						<< "           rather than an incremental translation suitable for i/oClingo." << std::endl
+						<< "  --static ------------ Outputs a static translation of the CCalc source file," << std::endl
+						<< "                        rather than an incremental translation suitable " << std::endl
+						<< "                        for i/oClingo." << std::endl
+						<< std::endl
 						<< "  -o PATH" << std::endl
-						<< "  --output-file PATH outputs the translated f2lp code to the file" << std::endl
-						<< "                     at PATH instead of the default (standard out)." << std::endl
+						<< "  --output-file PATH -- Outputs the translated f2lp code to the file at PATH " << std::endl
+						<< "                        instead of the default (standard out)." << std::endl
 						<< "  -O PATH" << std::endl
-						<< "  --output-all PATH outputs both the translated f2lp code and any" << std::endl
-						<< "                    translation error messages to the file at PATH." << std::endl
+						<< "  --output-all PATH --- Outputs both the translated f2lp code and any" << std::endl
+						<< "                        translation error messages to the file at PATH." << std::endl
+						<< std::endl
 						<< "  -e" << std::endl
-						<< "  --expressive-return Enables the use of flag bits in the return value to" << std::endl
-						<< "                      indicate the presence of special constants. Bit 0x80" << std::endl
-						<< "                      will be set to indicate that abnormality constants are" << std::endl
-						<< "                      present. Similarly, bit 0x40 will be set for additive" << std::endl
-						<< "                      constants." << std::endl
+						<< "  --expressive-return - Enables the use of flag bits in the return value to" << std::endl
+						<< "                        indicate the presence of special constants. Bit 0x80" << std::endl
+						<< "                        will be set to indicate that abnormality constants are" << std::endl
+						<< "                        present. Similarly, bit 0x40 will be set for additive" << std::endl
+						<< "                        constants." << std::endl
+						<< std::endl
 						<< "  -t PATH" << std::endl
-						<< "  --symbol-table PATH Causes the translator to output its symbol table to PATH" << std::endl
-						<< "                 after execution has finished." << std::endl
+						<< "  --symbol-table PATH - Causes the translator to output its symbol table to PATH" << std::endl
+						<< "                        after execution has finished." << std::endl
+						<< std::endl
+						<< "  -l <LANG>" << std::endl
+						<< "  --language=<LANG>  -- Sets the input language accepted by the translator to <LANG>." << std::endl
+						<< "                        <LANG>: c+, bc" << std::endl
+						<< std::endl
 						<< "  --help shows this usage information." << std::endl
 						<< "  -v" << std::endl
 						<< "  --version outputs the program's version information." << std::endl;

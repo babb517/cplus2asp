@@ -526,9 +526,48 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 	// Fill in each Constant's type and domain and translate each of them.
 	bool constantError = true; // Set to true if any of the constants have trouble getting added to the symbol table.
 	Sort* tempSort = NULL;
+
+	// double check that this is a valid constant type for the language we're working in.
+	// TODO: This is where you would add other language constnat type checks.
+
+	switch (mainTrans.lang()) {
+	case Translator::LANG_CPLUS:
+		switch ($3->constType) {
+		case Constant::CONST_UNKNOWN:
+			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case Translator::LANG_BC:
+		switch ($3->constType) {
+		case Constant::CONST_UNKNOWN:
+			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+			break;
+		case Constant::CONST_STATICAB:
+		case Constant::CONST_DYNAMICAB:
+			mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
+			break;
+		case Constant::CONST_ATTRIBUTE:
+		case Constant::CONST_EXOGENOUSACTION:
+			mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
+			break;
+		case Constant::CONST_ADDITIVEACTION:
+		case Constant::CONST_ADDITIVEFLUENT:
+			mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+			break;
+		}
+	}
+
 	if($1 != NULL && $3 != NULL)
 	{
 		tempSort = $3->domain;
+
+		// directly referenced sorts should be made visible.
+		if (tempSort) tempSort->internal(false);
+		
 		if($3->constType == Constant::CONST_STATICAB || $3->constType == Constant::CONST_DYNAMICAB || tempSort != NULL)
 		{
 			constantError = false;
@@ -547,7 +586,7 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			
 			for(lIter = $1->begin(); lIter != $1->end(); ++lIter)
 			{	// Try to add each constant to the symbol table before hooking it up and translating it.
-				int addSymResult = mainTrans.addConstant(*lIter);
+				int addSymResult = mainTrans.addSymbol(*lIter);
 				if(addSymResult != SymbolTable::ADDSYM_OK)
 				{	// Something went wrong adding this constant, skip connecting & translating it.
 					if(addSymResult == SymbolTable::ADDSYM_DUP)
@@ -661,7 +700,7 @@ constant_outer_schema:		  			constant_schema
 constant_schema:			  		T_IDENTIFIER
 {
 	// Create a new Constant from a bare identifier.
-	$$ = new Constant(*$1, Constant::CONST_UNKNOWN);
+	$$ = new Constant(*$1, Constant::CONST_UNKNOWN, false);
 	deallocateItem($1);
 }
 							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
@@ -670,7 +709,7 @@ constant_schema:			  		T_IDENTIFIER
 	$$ = NULL;
 	if($3 != NULL)
 	{
-		$$ = new Constant(*$1, Constant::CONST_UNKNOWN, (ConstSortList*)$3);
+		$$ = new Constant(*$1, Constant::CONST_UNKNOWN, false, (ConstSortList*)$3);
 		deallocateList($3);
 	}
 	deallocateItem($1);
@@ -680,7 +719,12 @@ constant_schema:			  		T_IDENTIFIER
 /* Similar to constant_schema, but looks in the symbol table for an equivalent Constant instead of creating one. */
 constant_schema_nodecl:		  T_IDENTIFIER
 {
-	$$ = mainTrans.getConstant(*$1, NULL);
+	// TODO: Check if not found.
+	$$ = mainTrans.getConstant(*$1);
+
+	if (!$$)
+		mainTrans.error("\"" + *$1 + std::string("/0") + "\" is not a valid constant identifier.", true);
+
 	deallocateItem($1);
 }
 							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
@@ -688,7 +732,11 @@ constant_schema_nodecl:		  T_IDENTIFIER
 	$$ = NULL;
 	if($3 != NULL)
 	{
-		$$ = mainTrans.getConstant(*$1, $3);
+		$$ = mainTrans.getConstant(*$1, $3->size());
+
+		if (!$$)
+			mainTrans.error("\"" + *$1 + utils::to_string($3->size()) + "\" is not a valid constant identifier.", true);
+
 		deallocateList($3);
 	}
 	deallocateItem($1);
@@ -894,75 +942,50 @@ object_outer_spec:			  object_spec		{ $$ = PARSERULE_NOT_USED; }
 object_spec:				  object_outer_schema_list T_DBL_COLON sort_outer_identifier
 {
 	// Connect each Object in the list to its sort, (try to) add them to the symbol table, and translate each object.
-	Sort* tempSort = NULL;
-	bool objectError = false; // Set to true if a serious error happens during object adding.
-	if($1 != NULL && $3 != NULL)
-	{
-		tempSort = mainTrans.getSort(*$3);
-		if(tempSort != NULL)
-		{
-			for(ObjectList::iterator lIter = $1->begin(); lIter != $1->end(); ++lIter)
-			{	// Try to add the object to the symbol table (mostly to check for dupes).
-			
-				if ((*lIter)->isLua()) {
-					// They appear to have included a LUA call in the object definition. Don't allow this.
 
-					ltsyystartParseError(ltsyylloc);
-					ltsyyossErr << "Bad object declaration: \"" << (*lIter)->fullName() << "\". LUA calls may not be present in object declarations!";
-					ltsyyreportError();
-					deallocateItem(*lIter);
-					objectError = true;
-					
-				} else {
-			
-					int addSymResult = mainTrans.addObject(*lIter);
-					if(addSymResult != SymbolTable::ADDSYM_OK)
-					{	// Something went wrong adding the object, skip connecting & translating it.
-						if(addSymResult == SymbolTable::ADDSYM_DUP)
-						{	// Warn about duplicate object declarations (not an error), then move on.
-							ltsyystartCaution(ltsyylloc);
-							ltsyyossErr << "Duplicate object declaration: \"" << (*lIter)->fullName() << "\".";
-							ltsyyreportCaution();
-							deallocateItem(*lIter);
-						}
-						else
-						{	// A real object error.
-							ltsyystartParseError(ltsyylloc);
-							ltsyyossErr << "Bad object declaration: \"" << (*lIter)->fullName() << "\".";
-							ltsyyreportError();
-							deallocateItem(*lIter);
-							objectError = true;
-						}
-					}
-					else
-					{	// Object add went okay, connect the sort to the object and translate them.
-						tempSort->addObject(*lIter);
+	Sort* sort = mainTrans.getSort(*$3);
+	Element* elem;
 
-						// Translate each object as we add it to the sort's domain.
-						mainTrans.translateObjectDecl(*lIter, tempSort);
+	if (!sort) {
+		mainTrans.error("Bad object declaration. \"" + *$3 + "\" is not a valid sort.", true);
+	} else if (!$1) {
+		// directly referenced sorts should be made visible.
+		sort->internal(false);
+
+		mainTrans.error("Bad object declaration.", true);
+	} else {
+		// directly referenced sorts should be made visible.
+		sort->internal(false);
+
+		// add each of the objects. 
+		for (ObjectList::iterator it = $1->begin(); it != $1->end(); it++) {
+			// make sure it's valid and hasn't been declared to something conflicting
+			if (!*it) mainTrans.error("Bad object declaration.", true);
+			else if ((elem = mainTrans.getSymbol((*it)->baseName(), (*it)->arity())) && elem->getElemType() != Element::ELEM_OBJ ) {
+					mainTrans.error("Detected a conflicting definition of \"" + elem->baseName() 
+						+ "/" + utils::to_string(elem->arity()) + "\".", true);
+			} else {
+				mainTrans.translateObjectDecl(*it, sort);
+				
+				if (!elem) {
+					elem = *it;
+					if (mainTrans.addSymbol(elem) != SymbolTable::ADDSYM_OK) {
+						mainTrans.error("An error occurred processing the definition of \"" + elem->baseName() 
+							+ "/" + utils::to_string(elem->arity()) + "\".", true);
+						delete elem;
+						elem = NULL;
 					}
 				}
+				else delete *it;
+
+				if (elem) sort->addObject((Object*)elem);
 			}
 		}
-		else
-		{
-			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "Sort \"" << *$3 << "\" not declared, can't use as the target of an object declaration.";
-			ltsyyreportError();
-			// Deallocate all of the objects in the errant list, they're never going to get used by anything.
-			for(ObjectList::iterator lIter = $1->begin(); lIter != $1->end(); ++lIter)
-			{
-				deallocateItem(*lIter);
-			}
-		}
-		deallocateList($1);
-		deallocateItem($3);
 	}
+
 	$$ = PARSERULE_NOT_USED;
-	if(tempSort == NULL || objectError == true)
-	{	// If the binding sort never got a match or an object had a problem getting added, an error occurred.
-		YYERROR;
-	}
+	deallocateList($1);
+	deallocateItem($3);
 }
 							;
 
@@ -1023,20 +1046,20 @@ object_outer_schema:		  object_schema
 object_schema:				  T_IDENTIFIER
 {
 	// Create a new Object from a bare identifier.
-	$$ = new Object(*$1, Object::OBJ_NAME);
+	$$ = new Object(*$1, Object::OBJ_NAME, false);
 	deallocateItem($1);
 }
 							| T_IDENTIFIER T_PAREN_L sort_identifier_list T_PAREN_R
 {
 	// Create a new Object from a parameterized identifier.
-	$$ = new Object(*$1, Object::OBJ_NAME, $3);
+	$$ = new Object(*$1, Object::OBJ_NAME, false, $3);
 	deallocateList($3);
 	deallocateItem($1);
 }
 							| extended_integer_outer_expression
 {
 	// Create a new object from arbitrary math.
-	$$ = new Object(*$1, Object::OBJ_NAME);
+	$$ = new Object(*$1, Object::OBJ_NAME, true);
 	deallocateItem($1); // Free dynamic memory that's not needed anymore.
 }
 							| num_range
@@ -1165,7 +1188,7 @@ sort_spec_tuple:			  sort_spec
 sort_spec:					  sort_identifier_no_range
 {
 	// Have a helper function handle making and translating the sort.
-	$$ = mainTrans.addSort(*$1, NULL, true, false);
+	$$ = mainTrans.addSort(*$1, false, NULL, true, false);
 	deallocateItem($1);
 	if($$ == NULL)
 	{
@@ -1175,7 +1198,7 @@ sort_spec:					  sort_identifier_no_range
 							| sort_identifier_no_range T_DBL_GTHAN sort_spec_outer_tuple
 {
 	// Have a helper function handle making and translating the sort.
-	$$ = mainTrans.addSort(*$1, $3, true, false);
+	$$ = mainTrans.addSort(*$1, false, $3, true, false);
 	deallocateItem($1);
 	deallocateList($3);
 	if($$ == NULL)
@@ -1231,16 +1254,39 @@ sort_identifier:
 		if(tempSort == NULL)
 		{
 			// Have a helper function handle making and translating the sort.
-			tempSort = mainTrans.addSort(*$$, NULL, true, false);
+			tempSort = mainTrans.addSort(*$$, true, NULL, true, false);
 			// Also add the number range as an object for this new sort.
-			int addResult = mainTrans.addObject($1);
-			if(addResult == SymbolTable::ADDSYM_OK)
-			{
-				tempSort->addObject($1);
-				// Output the translation of the object declaration.
-				mainTrans.translateObjectDecl($1, tempSort);
+
+			int min, max;
+			if (utils::from_string(min, $1->min()) && utils::from_string(max, $1->max())) {			
+
+				for (int i = min; i <= max; i++) {
+
+					std::string str = utils::to_string(i);
+					Element* obj = mainTrans.getSymbol(str);
+					if (obj) {
+						if (obj->getElemType() != Element::ELEM_OBJ) {
+							mainTrans.error("detected a conflicting definition of \"" + str + "\"", true);
+							obj = NULL;
+						}
+					} else {
+						obj = new Object(str, Object::OBJ_NAME, false);
+						if (mainTrans.addSymbol(obj) != SymbolTable::ADDSYM_OK) {
+							delete obj;
+							obj = NULL;
+						} 
+					}
+
+					if (obj) {
+						tempSort->addObject((Object*)obj);
+						mainTrans.translateObjectDecl((Object*)obj, tempSort);
+					}
+				}
+			} else {
+				// TODO: Unresolved range
 			}
 		}
+
 		if(tempSort == NULL)
 		{
 			// We were unable to allocate the sort properly. Error.
@@ -1252,6 +1298,7 @@ sort_identifier:
 	      YYERROR;
 	}
 }
+
 							;
 
 sort_identifier_no_range:		  		sort_identifier_name
@@ -1352,11 +1399,26 @@ variable_spec:				  variable_outer_list T_DBL_COLON variable_binding
 	// Connect the variables in the list to the binding sort, then translate them.
 	if($1 != NULL && $3 != NULL)
 	{
+		// directly referenced sorts should be made visible.
+		$3->internal(false);
+	
 		std::list<Variable*>::iterator vIter;
+		Element* elem;
 		for(vIter = $1->begin(); vIter != $1->end(); ++vIter)
 		{
 			(*vIter)->domain($3);
-			mainTrans.translateVariableDecl(*vIter);
+
+			if ((elem = mainTrans.getSymbol((*vIter)->baseName(), 0)) && (elem->getElemType() != Element::ELEM_VAR 
+				|| ((Variable*)elem)->domain() != $3 )) {
+				mainTrans.error("Detected a conflicted definition for the \"" + (*vIter)->baseName() + std::string("/0") + "\" identifier.", true);
+			} else if (elem) {
+				mainTrans.warn("Detected a redeclaration of \"" + (*vIter)->baseName() + std::string("/0") + "\".", true);
+			}
+			else if (mainTrans.addSymbol(*vIter) != SymbolTable::ADDSYM_OK) {
+				mainTrans.error("An error occurred declaring variable \"" + (*vIter)->baseName() + "\".", true);
+				delete *vIter;
+			} else 
+				mainTrans.translateVariableDecl(*vIter);
 		}
 	}
 	if($1 != NULL)
@@ -1382,31 +1444,8 @@ variable_list:				  T_IDENTIFIER
 	// Create a new list of Variables, add this one as the first item.
 	$$ = new std::list<Variable*>;
 	Variable* tempVar = new Variable(*$1, NULL);
-	int addSymResult = mainTrans.addVariable(tempVar);
-	if(addSymResult != SymbolTable::ADDSYM_OK)
-	{
-		if(addSymResult == SymbolTable::ADDSYM_DUP)
-		{	// Warn about duplicate variable declarations (not an error), then grab the already-declared variable.
-			ltsyystartCaution(ltsyylloc);
-			ltsyyossErr << "Duplicate variable declaration: \"" << *$1 << "\".";
-			ltsyyreportCaution();
-			deallocateItem(tempVar);
-			tempVar = mainTrans.getVariable(*$1);
-			$$->push_back(tempVar);
-		}
-		else
-		{	// A real variable error.
-			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "Bad variable declaration: \"" << *$1 << "\".";
-			ltsyyreportError();
-			deallocateList($$);
-			deallocateItem(tempVar);
-		}
-	}
-	else
-	{
-		$$->push_back(tempVar);
-	}
+	$$->push_back(tempVar);
+
 	deallocateItem($1);
 	if(tempVar == NULL || $$ == NULL)
 	{	// If $$ or tempVar are NULL, something went wrong.
@@ -1419,32 +1458,10 @@ variable_list:				  T_IDENTIFIER
 	if($1 == NULL)
 	{
 		$$ = new std::list<Variable*>;
-	}
+	} else $$ = $1;
 	Variable* tempVar = new Variable(*$3, NULL);
-	int addSymResult = mainTrans.addVariable(tempVar);
-	if(addSymResult != SymbolTable::ADDSYM_OK)
-	{
-		if(addSymResult == SymbolTable::ADDSYM_DUP)
-		{	// Warn about duplicate variable declarations (not an error), then grab the already-declared variable.
-			ltsyystartCaution(ltsyylloc);
-			ltsyyossErr << "Duplicate variable declaration: \"" << *$3 << "\".";
-			ltsyyreportCaution();
-			deallocateItem(tempVar);
-			tempVar = mainTrans.getVariable(*$3);
-			$$->push_back(tempVar);
-		}
-		else
-		{	// A real variable error.
-			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "Bad variable declaration: \"" << *$3 << "\".";
-			ltsyyreportError();
-			deallocateItem(tempVar);
-		}
-	}
-	else
-	{
-		$$->push_back(tempVar);
-	}
+	$$->push_back(tempVar);
+	
 	deallocateItem($3);
 	if(tempVar == NULL)
 	{	// If tempVar is NULL, something went wrong.
@@ -1846,11 +1863,11 @@ cl_head_formula:			literal_assign_conj
 }
 							| T_TRUE
 {
-	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateSimpleObjectLike("true"));
+	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateObject("true"));
 }
 							| T_FALSE
 {
-	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateSimpleObjectLike("false"));
+	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateObject("false"));
 }
 							;
 
@@ -2214,12 +2231,12 @@ expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
 	$$ = new BigQuantifiers::Quantifier( BigQuantifiers::QUANT_CONJ, NULL);
 
 	// That identifier better be a variable...
-	Variable* varRef = mainTrans.getVariableLike(*$2);
+	Variable* varRef = mainTrans.getVariable(*$2);
 	if(varRef == NULL)
 	{
 		// It's not. We should tell them.
 		// First. Let's figure out exactly what kind of error it is...
-		if (mainTrans.getConstantLike(*$2,0) || mainTrans.getObjectLike(*$2,0)) {
+		if (mainTrans.getSymbol(*$2,0)) {
 			// They've given us something that clearly isn't a variable.
 			ltsyystartParseError(ltsyylloc);
 			ltsyyossErr << "Unexpected token \"" << *$2 << "\" in quantifier. Expected a variable.";
@@ -2232,8 +2249,8 @@ expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
 		}
 		
 		// For the sake of system stability, we'll return a new variable.
-		varRef = new Variable(*$2);
-		if (mainTrans.addVariable(varRef) == SymbolTable::ADDSYM_OK) { 
+		varRef = new Variable(*$2, true);
+		if (mainTrans.addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
 			$$->second = new VariableLikeElement(*$2, varRef);
 		} else {
 			$$->second = NULL;
@@ -2253,12 +2270,12 @@ expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 	$$ = new std::pair<enum BigQuantifiers::QuantifierType, ParseElement*>();
 	$$->first = BigQuantifiers::QUANT_DISJ;
 	// Guess that the identifier is a variable, otherwise just default to object.
-	Variable* varRef = mainTrans.getVariableLike(*$2);
+	Variable* varRef = mainTrans.getVariable(*$2);
 	if(varRef == NULL)
 	{
 		// It's not. We should tell them.
 		// First. Let's figure out exactly what kind of error it is...
-		if (mainTrans.getConstantLike(*$2,0) || mainTrans.getObjectLike(*$2,0)) {
+		if (mainTrans.getSymbol(*$2,0)) {
 			// They've given us something that clearly isn't a variable.
 			ltsyystartParseError(ltsyylloc);
 			ltsyyossErr << "Unexpected token \"" << *$2 << "\" in quantifier. Expected a variable.";
@@ -2271,8 +2288,8 @@ expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 		}
 		
 		// For the sake of system stability, we'll return a new variable.
-		varRef = new Variable(*$2);
-		if (mainTrans.addVariable(varRef) == SymbolTable::ADDSYM_OK) { 
+		varRef = new Variable(*$2, true);
+		if (mainTrans.addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
 			$$->second = new VariableLikeElement(*$2, varRef);
 		} else {
 			$$->second = NULL;
@@ -2586,64 +2603,80 @@ expr_big_query_expression:		  		T_BRACKET_L expr_big_quantifiers T_PIPE query_bo
 constant_expr:				  		lua_indicator T_IDENTIFIER
 {
 	// Guess what kind of instance this might be, go with the best match.
-	// Guess variable, then constant, then try object.
-	Variable* varRef = mainTrans.getVariableLike(*$2);
-	if(varRef == NULL)
-	{
-		Constant* constRef = mainTrans.getConstantLike(*$2,0);
-		if(constRef == NULL || $1 != NULL)
-		{
-			Object* objRef = mainTrans.getObjectLike(*$2,0, $1 != NULL);
-			
-			if (objRef == NULL) {
-				// This doesn't appear to be a declared identifier.
-				// We may be inside an unless clause, we'll guess
-				// constant and check if it is being dynamically
-				// declared later.
-				
-				$$ = new ConstantLikeElement(*$2, NULL);
-			
-			} else { 
-				$$ = new ObjectLikeElement(*$2, objRef);
-			}
+
+	Element* elem = mainTrans.getSymbol(*$2);
+
+	if ($1) {
+
+		if (!elem) elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
+		else if (elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
+			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			elem = NULL;
 		}
-		else
-		{
-			$$ = new ConstantLikeElement(*$2, constRef);
+
+		$$ = new ObjectLikeElement(*$2, (Object*)elem);
+
+	} else if (elem) {
+
+		switch(elem->getElemType()) {
+		case Element::ELEM_CONST:
+			$$ = new ConstantLikeElement(*$2, (Constant*)elem);
+			break;
+
+		case Element::ELEM_OBJ:
+			$$ = new ObjectLikeElement(*$2, (Object*)elem);
+			break;
+
+		case Element::ELEM_VAR:
+			$$ = new VariableLikeElement(*$2, (Variable*)elem);
+			break;
+
+		default:
+			break;
 		}
+	} else {
+		// undeclared. Assume constant for now
+		$$ = new ConstantLikeElement(*$2, NULL);
 	}
-	else
-	{
-		$$ = new VariableLikeElement(*$2, varRef);
-	}
+
 	deallocateItem($1);
 	deallocateItem($2);
 }
 							| lua_indicator T_IDENTIFIER T_PAREN_L parameter_list T_PAREN_R
 {
-	// Guess what kind of instance this might be, go with the best match.
-	// Guess constant, then try object.
-	Constant* constRef = mainTrans.getConstantLike(*$2,$4->size());
-	if(constRef == NULL || $1 != NULL)
-	{
-		Object* objRef = mainTrans.getObjectLike(*$2,$4->size(), $1 != NULL);
-		
-		if (objRef == NULL) {
-			// This doesn't appear to be a declared identifier.
-			// We may be inside an unless clause, we'll guess
-			// constant and check if it is being dynamically
-			// declared later.
-			
-			$$ = new ConstantLikeElement(*$2, NULL, $4);
-		
-		} else {
-		
-			$$ = new ObjectLikeElement(*$2, objRef, $4);
+	Element* elem = mainTrans.getSymbol(*$2, $4->size());
+
+	if ($1) {
+
+		if (!elem) elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, $4->size());
+		else if (elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
+			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			elem = NULL;
 		}
-	}
-	else
-	{
-		$$ = new ConstantLikeElement(*$2, constRef, $4);
+
+		$$ = new ObjectLikeElement(*$2, (Object*)elem, $4);
+
+	} else if (elem) {
+
+		switch(elem->getElemType()) {
+		case Element::ELEM_CONST:
+			$$ = new ConstantLikeElement(*$2, (Constant*)elem, $4);
+			break;
+
+		case Element::ELEM_OBJ:
+			$$ = new ObjectLikeElement(*$2, (Object*)elem, $4);
+			break;
+
+		case Element::ELEM_VAR:
+			$$ = new VariableLikeElement(*$2, (Variable*)elem, $4);
+			break;
+
+		default:
+			break;
+		}
+	} else {
+		// undeclared. Assume constant for now (unless clause support).
+		$$ = new ConstantLikeElement(*$2, NULL, $4);
 	}
 
 	deallocateItem($1);
@@ -2732,15 +2765,15 @@ sort_identifier_list:		  			sort_identifier
 
 extended_value_expression:	 			T_TRUE
 {
-	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateSimpleObjectLike("true"));
+	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateObject("true"));
 }
 							| T_FALSE
 {
-	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateSimpleObjectLike("false"));
+	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateObject("false"));
 }
 							| T_NONE
 {
-	$$ = new ObjectLikeElement("none", mainTrans.getOrCreateSimpleObjectLike("none"));
+	$$ = new ObjectLikeElement("none", mainTrans.getOrCreateObject("none"));
 }
 							| extended_math_expression
 {
@@ -2801,7 +2834,7 @@ extended_math_expr_inner:	  			extended_math_term
 
 extended_math_term:			  		extended_integer
 {
-	$$ = new ObjectLikeElement(*$1, mainTrans.getOrCreateSimpleObjectLike(*$1));
+	$$ = new ObjectLikeElement(*$1, mainTrans.getOrCreateObject(*$1));
 	deallocateItem($1);
 }
 							| constant_expr
@@ -2973,7 +3006,7 @@ Sort* checkDynamicSortDecl(std::string* sortIdent)
 		else
 		{
 			// No need to add unstarred version to subsorts, that's done automatically.
-			retVal = mainTrans.addSort(*sortIdent, NULL, true, false);
+			retVal = mainTrans.addSort(*sortIdent, false, NULL, true, false);
 			if(retVal == NULL)
 			{
 				ltsyystartParseError(ltsyylloc);

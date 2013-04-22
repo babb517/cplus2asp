@@ -30,6 +30,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "types.h"
 
@@ -266,10 +267,12 @@ ParseElement* Translator::mergeSubFormulas(ParseElement* first, ParseElement* se
 /* Normal class methods */
 
 // Default constructor. Initializes attributes to blank/empty.
-Translator::Translator()
+Translator::Translator(Language lang)
 {
 	Sort *newSort, *additiveConstantSort, *actionSort;
 	SortList tmpList;
+
+	mLanguage = lang;
 
 	/**************************************** Initialize IO ********************************************/
 	// Open a null file output and set ostNull to it.
@@ -339,9 +342,9 @@ Translator::Translator()
 	// Add the contribution constant for additive constants.
 	tmpList.push_back(actionSort);
 	tmpList.push_back(additiveConstantSort);
-	Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, (ConstSortList*)&tmpList);
+	Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, true, (ConstSortList*)&tmpList);
 	tmpList.clear();
-	addConstant(contribution);
+	addSymbol(contribution);
 	
 	// we want to use a dynamic translation.
 	setStaticTranslation(false);
@@ -355,128 +358,7 @@ Translator::Translator()
 
 }
 
-// Searches for a Constant object matching the given name and parameters.
-Constant* Translator::getConstant(std::string const& symName, NameList const& symParams)
-{
-	Constant* retVal = NULL;
-	size_t paramSize;
 
-	paramSize = symParams.size();
-
-	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++) {
-		if((*cIter)->baseName() == symName && (*cIter)->arity() == paramSize) {
-			bool paramsMatch = true;
-			for(size_t i = 0; i < paramSize; i++) {
-				// We consider NULL a wild card.
-				if (!((*cIter)->param(i))) continue;
-
-				if((*cIter)->param(i)->baseName() != symParams[i]) {
-					paramsMatch = false;
-					break;
-				}
-			}
-
-			if(paramsMatch) {
-				retVal = *cIter;
-				break;
-			}
-		}
-	}
-
-	return retVal;
-}
-
-// Searches for a Constant object matching the given name and parameters.
-Constant* Translator::getConstant(std::string const& symName, SortList const* symParams)
-{
-	Constant* retVal = NULL;
-	size_t paramSize;
-
-	if (!symParams) paramSize = 0;
-	else paramSize = symParams->size();
-
-	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++) {
-		if((*cIter)->baseName() == symName && (*cIter)->arity() == paramSize) {
-			bool paramsMatch = true;
-			for(size_t i = 0; i < paramSize; i++) {
-				// We consider NULL a wild card.
-				if (!(*cIter)->param(i) || !(*symParams)[i]) continue;
-
-				// pointer-wise comparison.
-				if((*cIter)->param(i) != (*symParams)[i]) {
-					paramsMatch = false;
-					break;
-				}
-			}
-
-			if(paramsMatch) {
-				retVal = *cIter;
-				break;
-			}
-		}
-	}
-
-	return retVal;
-}
-
-
-// Searches for a Object object matching the given name and parameters.
-Object* Translator::getObject(std::string const& symName, NameList const* symParams)
-{
-	Object* retVal = NULL;
-	size_t paramSize;
-
-	if (!symParams) paramSize = 0;
-	else paramSize = symParams->size();
-
-	for (std::list<Object*>::iterator oIter = objects.begin(); oIter != objects.end(); oIter++) {
-		if((*oIter)->baseName() == symName && (*oIter)->arity() == paramSize) {
-			bool paramsMatch = true;
-			for(size_t i = 0; i < paramSize; i++) {
-				if((*oIter)->param(i)->baseName() != (*symParams)[i]) {
-					paramsMatch = false;
-					break;
-				}
-			}
-
-			if(paramsMatch) {
-				retVal = *oIter;
-				break;
-			}
-		}
-	}
-	return retVal;
-}
-
-// Searches for a Sort object matching the given name.
-Sort* Translator::getSort(std::string const& symName)
-{
-	Sort* retVal = NULL;
-	for (std::list<Sort*>::iterator sIter = sorts.begin(); sIter != sorts.end(); sIter++)
-	{
-		if((*sIter)->baseName() == symName)
-		{
-			retVal = *sIter;
-			break;
-		}
-	}
-	return retVal;
-}
-
-// Searches for a Variable object matching the given name.
-Variable* Translator::getVariable(std::string const& symName)
-{
-	Variable* retVal = NULL;
-	for(std::list<Variable*>::iterator vIter = variables.begin(); vIter != variables.end(); vIter++)
-	{
-		if((*vIter)->baseName() == symName)
-		{
-			retVal = *vIter;
-			break;
-		}
-	}
-	return retVal;
-}
 
 // Searches for a Query object with the given label
 Query* Translator::getQuery(std::string const& testLabel)
@@ -493,215 +375,92 @@ Query* Translator::getQuery(std::string const& testLabel)
 	return retVal;
 }
 
-// Searches for a Constant object matching the given name and number of parameters.
-Constant* Translator::getConstantLike(std::string const& symName, size_t numParams)
-{
-	Constant* retVal = NULL;
-	for (std::list<Constant*>::iterator cIter = constants.begin(); cIter != constants.end(); cIter++)
-	{
-		if((*cIter)->baseName() == symName && (*cIter)->arity() == numParams)
-		{
-			retVal = *cIter;
-			break;
-		}
-	}
-	return retVal;
-}
 
-// Searches for a Object object matching the given name and number of parameters.
-Object* Translator::getObjectLike(std::string const& symName, size_t numParams, bool isLua)
-{
-	Object* retVal = NULL;
-	for (std::list<Object*>::iterator oIter = objects.begin(); oIter != objects.end(); oIter++)
-	{
-		if((*oIter)->baseName() == symName && (*oIter)->arity() == numParams && (*oIter)->isLua() == isLua)
-		{
-			retVal = *oIter;
-			break;
-		}
-	}
-
-	// Allow lua objects to be dynamically declared.
-	if (retVal == NULL && isLua) {
-		// Ensure that we preserve the name of the object and append the LUA symbol.
-		retVal = new Object(symName, numParams);
-		addObject(retVal);
-	}
-
-	return retVal;
-}
-
-Object* Translator::getOrCreateSimpleObjectLike(std::string const& symName, Object::ObjectType type) {
-	Object* ret = getObjectLike(symName, 0, false);
+Object* Translator::getOrCreateObject(std::string const& symName, Object::ObjectType type, size_t arity) {
+	Element* ret = getSymbol(symName, arity);
 
 	if (!ret) {
-		ret = new Object(symName, type, NULL);
-		addObject(ret);
-	}
-
-	return ret;
-}
-
-
-// Searches for a Sort object like one matching the given name.
-// No difference between this and getSort, just call that.
-Sort* Translator::getSortLike(std::string const& symName)
-{
-	Sort* retVal = this->getSort(symName);
-	return retVal;
-}
-
-// Searches for a Variable object like one matching the given name.
-// No difference between this and getVariable, just call that.
-Variable* Translator::getVariableLike(std::string const& symName)
-{
-	Variable* retVal = this->getVariable(symName);
-	return retVal;
-}
-
-// Attempts to add a new Constant object to the translator's data structures and the symbol table.
-int Translator::addConstant(Constant* newConst)
-{
-	int retVal = SymbolTable::ADDSYM_ERR; // Start pessimistic.
-	NameList paramNames;
-
-	if(newConst)
-	{
-		// Try adding it into the symbol table, and then into local data structures if successful.
-		newConst->getParamFullNames(paramNames);
-		retVal = symbols.addSymbol(newConst->baseName(), &paramNames, SymbolNode::SYM_CONST);
-		if(retVal == SymbolTable::ADDSYM_OK)
-		{
-			// Connect the symbol definition to the actual Element instance, then save the Element.
-			SymbolNode* tempSym = symbols.getLastSymbol();
-			tempSym->symbolElement = newConst;
-			constants.push_back(newConst);
+		ret = new Object(symName, type, arity);
+		if (addSymbol(ret) != SymbolTable::ADDSYM_OK) {
+			delete ret;
 		}
+	} else if (ret->getElemType() != Element::ELEM_OBJ) {
+		error("Detected conflicting definition of identifier \"" + symName + std::string("/0")+"\".", true);
 	}
 
-	return retVal;
+
+	return (Object*)ret;
 }
 
-// Adds a new Object instance to the translator's data structures.
-int Translator::addObject(Object* newObj)
-{
-	int retVal = SymbolTable::ADDSYM_ERR; // Start pessimistic.
-	if(newObj)
-	{
-		// Duplicate objects can exist, so forego adding it to the symbol table
-		// and just add it naively to the translator's data structures.
-		objects.push_back(newObj);
-		retVal = SymbolTable::ADDSYM_OK;
-	}
-	return retVal;
-}
-
-// Attempts to add a new Sort object to the translator's data structures and the symbol table.
-int Translator::addSort(Sort* newSort)
-{
-	int retVal = SymbolTable::ADDSYM_ERR; // Start pessimistic.
-	if(newSort)
-	{
-		// Try adding it into the symbol table, and then into local data structures if successful.
-		retVal = symbols.addSymbol(newSort->baseName(), NULL, SymbolNode::SYM_SORT);
-		if(retVal == SymbolTable::ADDSYM_OK)
-		{
-			// Connect the symbol definition to the actual Element instance, then save the Element.
-			SymbolNode* tempSym = symbols.getLastSymbol();
-			tempSym->symbolElement = newSort;
-			sorts.push_back(newSort);
-		}
-	}
-	return retVal;
-}
 
 // Tries to create a Sort out of an identifier and (possibly empty) subsort list.
-Sort* Translator::addSort(std::string const& sortName, SortList* subsorts, bool translateDeclaration, bool warnOnDup)
+Sort* Translator::addSort(std::string const& sortName, bool internal, SortList* subsorts, bool translateDeclaration, bool warnOnDup)
 {
 	std::string trimmedName = utils::trimWhitespace(sortName);
 
-	Sort* retVal = NULL;
+	Element* retVal = NULL;
 	bool needTrans = false;
 
-	if ((retVal = getSort(trimmedName)) && warnOnDup) {
-		// Duplicate.
-		warn("Found duplicate sort declaration: \"" + trimmedName + "\".", true);
+	if ((retVal = getSymbol(trimmedName))) {
+
+		if (retVal->getElemType() != Element::ELEM_SORT) {
+			error("Detected conflicting definition of identifier \"" + trimmedName + std::string("/0") + "\".", true);
+		} else if (warnOnDup) {
+			// Duplicate.
+			warn("Found duplicate definition of identifier \"" + trimmedName + std::string("/0") + "\".", true);
+		}
 
 	} else {
 		// It doesn't exist already. Add it.
 		needTrans = true;
 
-
 		// Select a unique variable.
 		std::string baseName = sortNameToVariable(trimmedName, true);
-		std::string varName = baseName;
 		size_t i = 0;
+		std::string varName = baseName;
 
-		while (symbols.addSymbol(varName, NULL, SymbolNode::SYM_VAR) == SymbolTable::ADDSYM_DUP) {
-			varName = varName + utils::to_string(++i);
+		while (getSymbol(varName, 0)) {
+			varName = baseName + utils::to_string(++i);
 		}
+		Variable* sortVar = new Variable(varName, true, NULL);
 
-		Variable* sortVar = new Variable(varName, NULL);
+		mSymbolTable.addSymbol(sortVar);
 
-		// Connect the symbol definition to the actual Element instance, then save the Element.
-		SymbolNode* tempSym = symbols.getLastSymbol();
-		tempSym->symbolElement = sortVar;
-		variables.push_back(sortVar);
-
-		retVal = new Sort(trimmedName, sortVar);
-		addSort(retVal);
+		retVal = new Sort(trimmedName, sortVar, internal);
+		addSymbol(retVal);
 	}
 
 
 	// If the sort is "something*" we should ensure that its parent exists and that
 	// the appropriate subsorts are present.
 	if (trimmedName.at(trimmedName.length()-1) == '*') {
-		Sort* parentSort = addSort(trimmedName.substr(0, trimmedName.length()-1), subsorts, translateDeclaration, false);
-		needTrans |= retVal->addSubsort(parentSort, true);
+		Sort* parentSort = addSort(trimmedName.substr(0, trimmedName.length()-1), internal, subsorts, translateDeclaration, false);
+		needTrans |= ((Sort*)retVal)->addSubsort(parentSort, true);
 
 		// In addition, we should add the 'none' object.
-		Object* none = getOrCreateSimpleObjectLike("none", Object::OBJ_NAME);
-		bool needObjTrans = retVal->addObject(none, true);
+		Object* none = getOrCreateObject("none", Object::OBJ_NAME);
+		bool needObjTrans = ((Sort*)retVal)->addObject(none, true);
 
 		// Translate it, if necessary.
 		if (translateDeclaration && needObjTrans) {
-			translateObjectDecl(none, retVal);
+			translateObjectDecl(none, (Sort*)retVal);
 		}
 
 	} else {
 		if (subsorts) {
 			for (SortList::iterator it = subsorts->begin(); it != subsorts->end(); it++)
-				needTrans |= retVal->addSubsort(*it, true);
+				needTrans |= ((Sort*)retVal)->addSubsort(*it, true);
 		}
 	}
 
 	// Translate the declaration if anything has changed or the sort is new.
 	if (translateDeclaration && needTrans) {
-		translateSortDecl(retVal);
+		translateSortDecl((Sort*)retVal);
 	}
 
-	return retVal;
+	return ((Sort*)retVal);
 }
 
-
-// Attempts to add a new Variable object to the translator's data structures and the symbol table.
-int Translator::addVariable(Variable* newVar)
-{
-	int retVal = SymbolTable::ADDSYM_ERR; // Start pessimistic.
-	if(newVar)
-	{
-		// Try adding it into the symbol table, and then into local data structures if successful.
-		retVal = symbols.addSymbol(newVar->baseName(), NULL, SymbolNode::SYM_VAR);
-		if(retVal == SymbolTable::ADDSYM_OK)
-		{
-			// Connect the symbol definition to the actual Element instance, then save the Element.
-			SymbolNode* tempSym = symbols.getLastSymbol();
-			tempSym->symbolElement = newVar;
-			variables.push_back(newVar);
-		}
-	}
-	return retVal;
-}
 
 // Attempts to add a new Query object to the translator's data structures.
 int Translator::addQuery(Query* newQuery)
@@ -1061,6 +820,7 @@ void Translator::translateCausalLaw(
 
 	bool afterNotNot = false;		// Whether the after body should be encased in double negation.
 	bool ifNotNot = false;			// Whether the if body should be encased in double negation.
+	bool assumingNotNot = false;	// Whether the assuming body should be encased in double negation.
 	bool malformed = false; 		// true if one or more problems with the law have been detected.
 
 	std::ostringstream ossOutputBuffer; // Holds translated output so things can be easily added on before or after the normal output.
@@ -1072,6 +832,30 @@ void Translator::translateCausalLaw(
 
 	// Do some basic checking on the structure of the law. This includes determining the type of law we're working with
 	// and performing some basic sanity checking on each of the components...
+
+
+
+	// step -1: Check language specific constructs
+	switch (lang()) {
+	case LANG_CPLUS:
+		if (assumingBody) {
+			error("The assuming/ifcons clause is not supported in language C+. Please use the if clause.", true);
+			malformed = true;
+		}
+		break;
+	case LANG_BC:
+		if (whenBody) {
+			error("The when clause is not supported in language BC.", true);
+			malformed = true;
+
+		} 
+		if (followingBody) {
+			error("The following clause is not supported in language BC.", true);
+			malformed = true;
+		}
+	}
+
+
 
 	// Step 0, check to ensure that there are no undefined identifiers (outside the unless clause).
 	BaseElementList maybeUndefined, undefined;
@@ -1102,6 +886,7 @@ void Translator::translateCausalLaw(
 		error(tmpErr.str(),true);
 		malformed = true;
 	}
+
 
 
 	// step 1: ensure the head is non-null and in the correct form
@@ -1137,7 +922,10 @@ void Translator::translateCausalLaw(
 			|| (whereBody && whereBody->hasConstants(ParseElement::MASK_AB)))
 	{
 		// The law has abnormalities outside of the when / following clauses...
-		error("Abnormality constants cannot occur outside of 'when' and 'following' clauses of a law.\n");
+		if (lang() == LANG_BC)
+			error("Abnormality constants are not supported in language BC.", true);
+		else 
+			error("Abnormality constants cannot occur outside of 'when' and 'following' clauses of a law.\n");
 		malformed = true;
 	}
 
@@ -1209,8 +997,13 @@ void Translator::translateCausalLaw(
 	if (!head->isTrivial()) {
 		if (type == RULE_ACTIONDYNAMIC && afterBody && !afterBody->isTrivial())
 			afterNotNot = true;
-		else if ( (type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID) && ifBody && !ifBody->isTrivial() )
-			ifNotNot = true;
+		else {
+			if (lang() != LANG_BC 
+				&& (type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID))
+				ifNotNot = true;
+			if	((type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID))
+				assumingNotNot = true;
+		}
 	}
 
 
@@ -1242,7 +1035,7 @@ void Translator::translateCausalLaw(
 				);
 
 				translateConstantDecl(newConst);
-				addConstant(newConst);
+				addSymbol(newConst);
 
 				// Make sure we update the declaration.
 				(*it)->ref(newConst);
@@ -1275,6 +1068,7 @@ void Translator::translateCausalLaw(
 			IPART_BASE,
 			ifNotNot,
 			afterNotNot,
+			assumingNotNot,
 			"0",
 			head,
 			ifBody,
@@ -1297,6 +1091,7 @@ void Translator::translateCausalLaw(
 			IPART_CUMULATIVE,
 			ifNotNot,
 			afterNotNot,
+			assumingNotNot,
 			baseTimeStamp,
 			head,
 			ifBody,
@@ -1324,6 +1119,7 @@ std::ostream& Translator::makeCausalTranslation(
 	IPart ipart,
 	bool ifNotNot,
 	bool afterNotNot,
+	bool assumingNotNot,
 	std::string const& baseTimeStamp,
 	ParseElement* head,
 	ParseElement* ifBody,
@@ -1388,9 +1184,17 @@ std::ostream& Translator::makeCausalTranslation(
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
 
-			// Translate the "assuming" body exactly as the if body, except that it doesn't have "not not" in front.
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, false, false, &extraStmts);
-			assumingBody->translate(output, localContext);
+			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
+			if(assumingNotNot) {
+				output << "not not (";
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false, &extraStmts);
+				bindAndTranslate(output, assumingBody, localContext, false, true);
+				output << ")";
+			}
+			else {
+				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+				assumingBody->translate(output, localContext);
+			}
 		}
 
 		// "unless" part of body, if there is one.
@@ -1533,13 +1337,19 @@ void Translator::makeShowStmt(ParseElement* elem, StmtList& stmts, Variable cons
 	}
 
 
+	tmp << dynamicTimeStamp;
+	if (action) tmp << "-1";
+	std::string tmpstr = tmp.str();
+
+
 	if (eql) localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
-		dynamicTimeStamp + ((action) ? "-1" : ""), 
+		tmpstr, 
 		eql->fullTransName(), NULL, NULL, false, false, &stmts);
 	else localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
-		dynamicTimeStamp + ((action) ? "-1" : ""), 
-		NULL, NULL, false, false, &stmts);
+		tmpstr, 
+		NULL, NULL, NULL, false, false, &stmts);
 	
+	tmp.str("");
 	tmp << "#show ";
 	elem->translate(tmp, localContext);
 	tmp << ".";
@@ -1592,7 +1402,7 @@ bool Translator::translateAlwaysLaw(
 		SimpleUnaryOperator* tempPE = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_NOT, constraint);
 
 		// The head is "false".
-		ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+		ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateObject("false"));
 
 		// The law becomes "caused false after -F when H where G."
 		translateCausalLaw(tempObj, NULL, NULL, tempPE, unlessBody, whenBody, NULL, whereBody);
@@ -1648,7 +1458,7 @@ bool Translator::translateConstraintLaw(
 			}
 
 			// The head is "false".
-			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateObject("false"));
 
 			// The law becomes "caused false if -F after H when J following K where L."
 			translateCausalLaw(tempObj, tempPE, NULL, afterBody, unlessBody, whenBody, followingBody, whereBody);
@@ -1728,7 +1538,7 @@ bool Translator::translateNonexecutableLaw(
 			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(nonEx, SimpleBinaryOperator::BOP_AND, ifBody);
 
 			// Create a head of "false".
-			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateSimpleObjectLike("false"));
+			ObjectLikeElement* tempObj = new ObjectLikeElement("false", getOrCreateObject("false"));
 
 			// becomes caused false after F [& G] following H where K.
 			translateCausalLaw(tempObj, NULL, NULL, tempPE, unlessBody, NULL, whenBody, whereBody);
@@ -1989,13 +1799,13 @@ bool Translator::translateIncrementLaw(
 	ParseElementList tmpParams;
 	tmpParams.push_back(causer);
 	tmpParams.push_back(causee);
-	tmpBaseElems.push_back(contrib = new ConstantLikeElement("contribution", getConstantLike("contribution", 2), &tmpParams));
+	tmpBaseElems.push_back(contrib = new ConstantLikeElement("contribution", getConstant("contribution", 2), &tmpParams));
 
 	// Determine the RHS of the atomic formula.
 	if (isIncrement) {
 		inc_expr = increment;
 	} else {
-		tmpBaseElems.push_back(new ObjectLikeElement("-1", getOrCreateSimpleObjectLike("-1")));
+		tmpBaseElems.push_back(new ObjectLikeElement("-1", getOrCreateObject("-1")));
 		if (increment) increment->parens(true);
 		inc_expr = new SimpleBinaryOperator(tmpBaseElems.back(), SimpleBinaryOperator::BOP_TIMES, increment);
 		tmpBinOps.push_back((SimpleBinaryOperator*) inc_expr);
@@ -2012,7 +1822,7 @@ bool Translator::translateIncrementLaw(
 	// with the boolean causer action.
 
 	if (causer) causer->parens(true);
-	tmpBaseElems.push_back(new ObjectLikeElement("true", getOrCreateSimpleObjectLike("true")));
+	tmpBaseElems.push_back(new ObjectLikeElement("true", getOrCreateObject("true")));
 	tmpBinOps.push_back(new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_EQ, tmpBaseElems.back()));
 
 	if (ifBody) {
@@ -2049,32 +1859,23 @@ bool Translator::translateIncrementLaw(
 // Creates and adds a new object to the translator's data structures without translating or outputting it.
 Object* Translator::createInternalObject(std::string const& newObjName, SortList* params, Sort* ofSort)
 {
-	Object* retVal = NULL;
-	if(ofSort)
-	{
-		std::string newObjStr = newObjName;
-		retVal = new Object(newObjStr, Object::OBJ_NAME, params);
+	Element* retVal = getSymbol(newObjName, (params) ? params->size() : 0);
 
-		int addSymResult = this->addObject(retVal);
-		if(addSymResult != SymbolTable::ADDSYM_OK)
-		{	// Something went wrong adding the object, skip connecting & translating it.
-			if(addSymResult == SymbolTable::ADDSYM_DUP)
-			{	// Duplicate object. don't bother adding it.
-				delete retVal;
-				retVal = NULL;
-			}
-			else
-			{	// A real object error. Skip adding it.
-				delete retVal;
-				retVal = NULL;
-			}
-		}
-		else
-		{	// Object add went okay, connect the sort to the object.
-			ofSort->addObject(retVal);
+	if (retVal && retVal->getElemType() != Element::ELEM_OBJ)
+		mainTrans.error("Detected conflicting definition of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
+		
+	if (!retVal) {
+		retVal = new Object(newObjName, Object::OBJ_NAME, true, params);
+		if (addSymbol(retVal) != SymbolTable::ADDSYM_OK) {
+			mainTrans.error("An error occurred while processing declaration of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
+			delete retVal;
+			retVal = NULL;
 		}
 	}
-	return retVal;
+
+	if (retVal && ofSort) ofSort->addObject((Object*)retVal);
+
+	return ((Object*)retVal);
 }
 
 // Creates and adds a new number range (child of Object) to the translator's data structures without translating or outputting it.
@@ -2084,7 +1885,7 @@ NumberRange* Translator::createInternalNumRange(std::string const& newObjName, S
 	if(ofSort)
 	{
 		retVal = new NumberRange(newObjName);
-		int addSymResult = this->addObject(retVal);
+		int addSymResult = this->addSymbol(retVal);
 		if(addSymResult != SymbolTable::ADDSYM_OK)
 		{	// Something went wrong adding the object, skip connecting & translating it.
 			if(addSymResult == SymbolTable::ADDSYM_DUP)
@@ -2213,7 +2014,7 @@ bool Translator::resolveDynamicDeclarations(BaseElementList& undefined, BaseElem
 	// Move through each of the possibly undefined constants and attempt to find a definition for it.
 	for (BaseElementList::iterator uIt = undefined.begin(); uIt != undefined.end(); uIt++) {
 
-		if ((ref = getConstantLike((*uIt)->baseName(), (*uIt)->arity()))) {
+		if ((ref = getConstant((*uIt)->baseName(), (*uIt)->arity()))) {
 			// found it
 			(*uIt)->ref(ref);
 		} else {
@@ -2278,6 +2079,13 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement const
 	return out;
 }
 
+// @brief Converts the name of a language to its corresponding enum type.
+bool Translator::strToLanguage(char const* str, Language& outLang) {
+	if (!strcmp(str, "bc")) outLang = Language::LANG_BC;
+	else if (!strcmp(str, "c+")) outLang = Language::LANG_CPLUS;
+	else return false;
+	return true;
+}
 
 // Destructor. Deallocates all memory associated with the list attributes.
 Translator::~Translator()
@@ -2287,40 +2095,11 @@ Translator::~Translator()
 		delete tempQuery;
 		tempQuery = NULL;
 	}
-	std::list<Constant*>::iterator cIter = constants.begin();
-	while(cIter != constants.end())
-	{
-		delete *cIter;
-		++cIter;
-	}
-	constants.clear();
-	std::list<Object*>::iterator oIter = objects.begin();
-	while(oIter != objects.end())
-	{
-		delete *oIter;
-		++oIter;
-	}
-	objects.clear();
-	std::list<Sort*>::iterator sIter = sorts.begin();
-	while(sIter != sorts.end())
-	{
-		delete *sIter;
-		++sIter;
-	}
-	sorts.clear();
-	std::list<Variable*>::iterator vIter = variables.begin();
-	while(vIter != variables.end())
-	{
-		delete *vIter;
-		++vIter;
-	}
-	variables.clear();
-	std::list<Query*>::iterator qIter = queries.begin();
-	while(qIter != queries.end())
-	{
-		delete *qIter;
-		++qIter;
-	}
+
+	for (std::list<Query*>::iterator it = queries.begin(); it != queries.end(); it++)
+		delete *it;
+
+
 	queries.clear();
 	// Reset and deallocate the internal ostream pointers.
 	if(ostNullPtr)
@@ -2384,47 +2163,94 @@ void Translator::outputStmts(StmtList const& stmts) {
 std::ostream& Translator::outputSymbolTable(std::ostream& out) const {
 	using boost::property_tree::ptree;
 
-	ptree table, *node;
+	ptree table, *node, *node2;
+	std::string loc;
+	boost::property_tree::xml_writer_settings<char> settings('\t', 1);
 
-	for (Sort const* s : sorts) {
-		node = &table.put(std::string("sorts.sort"), s->fullName());
-		for (Object const* obj : *s) {
-			(node->put("object", obj->fullName())).put("<xmlattr>.trans_name", obj->fullTransName());
-		}
 
-		for (SortList::const_iterator it = s->beginSubsorts(); it != s->endSubsorts(); it++) {
-			node->put("subsort", (*it)->fullName());
-			for (Object const* obj : **it) {
-				(node->put("object", obj->fullName())).put("<xmlattr>.trans_name", obj->fullTransName());
+	for (Element const* s : mSymbolTable) {
+		// ignore all internal symbols
+		if (s->internal()) continue;
+	
+		loc = "symbols." + Element::elemTypeToString(s->getElemType()) + "s";
+
+
+		switch (s->getElemType()) {
+		case Element::ELEM_CONST:
+			loc += "." ;
+			if (((Constant*)s)->isAction())
+				loc += "actions.";
+			else if (((Constant*)s)->isFluent())
+				loc += "fluents.";
+			else if (((Constant*)s)->isAbnormal())
+				loc += "abnormalities.";
+			else
+				loc += "unknown.";
+			loc += ((Constant*)s)->constTypeStr();
+
+			node = &table.add(loc, "");
+
+			node->add("<xmlattr>.name", s->baseName());
+			node->add("<xmlattr>.arity", s->arity());
+			node->add("<xmlattr>.trans_name", s->baseTransName());
+
+
+			if (((Constant*)s)->constType() == Constant::CONST_ATTRIBUTE) {
+				node->add("<xmlattr>.parent", ((Attribute*)s)->parent()->baseName()
+					+ "/" + utils::to_string(((Attribute*)s)->parent()->arity()));
 			}
+
+			break;
+
+		case Element::ELEM_VAR:
+			loc += "." + Element::elemTypeToString(s->getElemType()); 
+			node = &table.add(loc, "");
+
+			node->add("<xmlattr>.name", s->baseName());
+			node->add("<xmlattr>.trans_name", s->baseTransName());
+			node->add("<xmlattr>.domain", ((Variable*)s)->domain()->baseName());
+			break;
+		case Element::ELEM_SORT:
+			loc += "." + Element::elemTypeToString(s->getElemType()); 
+			node = &table.add(loc, "");
+
+			node->add("<xmlattr>.name", s->baseName());
+			node->add("<xmlattr>.trans_name", s->baseTransName());
+
+
+			for (Object const* obj : *(Sort*)s) {
+				node2 = &node->add("object", "");
+				node2->add("<xmlattr>.name", obj->baseName());
+				node2->add("<xmlattr>.trans_name", obj->baseTransName());
+				node2->add("<xmlattr>.arity", obj->arity());
+			}
+
+			for (SortList::const_iterator it = ((Sort*)s)->beginSubsorts(); it != ((Sort*)s)->endSubsorts(); it++) {
+				node2 = &node->add("subsort.<xmlattr>.name", (*it)->baseName());
+				
+
+				for (Object const* obj : **it) {
+					node2 = &node->add("object", "");
+					node2->add("<xmlattr>.name", obj->baseName());
+					node2->add("<xmlattr>.trans_name", obj->baseTransName());
+					node2->add("<xmlattr>.arity", obj->arity());
+				}
+			}
+			break;
+
+		case Element::ELEM_OBJ:
+			// handled by sorts.
+			break;	
 		}
-
-	}
-
-	write_xml(out, table);
-
-/*
-	for (Object const* o : objects) {
-
-	}
-
-	for (Variable const* v : variables) {
-
-	}
-
-	for (Constant const* c : constants) {
 
 	}
 
 	for (Query const* q : queries) {
-
+		node = &table.add("queries.query", "");
+		node->add("<xmlattr>.label", q->label);
+		node->add("<xmlattr>.steps", q->maxstep);
 	}
 
-	table.
-*/
-	// Basically we want to dump all of symbols out via XML
-
-	// TODO
-//	out << "<Not yet implemented>\n";
+	write_xml(out, table, settings);
 	return out;
 }

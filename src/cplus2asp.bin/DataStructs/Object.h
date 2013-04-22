@@ -61,17 +61,20 @@ public:
 	 * Full constructor.
 	 * @param name - The C+ name of this object.
 	 * @param type - The type of object which is being instantiated.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param params - The list of parameters that the object uses, if any. (Null will result in the object having 0 parameters.)
 	 */
-	Object(std::string const& name, ObjectType type, SortList const* params = NULL);
+	Object(std::string const& name, ObjectType type, bool internal, SortList const* params);
 	
 	/**
 	 * Full constructor with anonymous parameters (for LUA calls).
 	 * Sets the object's type to LUA.
 	 * @param name - The C+ name of this object.
+	 * @param type - The type of object which is being instantiated.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param params - The number of anonymous parameters the object has.
 	 */
-	Object(std::string const& name, size_t params);
+	Object(std::string const& name, ObjectType type, bool internal, size_t params = 0);
 
 	inline virtual std::string const& fullName() const { return mFullName; }
 	inline virtual std::string const& fullTransName() const { return mFullTransName; }
@@ -80,8 +83,7 @@ public:
 	inline virtual bool isBoolean() const { return fullName() == "true" || fullName() == "false"; }
 	inline virtual bool isStarred() const { return fullName() == "none"; }
 	
-	/// Gets the number of parameters the object uses
-	inline size_t arity() const	{ return mParams.size(); }
+	inline virtual size_t arity() const	{ return mParams.size(); }
 
 	/// Determines the type of object being represented.
 	inline ObjectType getObjType() const { return mObjType; }

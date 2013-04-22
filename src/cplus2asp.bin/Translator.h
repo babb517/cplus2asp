@@ -55,12 +55,21 @@ struct YYLTYPE;
  */
 class Translator
 {
+public:
+	/*****************************************************************************************/
+	/* Types */
+	/*****************************************************************************************/
+	/**
+	 * @brief The various input languages supported.
+	 */
+	typedef enum {
+		LANG_CPLUS,
+		LANG_BC
+	} Language;
+		
+
 private:
-	SymbolTable symbols; 							///< Data structure to track what symbols have been declared.
-	std::list<Constant*> constants; 				///< Holds declared constants & associated data.
-	std::list<Object*> objects; 					///< Holds declared objects (to populate Sort objects' domains) & associated data.
-	std::list<Sort*> sorts; 						///< Holds declared sorts & associated data.
-	std::list<Variable*> variables; 				///< Holds declared variables & associated data.
+	SymbolTable mSymbolTable; 							///< Data structure to track what symbols have been declared.
 	std::list<Query*> queries; 						///< Holds declared queries & associated data.
 	StmtList mFooterStmts;							///< Contains a list of statements that should be added at the end of the translation file. These must be added manually by calling appendFooter() after translating.
 	std::ostream* ostOutPtr; 						///< Used to output translation results.
@@ -74,6 +83,7 @@ private:
 	bool blnFoundAdditive;			///< True if the translator has encountered additive constants.
 	bool blnEncounteredShowStmt;	///< True if the translator has encountered at least one show statement.
 
+	Language mLanguage;				///< The langauge that we are translating from.
 
 	IPart mCurrentPart; ///< The current incremental part that the translation is using.
 
@@ -91,8 +101,9 @@ public:
 	/**
 	 * Default constructor. Initializes attributes to blank/empty.
 	 * Also sets up default internal sorts, objects, etc.
+	 * @param in The input language that the translator will accept.
 	 */
-	Translator();
+	Translator(Language in = LANG_CPLUS);
 	
 	/* Static methods for general translation/sanitizing of element names. */
 	
@@ -198,54 +209,30 @@ public:
 	 */
 	inline bool hasFoundAdditiveConstants() const { return blnFoundAdditive; }
 
-	/**
-	 * Searches for a constant matching the given name and parameters in the
-	 * translator's data structures.
-	 * @param symName - The base name of the constant to find.
-	 * @param symParams - A vector of parameter names for the constant. NULL to indicate no parameters.
-	 * @return A pointer to the first matching Constant object, or NULL
-	 * if a match isn't found.
-	 */
-	Constant* getConstant(std::string const& symName, NameList const& symParams);
+	/// Finds the element associated with the \name/\arity (or NULL).
+	inline Element* getSymbol(std::string const& name, size_t arity = 0)	{ return mSymbolTable.findSymbol(name, arity); }
+	
+	/// Finds a constant identifier associated with the name/arity (or NULL);
+	inline Constant* getConstant(std::string const& name, size_t arity = 0)	{ 
+		Element *elem;
+		return (Constant*)(((elem = mSymbolTable.findSymbol(name, arity)) && elem->getElemType() == Element::ELEM_CONST) ? elem : NULL); 
+	}
+	/// Finds a object identifier associated with the name/arity (or NULL);
+	inline Object* getObject(std::string const& name, size_t arity = 0)	{
+		Element *elem;
+		return (Object*)(((elem = mSymbolTable.findSymbol(name, arity)) && elem->getElemType() == Element::ELEM_OBJ) ? elem : NULL); 
+	}
+	/// Finds a sort identifier associated with the name/arity (or NULL);
+	inline Sort* getSort(std::string const& name)	{
+		Element *elem;
+		return (Sort*)(((elem = mSymbolTable.findSymbol(name, 0)) && elem->getElemType() == Element::ELEM_SORT) ? elem : NULL); 
+	}
+	/// Finds a variable identifier associated with the name/arity (or NULL);
+	inline Variable* getVariable(std::string const& name)	{
+		Element *elem;
+		return (Variable*)(((elem = mSymbolTable.findSymbol(name, 0)) && elem->getElemType() == Element::ELEM_VAR) ? elem : NULL); 
+	}
 
-
-	/**
-	 * Searches for a constant matching the given name and parameters in the
-	 * translator's data structures.
-	 * @param symName - The base name of the constant to find.
-	 * @param symParams - A list of all the sort's which correspond to the constant's parameters.
-	 * @return A pointer to the first matching Constant object, or NULL
-	 * if a match isn't found.
-	 */
-	Constant* getConstant(std::string const& symName, SortList const* symParams);
-
-
-	/**
-	 * Searches for an object matching the given name and parameters in the
-	 * translator's data structures.
-	 * @param symName - The base name of the object to find.
-	 * @param symParams - A vector of parameter names for the object. NULL to indicate no parameters.
-	 * @return A pointer to the first matching Object instance, or NULL
-	 * if a match isn't found.
-	 */
-	Object* getObject(std::string const& symName, NameList const* symParams);
-	/**
-	 * Searches for a sort matching the given name in the
-	 * translator's data structures.
-	 * @param symName - The base name of the sort to find.
-	 * @return A pointer to the first matching Sort object, or NULL
-	 * if a match isn't found.
-	 */
-	Sort* getSort(std::string const& symName);
-
-	/**
-	 * Searches for a variable matching the given name in the
-	 * translator's data structures.
-	 * @param symName - The base name of the variable to find.
-	 * @return A pointer to the first matching Variable object, or NULL
-	 * if a match isn't found.
-	 */
-	Variable* getVariable(std::string const& symName);
 	/**
 	 * Searches for a stored query with the given label in the translator's
 	 * data structures.
@@ -256,100 +243,38 @@ public:
 	Query* getQuery(std::string const& testLabel);
 	
 	/**
-	 * Searches for a constant like one matching the given name and number of parameters in the
-	 * translator's data structures. Used to try to connect a constant-like
-	 * element to an actual constant instance.
-	 * @param symName - The base name of the constant to find.
-	 * @param numParams - The number of parameters the target constant should have.
-	 * @return A pointer to the first matching Constant object, or NULL
-	 * if a match isn't found.
-	 */
-	Constant* getConstantLike(std::string const& symName, size_t numParams);
-
-	/**
-	 * Searches for an object like one matching the given name and parameters in the
-	 * translator's data structures. Used to try to connect an object-like
-	 * element to an actual object instance.
-	 * @param symName - The base name of the object to find.
-	 * @param numParams - A number of parameters the target object should have.
-	 * @param isLua - Whether the object is really a LUA object...
-	 * @return A pointer to the first matching Object instance, or NULL
-	 * if a match isn't found.
-	 */
-	Object* getObjectLike(std::string const& symName, size_t numParams, bool isLua = false);
-
-
-	/**
 	 * Helper function for getting an Object type reference or dynamically adding it
 	 * if it doesn't occur.
 	 * @param symName - The base name of the object to find.
 	 * @param type - The type of object that the should be created.
+	 * @param arity - The number of (anonymous) arguments the object has.
 	 * @return A pointer to the first matching Object instance (or the newly created one if none were found)
 	 */
-	Object* getOrCreateSimpleObjectLike(std::string const& symName,  Object::ObjectType type = Object::OBJ_NAME);
+	Object* getOrCreateObject(std::string const& symName,  Object::ObjectType type = Object::OBJ_NAME, size_t arity = 0);
 
-	/**
-	 * Searches for a sort like one matching the given name in the
-	 * translator's data structures. Used to try to connect a sort-like
-	 * element to an actual sort instance.
-	 * @param symName - The base name of the sort to find.
-	 * @return A pointer to the first matching Sort object, or NULL
-	 * if a match isn't found.
-	 */
-	Sort* getSortLike(std::string const& symName);
-	/**
-	 * Searches for a variable like one matching the given name in the
-	 * translator's data structures. Used to try to connect a variable-like
-	 * element to an actual variable instance.
-	 * @param symName - The base name of the variable to find.
-	 * @return A pointer to the first matching Variable object, or NULL
-	 * if a match isn't found.
-	 */
-	Variable* getVariableLike(std::string const& symName);
 	
 	/* Methods to add elements into the translator's data structures. */
 	
 	/**
-	 * Attempts to add a new Constant object to the translator's data structures and the symbol table.
+	 * Attempts to add a new symbol to the translator's data structures.
 	 * The object must not already be present in the symbol table, or it will be flagged as a duplicate.
-	 * @param newConst - A populated Constant instance to add.
+	 * @param newConst - A populated symbol instance to add.
 	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
 	 */
-	int addConstant(Constant* newConst);
-	/**
-	 * Adds a new Object instance into the translator's data structures.
-	 * Does not check for duplicates, and does not add the object to the symbol table.
-	 * @param newObj - A populated Object instance to add.
-	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
-	 */
-	int addObject(Object* newObj);
-
-	/**
-	 * Attempts to add a new Sort object to the translator's data structures and the symbol table.
-	 * The object must not already be present in the symbol table, or it will be flagged as a duplicate.
-	 * @param newSort - A populated Sort instance to add.
-	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
-	 */
-	int addSort(Sort* newSort);
+	inline SymbolTable::SymTblResult addSymbol(Element* elem) { return mSymbolTable.addSymbol(elem); }
 
 	/**
 	 * Attempts to create and add a sort object to the translator.
 	 * @param sortName The name of the sort to add.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param subsorts A (possibly NULL) list of subsorts to attach to the sort. In the event the sort already exists, these subsorts will be added to the existing sort.
 	 * @param translateDeclaration Whether to add the declaration to the translation output.
 	 * @param warnOnDup Whether to print a warning if the sort declaration is a duplicate.
 	 * @return A pointer to the newly created sort or the previously existing sort.
 	 */
 
-	Sort* addSort(std::string const& sortName, SortList* subsorts = NULL, bool translateDeclaration = true, bool warnOnDup = false);
+	Sort* addSort(std::string const& sortName, bool internal, SortList* subsorts = NULL, bool translateDeclaration = true, bool warnOnDup = false);
 
-	/**
-	 * Attempts to add a new Variable object to the translator's data structures and the symbol table.
-	 * The object must not already be present in the symbol table, or it will be flagged as a duplicate.
-	 * @param newVar - A populated Variable instance to add.
-	 * @return A value from SymbolTable's SymTblResult enum indicating success/failure of the add.
-	 */
-	int addVariable(Variable* newVar);
 	/**
 	 * Attempts to add a new Query object to the translator's data structures.
 	 * A query with the same label must not already be present, or it will be flagged as a duplicate.
@@ -660,7 +585,7 @@ public:
 	 * @return A pointer to the newly created and added sort, or NULL on an error.
 	 */
 	inline Sort* createInternalSort(std::string const& newSortName, SortList* subsorts = NULL)
-		{ return addSort(newSortName, subsorts, false); }
+		{ return addSort(newSortName, true, subsorts, false); }
 	
 	/**
 	 * Allocates and adds an object with the given name to the translator's
@@ -793,6 +718,25 @@ public:
 	 */
 	std::ostream& outputSymbolTable(std::ostream& out) const;
 
+
+	/**
+	 * @brief Converts the name of a language to its corresponding enum type.
+	 * @param str The name of the language.
+	 * @param[out] outLang A variable to place the enumerated language type in.
+	 * @return True if successful, false otherwise. 
+	 */
+	static bool strToLanguage(char const* str, Language& outLang);
+
+	
+	/**
+ 	 * @brief Sets the input language to the provided language.
+	 * @param lang The language to accept as input
+	 */
+	inline void lang(Language lang) { mLanguage = lang; }
+
+	/// Gets the currently active language
+	inline Language lang() const { return mLanguage; }
+
 protected:
 
 	/**
@@ -833,6 +777,7 @@ protected:
 	 * @param ipart - The incremental part that this law belongs to.
 	 * @param ifNotNot - Whether the rule's ifBody needs to be wrapped in double negation.
 	 * @param afterNotNot - Whether the rule's afterBody needs to be wrapped in double negation.
+	 * @param assumingNotNot - Whether the rule's assumingBody needs to be wrapped in double negation.
 	 * @param baseTimeStamp - The timestamp to use for the translated law.
 	 * @param head - The head portion of the causal law ("caused head...").
 	 * @param ifBody - The part of the law's body associated with the if keyword ("...if ifBody...").
@@ -850,6 +795,7 @@ protected:
 		IPart ipart,
 		bool ifNotNot,
 		bool afterNotNot,
+		bool assumingNotNot,
 		std::string const& baseTimeStamp,
 		ParseElement* head,
 		ParseElement* ifBody,

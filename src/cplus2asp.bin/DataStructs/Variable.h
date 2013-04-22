@@ -44,9 +44,10 @@ public:
 	/**
 	 * Full constructor.
 	 * @param name - The C+ name of the variable.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param sort - The sort that the variable is associated with.
 	 */
-	Variable(std::string const& name, Sort const* sort = NULL);
+	Variable(std::string const& name, bool internal, Sort const* sort = NULL);
 
 
 	inline virtual std::string const& fullName() const		{ return baseName(); }
@@ -56,6 +57,8 @@ public:
 	inline virtual bool isBoolean() const 					{ return domain() && domain()->isBoolean(); }
 	inline virtual bool isStarred() const 					{ return domain() && domain()->isStarred(); }
 	
+	inline virtual size_t arity() const						{ return 0; }
+		
 	/// Gets the sort the variable is associated with.
 	inline Sort const* domain() const 						{ return mSortRef; }
 

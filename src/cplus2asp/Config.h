@@ -42,6 +42,7 @@
 
 
 #define DEF_RUNNING_MODE					MODE_INCREMENTAL					///< The default running mode.
+#define DEF_LANG							LANG_CPLUS							///< The default input language.
 #define DEF_INCL_STD						true								///< Whether to include standard files by default.
 #define DEF_INCL_ADDITIVE					false								///< Whether to include additive files by default.
 #define DEF_DISCARD_F2LP					true								///< Whether to discard intermediate F2LP files by default.
@@ -144,6 +145,13 @@ public:
 		MODE_STATIC_MANUAL = 0x02,				///< Manually advancing static translation.
 		MODE_INCREMENTAL = 0x04,				///< Incremental translation.
 		MODE_REACTIVE = 0x08					///< Reactive controller mode.
+	};
+
+	/// The various languages that we support
+	enum Language
+	{ 
+		LANG_CPLUS,								///< The action language C+.
+		LANG_BC									///< The action language BC.
 	};
 
 	/// The various extra configurations that can be set.
@@ -261,6 +269,9 @@ private:
 	Mode mRunningMode;								///< The currently configured running mode.
 	unsigned char mCustomRunningMode;				///< Whether the running mode has been manually set.
 
+	Language mLang;								///< The currently configured input language.
+	unsigned char mCustomLang;					///< Whether the input language has been manually set.
+
 	// Misc Configurations
 	unsigned int	mConfigOpts   [OPT_LENGTH];		///< The available configuration options.
 	unsigned char	mCustomConfig [OPT_LENGTH];		///< Whether each configuration option has been set previously.
@@ -327,6 +338,10 @@ public:
 	///@return Whether the running mode has been manually modified.
 	inline bool customMode() const									{ return (bool)mCustomRunningMode; }
 
+	///@return The currently configured input language
+	inline Language lang() const									{ return mLang; }
+	///@return Whether the input language has been manually modified.
+	inline bool customLang() const									{ return (bool)mLang; }
 
 	// config options
 	///@return The boolean value of the specified option.
@@ -386,6 +401,8 @@ public:
 	/// @return If the running mode has been previously set.
 	bool mode(Mode newMode);
 
+	/// @return If the input language has been previously set.
+	bool lang(Language newLang);
 
 	/// @return If the option was previously set.
 	bool boolConfigOpt(ConfigOption opt, bool val);
@@ -446,6 +463,12 @@ public:
 	/* Advanced functionality / Helpers */
 	/***************************************************************/
 
+
+	/// Parses the language represented in the string.
+	/// @param str The string containing the language specification.
+	/// @param[out] outLang The language stored in the string.
+	/// @return True if successful, false otherwise.
+	bool parseLang(char const* str, Language& outLang);
 
 	/**
 	 * Adds an input file to the list, determining which toolchain component it appears to belong to based on its extension.

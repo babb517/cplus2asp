@@ -36,6 +36,7 @@ cplus2asp_bin_SOURCES = \
 	DataStructs/TokenStream.cpp \
 	DataStructs/Variable.cpp 
 
+cplus2asp_CXXFLAGS = $(BOOST_CPPFLAGS)
 #cplus2asp_bin_CPPFLAGS = $(BOOST_CPPFLAGS)
-#cplus2asp_bin_LDFLAGS = $(BOOST_THREAD_LDFLAGS)
+cplus2asp_bin_LDFLAGS = $(BOOST_THREAD_LDFLAGS)
 cplus2asp_bin_LDADD = $(BOOST_THREAD_LIBS) 

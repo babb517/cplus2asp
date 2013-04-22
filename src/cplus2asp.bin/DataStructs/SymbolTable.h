@@ -27,34 +27,10 @@
 #include <list>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
-class Element;
-
-/**
- * Representation of a node for use in a symbol table. Essentially a container
- * class for storing data.
- */
-class SymbolNode
-{
-public:
-	/// The possible types of recognized symbols.
-	enum SymbolType { SYM_UNKNOWN, SYM_CONST, SYM_OBJ, SYM_SORT, SYM_VAR };
-	enum SymbolType symbolType; ///< The type of a particular symbol.
-	std::string name; ///< The base name of a symbol.
-	std::vector<std::string> paramNames; ///< The base names of each parameter of a symbol (if any).
-	Element* symbolElement; ///< A pointer to a symbol's corresponding Element (or subclass) object, if any.
-	
-	/**
-	 * Default constructor. Initializes attributes to 0, NULL, empty, or equivalent.
-	 */
-	SymbolNode();
-	
-	/**
-	 * Destructor. No dynamic memory is allocated for SymbolNode objects, 
-	 * so this is just here for completeness's sake.
-	 */
-	virtual ~SymbolNode();
-};
+#include "DataStructs/Element.h"
+#include "utilities.h"
 
 /**
  * Uses encapsulated data structures of SymbolNode objects to create a symbol
@@ -63,29 +39,8 @@ public:
  */
 class SymbolTable
 {
-private:
-	std::list<SymbolNode*> symbolList; ///< Data structure to hold defined symbols.
-	/**
-	 * An internal version of findSymbol that returns an iterator instead of a pointer to the symbol (if it's found).
-	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any. NULL if none.
-	 * @param symType - The type of the symbol.
-	 * @return An iterator at the found symbol's position, or the end of the list if the symbol was not found.
-	 */
-	std::list<SymbolNode*>::iterator findSymbolIter(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType);
 public:
-	/**
-	 * Default Constructor. Nothing to initialize/allocate, just here
-	 * for completeness's sake.
-	 */
-	SymbolTable();
-	
-	/**
-	 * Empties the internal symbol data structure, deallocating all memory
-	 * associated with the symbols.
-	 */
-	void clearTable();
-	
+
 	/**
 	 * Enum of the possible return values for methods that manipulate the symbol table:
 	 * ADDSYM_OK - Everything went fine, symbol added.
@@ -96,47 +51,94 @@ public:
 	 * DELSYM_DNE - Symbol did not exist in the table, nothing to remove.
 	 * DELSYM_ERR - An error occurred while removing the symbol.
 	 */
-	enum SymTblResult { ADDSYM_OK = 0, DELSYM_OK = 0, ADDSYM_DUP, ADDSYM_BAD, ADDSYM_ERR, DELSYM_DNE, DELSYM_ERR };
+	enum SymTblResult { 
+		ADDSYM_OK = 0, 
+		DELSYM_OK = 0, 
+		ADDSYM_DUP, 
+		ADDSYM_BAD, 
+		ADDSYM_ERR, 
+		DELSYM_DNE, 
+		DELSYM_ERR 
+	};
+
+	typedef std::list<Element*>::iterator iterator;
+	typedef std::list<Element*>::const_iterator const_iterator;
+
+
+private:
+	std::unordered_map<std::string, Element*> mTable;		///< Data structure to hold defined symbols.
+	std::list<Element*> mList;								///< List of all constants
+
+	std::list<Element*> mSubTables[Element::_ELEM_TYPE_COUNT];	//< Tables maintained for specific types.
+
+
+public:
+	/**
+	 * Default Constructor. Nothing to initialize/allocate, just here
+	 * for completeness's sake.
+	 */
+	inline SymbolTable() { /* Intentionally left blank */ }
+	
+	/**
+	 * Empties the internal symbol data structure, deallocating all memory
+	 * associated with the symbols.
+	 */
+	inline ~SymbolTable() { clearTable(); }
+
+	/**
+	 * Empties the internal symbol data structure, deallocating all memory
+	 * associated with the symbols.
+	 */
+	void clearTable();
+	
 	
 	/**
 	 * Attempts to add a new symbol to the symbol table.
-	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any. NULL if none.
-	 * @param symType - The type of the symbol.
+	 * @param elem - The element to attempt to add.
 	 * @return A value from SymTblResult indicating the success/failure of the operation.
 	 */
-	int addSymbol(std::string const& symName, NameList const* symParams, SymbolNode::SymbolType symType);
-	
+	SymTblResult addSymbol(Element* elem);
+
 	/**
 	 * Attempts to remove a defined symbol from the symbol table.
-	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any. NULL if none.
-	 * @param symType - The type of the symbol.
-	 * @return A value from SymTblResult indicating the success/failure of the operation.
+	 * Also frees memory associated with the symbol.
+	 * @param name The base name of the symbol.
+	 * @param arity The arity of the symbol.
 	 */
-	int delSymbol(std::string const& symName, std::vector<std::string> const* symParams, SymbolNode::SymbolType symType);
+	SymTblResult delSymbol(std::string const& name, size_t arity);
 	
 	/**
 	 * Finds the requested symbol's SymbolNode object in the symbol table if
 	 * the symbol has been defined.
-	 * @param symName - The base name of the symbol.
-	 * @param symParams - Parameters of the symbol, if any. NULL if none.
-	 * @param symType - The type of the symbol.
-	 * @return A pointer to the symbol's SymbolNode object, or NULL if the symbol isn't in the table.
+	 * @param name The base name of the symbol.
+	 * @param arity The arity of the symbol.
+	 * @return The element (if found) or NULL otherwise.
 	 */
-	SymbolNode* findSymbol(std::string const& symName, std::vector<std::string> const* symParams, SymbolNode::SymbolType symType);
-	
-	/**
-	 * Grabs the last symbol added to the table (if any have been added).
-	 * @return A pointer to the last symbol in added to the table, or NULL if
-	 * the table is empty or "last symbol" has no meaning in context.
-	 */
-	SymbolNode* getLastSymbol();
-	
-	/**
-	 * Destructor. Deallocates and clears out the internal symbol data structure.
-	 */
-	virtual ~SymbolTable();
+	Element* findSymbol(std::string const& name, size_t arity);
+
+	/// Gets an iterator to the beginning of all symbols.
+	inline iterator begin() { return mList.begin(); }
+	inline const_iterator begin() const { return mList.begin(); }
+	/// Gets an iterator to the end of all symbols.
+	inline iterator end() { return mList.end(); }
+	inline const_iterator end() const { return mList.end(); }
+
+	/// Gets an iterator the beginning of the specified symbol type.
+	inline iterator begin(Element::ElementType type) { return mSubTables[type].begin(); }
+	inline const_iterator begin(Element::ElementType type) const { return mSubTables[type].begin(); }
+	/// Gets an iterator to the end of the specified symbol type.
+	inline iterator end(Element::ElementType type) { return mSubTables[type].end(); }
+	inline const_iterator end(Element::ElementType type) const { return mSubTables[type].end(); }
+
+
+private:
+
+	/// Generates the key corresponding to the provided name and arity
+	inline std::string key(std::string const& name, size_t arity) {
+		return name + std::string("/") + utils::to_string(arity);
+	}
+
 };
+
 
 #endif // SYMBOLTABLE_H

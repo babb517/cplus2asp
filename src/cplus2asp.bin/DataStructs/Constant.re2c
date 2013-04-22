@@ -35,8 +35,8 @@
 #include "DataStructs/Context.h"
 
 // Full constructor.
-Constant::Constant(std::string const& name, Sort const* domain, ConstantType type, ConstSortList const* params)
-	: Element(name, Translator::sanitizeConstantName(name), Element::ELEM_CONST)
+Constant::Constant(std::string const& name, Sort const* domain, ConstantType type, bool internal, ConstSortList const* params)
+	: Element(name, Translator::sanitizeConstantName(name), Element::ELEM_CONST, internal)
 {
 	mConstType = type;
 	mDomain = domain;
@@ -60,8 +60,8 @@ Constant::Constant(std::string const& name, Sort const* domain, ConstantType typ
 	}
 }
 
-Constant::Constant(std::string const& name, ConstantType type, ConstSortList const* params)
-	: Element(name, Translator::sanitizeConstantName(name), Element::ELEM_CONST)
+Constant::Constant(std::string const& name, ConstantType type, bool internal, ConstSortList const* params)
+	: Element(name, Translator::sanitizeConstantName(name), Element::ELEM_CONST, internal)
 {
 	mConstType = type;
 	mDomain = NULL;
@@ -366,6 +366,6 @@ void Constant::getParamFullNames(NameList& out) const	{
 
 // Copies this constant as an attribute
 Attribute* Constant::makeAttribute(Constant const* parent) const {
-	return new Attribute(baseName(), domain(), parent, &mParams);
+	return new Attribute(baseName(), domain(), internal(), parent, &mParams);
 
 }

@@ -37,8 +37,8 @@ std::string const Sort::VAR_NULL_NAME = "NULL_VAR";
 
 
 // Full constructor.
-Sort::Sort(std::string name, Variable* sortVar)
-	: Element(name, Translator::sanitizeSortName(name), ELEM_SORT)
+Sort::Sort(std::string name, Variable* sortVar, bool internal)
+	: Element(name, Translator::sanitizeSortName(name), ELEM_SORT, internal)
 {
 	mSortVar = sortVar;
 	mSortVar->setDomain(this);
@@ -74,9 +74,7 @@ std::string Sort::toString() const
 
 
 bool Sort::addObject(Object* obj, bool checkDuplicate) {
-	bool found = !checkDuplicate;
-
-
+	bool found = false;
 
 	if (checkDuplicate) {
 		for (ObjectList::iterator it = mObjs.begin(); it != mObjs.end(); it++) {

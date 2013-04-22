@@ -61,17 +61,19 @@ public:
 	 * @param name - The C+ name of this constant.
 	 * @param domain - The sort which this constant ranges over.
 	 * @param type - The type of constant we are representing.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param params - A list of parameters for the constant. NULL indicates that there are no parameters.
 	 */
-	Constant(std::string const& name, Sort const* domain, ConstantType type, ConstSortList const* params = NULL);
+	Constant(std::string const& name, Sort const* domain, ConstantType type, bool internal, ConstSortList const* params = NULL);
 
 	/**
 	 * Full constructor for abnormal constants.
 	 * @param name - The C+ name of this constant.
 	 * @param type - The type of constant we are representing.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param params - A list of parameters for the constant. NULL indicates that there are no parameters.
 	 */
-	Constant(std::string const& name, ConstantType type, ConstSortList const* params = NULL);
+	Constant(std::string const& name, ConstantType type, bool internal, ConstSortList const* params = NULL);
 	
 
 	inline virtual std::string const& fullName() const 				{ return mFullName; }
@@ -97,8 +99,7 @@ public:
 	/// Gets a string representing the constant type.
 	inline std::string constTypeStr() const							{ return constTypeToString(constType()); }
 
-	/// Gets the arity of the constant.
-	inline size_t arity() const										{ return mParams.size(); }
+	inline virtual size_t arity() const								{ return mParams.size(); }
 
 	/// Determines if the constant is one of the abnormality types.
 	inline bool isAbnormal() const 									{ return isAbnormalityType(constType()); }

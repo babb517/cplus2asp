@@ -51,7 +51,7 @@ public:
 	 * @param max - The maximum value of the number range.
 	 */
 	inline NumberRange(std::string const& min, std::string const& max)
-			: Object(min + ".." + max, Object::OBJ_RANGE, NULL), mMin(min), mMax(max)
+			: Object(min + ".." + max, Object::OBJ_RANGE, true), mMin(min), mMax(max)
 	{ /* Intentionally Left Blank */ }
 
 	virtual std::string toString() const;

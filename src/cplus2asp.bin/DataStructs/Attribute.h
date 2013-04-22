@@ -42,11 +42,12 @@ public:
 	 * Full constructor.
 	 * @param name - The C+ name of this constant.
 	 * @param domain - The sort which this constant ranges over.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 * @param parent - The constant which this is an attribute of
 	 * @param params - A list of parameters for the constant. NULL indicates that there are no parameters.
 	 */
-	inline Attribute(std::string const& name, Sort  const* domain, Constant const* parent, ConstSortList const* params = NULL)
-		: Constant(name, domain, Constant::CONST_ATTRIBUTE, params), mParent(parent)
+	inline Attribute(std::string const& name, Sort  const* domain, bool internal, Constant const* parent, ConstSortList const* params = NULL)
+		: Constant(name, domain, Constant::CONST_ATTRIBUTE, internal, params), mParent(parent)
 	{ /* Intentionally Left Blank */ }
 	
 	virtual std::string toString() const;

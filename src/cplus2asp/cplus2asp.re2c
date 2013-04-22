@@ -110,6 +110,7 @@ enum Option {
 	OPT_JUST_POST,
 	OPT_JUST_SO,
 	OPT_JUST_TRANS,
+	OPT_LANG,
 	OPT_MAXSTEP,
 	OPT_MINSTEP,
 	OPT_MODE_SELECT,
@@ -132,6 +133,7 @@ enum Option {
 	OPT_SO_OPTS,
 	OPT_SO_OUT,
 	OPT_STATS,
+	OPT_SYMTAB,
 	OPT_TO_BRIDGE,
 	OPT_TO_GRD,
 	OPT_TO_PRE,
@@ -1075,6 +1077,26 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 				warning("The option '%s' has overridden one or more previous choices.",true,argv[i]);
 			}
 			break;
+		case OPT_LANG:
+			Config::Language l;
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+						error("Expected a language specification following option '%s'. Exiting.",true,0, argv[i-1]);
+						return OPT_STAT_BAD_ARG;
+				}
+			}
+
+			if (!outConf.parseLang(tmpptr, l)) {
+				error("'%s' is not a supported language specification.", 0, true, tmpptr);
+				return OPT_STAT_BAD_ARG;
+			}
+
+			if (outConf.lang(l)) {
+				warning("Detected a redefition of the input language.",true,argv[i]);
+			}
+			break;
 
 		case OPT_MAXSTEP:
 
@@ -1409,6 +1431,23 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 				warning("Detected redefinition of the solver output file. Continuing with value '%s'",true, tmpptr);
 			}
 			break;
+		
+		case OPT_SYMTAB:
+			if (!tmpptr) {
+				if (++i < argc) {
+					tmpptr = argv[i];
+				} else {
+					error("Expected a file name following option '%s'. Exiting.",true,0,argv[i-1]);
+					return OPT_STAT_BAD_ARG;
+				}
+
+			}
+
+			if (outConf.symTabFile(tmpptr)) {
+				warning("Detected redefinition of the symbol table file. Continuing with value '%s'",true, tmpptr);
+			}
+			break;
+
 
 		case OPT_TO_BRIDGE:
 			if (outConf.setRunTo(Config::TC_REACTIVE_BRIDGE)) {
@@ -1682,7 +1721,9 @@ Option parseOption(char const* opt, char const*& val) {
 			"-justpost"|"--just-post-processor"		{ return OPT_JUST_POST; }
 			"-justso"|"--just-solver"				{ return OPT_JUST_SO; }
 			"-justtrans"|"--just-translator"		{ return OPT_JUST_TRANS; }
+			"-l"|"--language"						{ return OPT_LANG; }
 			"-m="|"--mode="							{ val = opt; return OPT_MODE_SELECT; }
+			"-l="|"--language="						{ val = opt; return OPT_LANG; }
 			"-m"|"--mode"							{ return OPT_MODE_SELECT; }
 			"-max="|"--maxstep="					{ val = opt; return OPT_MAXSTEP; }
 			"-max"|"--maxstep"						{ return OPT_MAXSTEP; }
@@ -1711,6 +1752,8 @@ Option parseOption(char const* opt, char const*& val) {
 			"-soopt"|"--solver-opts"				{ return OPT_SO_OPTS; }
 			"-soout="|"--solver-output="			{ val = opt; return OPT_SO_OUT; }
 			"-soout"|"--solver-output"				{ return OPT_SO_OUT; }
+			"-symtab"|"--symbol-table"				{ return OPT_SYMTAB; }
+			"-symtab="|"--symbol-table="			{ val = opt; return OPT_SYMTAB; }
 			"-togr"|"--to-grounder"					{ return OPT_TO_GRD; }
 			"-topre"|"--to-pre-processor"			{ return OPT_TO_PRE; }
 			"-topost"|"--to-post-processor"			{ return OPT_TO_POST; }
@@ -1864,6 +1907,12 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << " --stats ---------------- Indicates additional solving statistics should be requested from" << endl
 		  << "                          the solver and displayed after each solver run." << endl
 		  << endl
+		  << " -l <LANG>, -l=<LANG>, --language <LANG> " << endl
+		  << " --language=<LANG> ------ Sets the input language that will be accepted for translation/running." << endl
+		  << "                          <LANG> can be one of the following:" << endl
+		  << "                          * c+, C+ -------- [default] The action language C+." << endl
+ 		  << "                          * bc, BC -------- The action language BC." << endl
+		  << endl
 		  << "Extra Program Options:" << endl
 		  << "  Options with <PROG> or <PROGRAM> in their name affect individual" << endl
 		  << "  programs in the tool chain, depending on <PROG> or <PROGRAM>'s value." << endl
@@ -1888,13 +1937,16 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "  -just<PROG>" << endl
 		  << "  --just-<PROGRAM> -------- Removes all but the given program from the tool chain." << endl
 		  << endl
+		  << "  -to<PROG>" << endl
+		  << "  --to-<PROGRAM> ---------- Stops running the tool chain after the given program." << endl
+		  << endl
 		  << "  -nostd" << endl
 		  << "  --no-standard ----------- Removes the standard translation files from the call to the" << endl
 		  << "                            pre-processor. Useful if supplying different \"standard\"" << endl
 		  << "                            files, or for debugging of input file errors." << endl
 		  << endl
-		  << "  -to<PROG>" << endl
-		  << "  --to-<PROGRAM> ---------- Stops running the tool chain after the given program." << endl
+		  << " -symtab <FILE>, -symtab=<FILE>, --symbol-table=<FILE> " << endl
+		  << " --symbol-table=<FILE> -- Writes the program's symbol table to <FILE> for use in other programs." << endl
 		  << endl
 		  << "  Example: " << execName << " myProgram.cp" << endl
 		  << "           would translate and process the file \"myProgram.cp\"," << endl

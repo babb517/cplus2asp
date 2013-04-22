@@ -24,15 +24,28 @@
 #include "DataStructs/Element.h"
 
 // Full constructor.
-Element::Element(std::string const& baseName, std::string const& baseTransName, ElementType type)
+Element::Element(std::string const& baseName, std::string const& baseTransName, ElementType type, bool internal)
 {
 	mBaseName = baseName;
 	mBaseTransName = baseTransName;
 	mElemType = type;
+	mInternal = internal;
 }
 
 // Destructor.
 Element::~Element()
 {
 	// Intentionally empty.
+}
+
+// converts the element type to a string representation.
+std::string Element::elemTypeToString(ElementType type) {
+	switch (type) {
+	case ELEM_CONST: return "constant";
+	case ELEM_ELEM: return "element";
+	case ELEM_OBJ: return "object";
+	case ELEM_SORT: return "sort";
+	case ELEM_VAR: return "variable";
+	default: return "unknown";
+	}
 }

@@ -347,6 +347,7 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 "always"			{ TOK_INT(T_ALWAYS); return T_ALWAYS; }
 "attribute"			{ TOK_INT(T_ATTRIBUTE); return T_ATTRIBUTE; }
 "assuming"			{ TOK_INT(T_ASSUMING); return T_ASSUMING; }
+"ifcons"			{ TOK_INT(T_ASSUMING); return T_ASSUMING; }
 "by"				{ TOK_INT(T_BY); return T_BY; }
 "caused"			{ TOK_INT(T_CAUSED); return T_CAUSED; }
 "causes"			{ TOK_INT(T_CAUSES); return T_CAUSES; }

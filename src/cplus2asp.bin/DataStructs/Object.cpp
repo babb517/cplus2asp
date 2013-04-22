@@ -35,8 +35,8 @@
 
 
 // Full constructor.
-Object::Object(std::string const& name, ObjectType type, SortList const* params)
-	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ)
+Object::Object(std::string const& name, ObjectType type, bool internal, SortList const* params)
+	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ, internal)
 {
 	mObjType = type;
 	if (params) mParams = *params;
@@ -60,10 +60,10 @@ Object::Object(std::string const& name, ObjectType type, SortList const* params)
 }
 
 // LUA constructor.
-Object::Object(std::string const& name, size_t params)
-	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ)
+Object::Object(std::string const& name, ObjectType type, bool internal, size_t params)
+	: Element(name, Translator::sanitizeObjectName(name), Element::ELEM_OBJ, internal)
 {
-	mObjType = OBJ_LUA;
+	mObjType = type;
 	for (; params > 0; params--) {
 		mParams.push_back(NULL);
 	}

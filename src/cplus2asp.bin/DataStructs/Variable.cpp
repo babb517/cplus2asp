@@ -30,8 +30,8 @@
 
 
 // Full constructor.
-Variable::Variable(std::string const& name, Sort const* sort)
-	: Element(name, Translator::sanitizeVariableName(name), Element::ELEM_VAR)
+Variable::Variable(std::string const& name, bool internal, Sort const* sort)
+	: Element(name, Translator::sanitizeVariableName(name), Element::ELEM_VAR, internal)
 {
 	mSortRef = sort;
 }

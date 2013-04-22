@@ -35,6 +35,7 @@
 #include <stdexcept>
 #include <climits>
 
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include "boost/process.hpp"
 
@@ -79,6 +80,8 @@ Config::Config(std::string const& name) {
 	mRunningMode = DEF_RUNNING_MODE;
 	mCustomRunningMode = 0;
 
+	mLang = DEF_LANG;
+	mCustomLang = 0;
 
 	mNoneAlias = "";
 	mCustomNone = 0;
@@ -240,6 +243,24 @@ bool Config::mode(Mode newMode) {
 	}
 
 	return (bool)(mCustomRunningMode - 1);
+ }
+
+
+
+// Parses the language represented in the string.
+bool Config::parseLang(char const* str, Language& outLang) {
+	if (boost::iequals(str, "bc")) outLang = LANG_BC;
+	else if (boost::iequals(str, "c+")) outLang = LANG_CPLUS;
+	else return false;
+	return true;
+}
+
+// Set the input language for the program
+bool Config::lang(Language newLang) {
+	mCustomLang++;
+	if (mLang == newLang) return false;
+	mLang = newLang;
+	return (bool)(mCustomLang - 1);
  }
 
 // Checks if a constant is defined
@@ -501,6 +522,17 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		// We also should have it tell us what special constants it finds.
 		arglist.push_back("--expressive-return");
 
+		switch (lang()) {
+		case LANG_CPLUS:
+			arglist.push_back("--language=c+");
+			break;
+
+		case LANG_BC:
+			arglist.push_back("--language=bc");
+			break;
+		}
+
+
 		// The translator should be told the translation mode.
 		switch (mode()) {
 		case MODE_STATIC_AUTO:
@@ -595,9 +627,8 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		if (boolConfigOpt(OPT_STATS)) {
 			arglist.push_back("--stats");
 
-			if (mode() == MODE_REACTIVE)
+			if (mode() == MODE_REACTIVE || mode() == MODE_INCREMENTAL)
 				arglist.push_back("--istats");
-				arglist.push_back("--quiet");
 		}
 
 
@@ -673,9 +704,9 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 bool Config::setRunTo(Toolchain tool) {
 	bool conflict = false;
 
-	for (int i = (int)TC_BEGIN; i < (int)tool+1; i++) {
-		conflict |= run((Toolchain)i, true);
-	}
+//	for (int i = (int)TC_BEGIN; i < (int)tool+1; i++) {
+//		conflict |= run((Toolchain)i, true);
+//	}
 	for (int i = ((int)tool)+1; i < (int)TC_END; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
@@ -689,9 +720,9 @@ bool Config::setRunFrom(Toolchain tool) {
 	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
-	for (int i = (int)tool; i < (int)TC_END; i++) {
-		conflict |= run((Toolchain)i, true);
-	}
+//	for (int i = (int)tool; i < (int)TC_END; i++) {
+//		conflict |= run((Toolchain)i, true);
+//	}
 	return conflict;
 }
 

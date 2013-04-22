@@ -13,6 +13,8 @@
 :- objects
   a,b,c,d,e,f,g,h,i,j,k,l,m,n,o  :: block.
 
+:- show cost; move(B); destination(L).
+
 :- query
 maxstep :: length_small..length;
 0:      (cost = 0  &  loc(m) = table  &  loc(l) = m
@@ -27,7 +29,6 @@ maxstep: ([\/N| cost = N & N=<maxCost]
         &  loc(o) = m  &  loc(k) = g  &  loc(c) = k
         &  loc(b) = c  &  loc(l) = b).
 
-:- show cost = N; move(B); destination(L).
 
 /*
 | ?- loadf 'bw-cost-test'.

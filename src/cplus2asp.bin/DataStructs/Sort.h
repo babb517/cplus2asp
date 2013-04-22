@@ -60,8 +60,9 @@ public:
 	 * Full constructor. Calls Element's full constructor, saves the given varName, and initializes the domainObjs and subsorts vectors.
 	 * @param name - The C+ name of the sort.
 	 * @param sortVar - The variable to use as the default internal variable for this sort. This variable will be automatically attached to the sort.
+	 * @param internal - Whether this symbol is internal to the translator or not.
 	 */
-	Sort(std::string name, Variable* sortVar);
+	Sort(std::string name, Variable* sortVar, bool internal);
 
 	inline virtual std::string const& fullName() const 				{ return baseName(); }
 	inline virtual std::string const& fullTransName() const 		{ return baseTransName(); }
@@ -69,6 +70,7 @@ public:
 	inline virtual bool isNumeric() const 							{ return mIsNumeric; }
 	virtual bool isBoolean() const 									{ return isBooleanSort(); }
 	virtual bool isStarred() const 									{ return mIsStarred; }
+	inline virtual size_t arity() const								{ return 0; }
 
 	/// Gets the variable associated with this sort.
 	inline Variable const* var() const								{ return mSortVar; }
@@ -78,6 +80,7 @@ public:
 
 	/// Gets the ASP safe name of the variable associated with this sort.
 	std::string const& varTransName() const;
+
 
 
 	/**

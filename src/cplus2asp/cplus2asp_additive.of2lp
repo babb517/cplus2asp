@@ -95,20 +95,20 @@ occ(eql(V_additiveAction,Value),t-1) <-
 #base. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
 
-:- h(eql(V_additiveFluent, V_object),0),
-	constant_sort(V_additiveFluent, V_sort),
-	not sort_object(V_sort, V_object).
+% :- h(eql(V_additiveFluent, V_object),0),
+%	constant_sort(V_additiveFluent, V_sort),
+%	not sort_object(V_sort, V_object).
 
 %-------------------------------------------------------------
 #cumulative t. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
-:- h(eql(V_additiveFluent, V_object),t),
-	constant_sort(V_additiveFluent, V_sort),
-	not sort_object(V_sort, V_object).
+% :- h(eql(V_additiveFluent, V_object),t),
+%	constant_sort(V_additiveFluent, V_sort),
+%	not sort_object(V_sort, V_object).
 	
-:- occ(eql(V_additiveAction, V_object),t-1),
-	constant_sort(V_additiveAction, V_sort),
-	not sort_object(V_sort, V_object).
+% :- occ(eql(V_additiveAction, V_object),t-1),
+%	constant_sort(V_additiveAction, V_sort),
+%	not sort_object(V_sort, V_object).
 %-------------------------------------------------------------
 #base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------

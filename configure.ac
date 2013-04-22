@@ -68,6 +68,7 @@ BOOST_FIND_HEADER(
 #BOOST_TIMER()							# Required by acplusbridge
 
 
+BOOST_STRING_ALGO()						# Required by cplus2asp
 BOOST_FILESYSTEM()						# Required by cplus2asp
 BOOST_FUNCTION()						# Required by acplusbridge
 BOOST_IOSTREAMS([])						# Required by cplus2asp						

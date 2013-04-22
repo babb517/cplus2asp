@@ -26,7 +26,7 @@
 #include "utilities.h"
 
 NumberRange::NumberRange(std::string const& name)
-			: Object(name, Object::OBJ_RANGE, NULL) {
+			: Object(name, Object::OBJ_RANGE, true) {
 	// Figure out the proper range based on the name.
 
 	size_t pos;
