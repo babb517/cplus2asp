@@ -1612,6 +1612,11 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			}
 
 			// If there's no "header" on the argument, it's either a constant declaration, an input file, or the number of solutions.
+			else if(!strcmp(argv[i], "all") || !strcmp(argv[i], "ALL")) {
+				if (outConf.intConfigOpt(Config::OPT_NUM_SOLN, 0)) {
+					warning("Detected the redefinition of the number of solutions. Continuing with '%s'.",true,argv[i]);
+				}
+			}
 			else if(isInteger(argv[i]))
 			{	// It looks like a number, atoi it and save that as the desired number of solutions.
 				int numSolutions = atoi(argv[i]);
@@ -1826,7 +1831,7 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          * minstep ----- The minimum time step to consider." << endl
 		  << "                          * query   ----- The query number (i.e., label) to select." << endl
 		  << endl
-		  << "  <NUM_SOLUTIONS> ------- The desired number of solutions for the solver to find." << endl
+		  << "  <NUM_SOLUTIONS> ------- The desired number of solutions for the solver to find, or 'all'." << endl
 		  << "                          This should be a non-negative integer (0 or greater)." << endl
 		  << "                          If not specified, defaults to 1." << endl
 		  << endl
