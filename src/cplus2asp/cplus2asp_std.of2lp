@@ -165,6 +165,8 @@ abnormality(V_dynamicAbnormality).
 
 %%% Description-independent rules to CCalc-ify ASP @ t=0.
 
+step(0).
+
 %% Handle external abnormality constants
 #external ab_h(V_staticAbnormality,0).
 
@@ -208,6 +210,9 @@ false <- not 1{ h(eql(V_fluent,Object1),0) : constant_object(V_fluent,Object1) }
 %-------------------------------------------------------------
 #cumulative t.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
+% Keep track of steps we've visited.
+step(t).
+astep(t-1).
 
 %%% Description-independent rules to CCalc-ify ASP @ t>0.
 
@@ -267,6 +272,13 @@ false <- not 1{ h(eql(V_fluent,Object1),t) : constant_object(V_fluent,Object1) }
 
 % Actions
 false <- not 1{ occ(eql(V_action,Object1),t-1) : constant_object(V_action,Object1) }1.
+
+%-------------------------------------------------------------
+#volatile t.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+% Visit at least minstep before returning a solution.
+:- not step(minstep).
 
 
 %-------------------------------------------------------------
