@@ -579,7 +579,7 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
 			if (subconfig) {
-				if (subconfig->queryId != UNDEFINED) arglist.push_back("-c query=" + to_string(subconfig->queryId));
+				if (subconfig->queryId != UNDEFINED) arglist.push_back("-c query=" + query(subconfig->queryId)->cmd);
 				if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + to_string(subconfig->maxstep));
 				if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + to_string(subconfig->minstep));
 			} else {
@@ -745,7 +745,7 @@ bool Config::addQuery(unsigned int queryID, std::string const& name, std::string
 	bool unique = true;
 
 	// ensure that the query is not already present...
-	if (hasQuery(queryID)) unique = false;
+	if (hasQuery(queryID) || hasQuery(cmd)) unique = false;
 
 	if (unique) {
 		mQueries[queryID] = Query(queryID,name,cmd,minstep,maxstep);
@@ -759,7 +759,7 @@ bool Config::addQuery(Query const& query) {
 	bool unique = true;
 
 	// ensure that the query is not already present...
-	if (hasQuery(query.id)) unique = false;
+	if (hasQuery(query.id) || hasQuery(query.cmd)) unique = false;
 
 	if (unique) {
 		mQueries[query.id] = query;
@@ -768,6 +768,13 @@ bool Config::addQuery(Query const& query) {
 	return unique;
 }
 
+// Checks if the query exists by command.
+bool Config::hasQuery(std::string const& cmd) const {
+	for(std::pair<unsigned int,Query> const& q : mQueries) {
+		if (q.second.cmd == cmd) return true;
+	}
+	return false;
+}
 
 
 Config::FileType Config::addInput(std::string const& input) {

@@ -204,7 +204,7 @@ public:
 	/// A structure which is used to describe a query.
 	struct Query
 	{
-		unsigned int id;		///< ID # for the query.
+		unsigned int id;		///< ID for the query.
 		std::string name;		///< The human-readable name of the query.
 		std::string cmd;		///< The short name or command used for query selection.
 		unsigned int minstep;	/// Minimum step for the query (if specified, UNDEFINED otherwise).
@@ -373,6 +373,7 @@ public:
 	// queries
 	inline size_t queryCount() const								{ return mQueries.size(); }
 	inline bool hasQuery(unsigned int queryID) const				{ return (bool)mQueries.count(queryID); }
+	bool hasQuery(std::string const& cmd) const;
 	inline Query const* activeQuery() const							{ return query(intConfigOpt(OPT_QUERY));  }
 	Query const* query(unsigned int queryID) const;
 	std::string const* queryName(unsigned int queryID) const;

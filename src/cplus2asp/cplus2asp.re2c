@@ -1907,7 +1907,6 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << " --stats ---------------- Indicates additional solving statistics should be requested from" << endl
 		  << "                          the solver and displayed after each solver run." << endl
 		  << endl
-		  << " -l <LANG>, -l=<LANG>, --language <LANG> " << endl
 		  << " --language=<LANG> ------ Sets the input language that will be accepted for translation/running." << endl
 		  << "                          <LANG> can be one of the following:" << endl
 		  << "                          * c+, C+ -------- [default] The action language C+." << endl
@@ -2020,6 +2019,7 @@ void scanForConstants(Config& config, std::string const& file) {
 
 	bool foundQuery = false;
 	unsigned int tempInt;
+	unsigned int queryNum = 0;
 	Config::Query tempQuery;					// Temporary place to store query information.
 	std::stringstream nameBuilder;
 
@@ -2082,60 +2082,56 @@ void scanForConstants(Config& config, std::string const& file) {
 			debug("Found what appears to be a query definition: '%s'", true, tempLine.c_str());
 			tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
 
-			if(from_string(tempInt, tempString)) {
-				// Found a query's label, keep it and look for the maxstep...
-				tempQuery.id = tempInt;
+			// Found a query's label, keep it and look for the maxstep...
+			tempQuery.id = queryNum++;
+			tempQuery.cmd = tempString;
 
-				findText = "Maxstep:";
-				if (tempLine.at(tempPos2) != ']' // Don't bother if we're at the end of the hint...
-						&& (tempPos = tempLine.find(findText, tempPos2)) != std::string::npos
-						&& (tempPos += findText.length())
-						&& (tempPos2 = tempLine.find("]", tempPos)) != std::string::npos
-						&& tempPos2 > tempPos) {
+			findText = "Maxstep:";
+			if (tempLine.at(tempPos2) != ']' // Don't bother if we're at the end of the hint...
+					&& (tempPos = tempLine.find(findText, tempPos2)) != std::string::npos
+					&& (tempPos += findText.length())
+					&& (tempPos2 = tempLine.find("]", tempPos)) != std::string::npos
+					&& tempPos2 > tempPos) {
 
-					// This would be a maximum step definition
-					// This could be an integer M
-					// Or this could be a range M::N or M..N
-					tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
+				// This would be a maximum step definition
+				// This could be an integer M
+				// Or this could be a range M::N or M..N
+				tempString = tempLine.substr(tempPos, tempPos2 - tempPos);
 
-					size_t sepBegin, sepEnd;
+				size_t sepBegin, sepEnd;
 
-					if (((sepBegin = tempString.find("::")) != std::string::npos
-							|| (sepBegin = tempString.find("..")) != std::string::npos)
-						&& (sepEnd = sepBegin + 2)
-						&& from_string(tempQuery.minstep, tempString.substr(0, sepBegin))
-						&& from_string(tempQuery.maxstep, tempString.substr(sepEnd, std::string::npos))){
-						// The query is good and contains a minstep and maxstep.
-						foundQuery = true;
-					} else if (from_string(tempQuery.maxstep, tempString)) {
-						// The query is good and contains only a maxstep.
-						// The minstep is undefined.
-						tempQuery.minstep = tempQuery.maxstep;
-						foundQuery = true;
-					} else {
-						// The step information is malformed.
-						// Warn them...
-						warning("[%s:%d]: The query hint '%s' has a malformed step maxstep parameter. Ignoring the maximum step information...", true, file.c_str(), currentLine, tempLine.c_str());
-						tempQuery.minstep = Config::UNDEFINED;
-						tempQuery.maxstep = Config::UNDEFINED;
-						foundQuery = true;
-					}
+				if (((sepBegin = tempString.find("::")) != std::string::npos
+						|| (sepBegin = tempString.find("..")) != std::string::npos)
+					&& (sepEnd = sepBegin + 2)
+					&& from_string(tempQuery.minstep, tempString.substr(0, sepBegin))
+					&& from_string(tempQuery.maxstep, tempString.substr(sepEnd, std::string::npos))){
+					// The query is good and contains a minstep and maxstep.
+					foundQuery = true;
+				} else if (from_string(tempQuery.maxstep, tempString)) {
+					// The query is good and contains only a maxstep.
+					// The minstep is undefined.
+					tempQuery.minstep = tempQuery.maxstep;
+					foundQuery = true;
 				} else {
-					// No maxstep information to be found. This is ok.
-					tempQuery.maxstep = Config::UNDEFINED;
+					// The step information is malformed.
+					// Warn them...
+					warning("[%s:%d]: The query hint '%s' has a malformed step maxstep parameter. Ignoring the maximum step information...", true, file.c_str(), currentLine, tempLine.c_str());
+					tempQuery.minstep = Config::UNDEFINED;
 					tempQuery.maxstep = Config::UNDEFINED;
 					foundQuery = true;
 				}
 			} else {
-				// The query ID is malformed... Warn them and move on.
-				warning("[%s:%d]: The query hint '%s' has a malformed query ID. Ignoring it.", true, file.c_str(), currentLine, tempLine.c_str());
+				// No maxstep information to be found. This is ok.
+				tempQuery.maxstep = Config::UNDEFINED;
+				tempQuery.maxstep = Config::UNDEFINED;
+				foundQuery = true;
 			}
 
 			if (foundQuery) {
 				// The query was good. We can go ahead and register it.
 				// Generate a name...
 				nameBuilder.str("");
-				nameBuilder << "Query " << tempQuery.id;
+				nameBuilder << "Query '" << tempQuery.cmd << "'";
 
 				//if (tempQuery.minstep != Config::UNDEFINED && tempQuery.maxstep != Config::UNDEFINED)
 				//	nameBuilder << " (" << tempQuery.minstep << ".." << tempQuery.maxstep <<")";
@@ -2144,15 +2140,10 @@ void scanForConstants(Config& config, std::string const& file) {
 
 				tempQuery.name = nameBuilder.str();
 
-				// Build the command
-				nameBuilder.str("");
-				nameBuilder << tempQuery.id;
-				tempQuery.cmd = nameBuilder.str();
-
 				// Attempt to register it.
 				debug("Registering query '%s'...", true, tempQuery.name.c_str());
 				if (!config.addQuery(tempQuery)) {
-					warning("[%s:%d]: Detected duplicate queries with ID '%d'. Ignoring the most recent one found.", file.c_str(), currentLine, tempQuery.id);
+					warning("[%s:%d]: Detected duplicate queries with ID '%s'. Ignoring the most recent one found.", file.c_str(), currentLine, tempQuery.cmd.c_str());
 				}
 			}
 		}
@@ -2575,6 +2566,7 @@ bool processErrors(Config const& config, Config::Toolchain tool, std::string con
 					|| line.find("noconcurrency/0") != std::string::npos
 					|| line.find("strong_noconcurrency/0") != std::string::npos
 					|| line.find("false/0") != std::string::npos
+					|| line.find("computed/1") != std::string::npos
 					)
 					show = false;
 			}

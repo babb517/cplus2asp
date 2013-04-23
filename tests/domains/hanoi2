@@ -48,6 +48,7 @@ noconcurrency.
 
 :- query
 maxstep :: 7;
+label :: solve;
 0: size(none)=3, size(d(1))=2, size(d(2))=1, size(d(3))=0,
    loc(d(1))=none,  loc(d(2))=d(1),  loc(d(3))=d(2),
    top(p(1))=d(3), top(p(2))=none, top(p(3))=none;
@@ -55,7 +56,7 @@ maxstep:
    loc(d(1))=none, loc(d(2))=d(1), loc(d(3))=d(2), top(p(3))=d(3).
 
 :- query
-label :: 1;
+label :: move_check;
 maxstep :: 1;
 0: size(none)=3, size(d(1))=2, size(d(2))=1, size(d(3))=0,
    loc(d(1))=none,  loc(d(2))=d(1),  loc(d(3))=d(2),

@@ -2340,8 +2340,25 @@ query_expression_tuple:		  			query_expression
 }
 							;
 
-query_expression:			  		T_LABEL T_DBL_COLON T_INTEGER
+query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 {
+	$$ = PARSERULE_NOT_USED;
+	if(mainTrans.tempQuery->label == "")
+	{
+		mainTrans.tempQuery->label = *$3;
+	}
+	else
+	{
+		ltsyystartParseError(ltsyylloc);
+		ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+		ltsyyreportError();
+		YYERROR;
+	}
+	deallocateItem($3);
+}
+							| T_LABEL T_DBL_COLON T_INTEGER
+{
+
 	$$ = PARSERULE_NOT_USED;
 	if(mainTrans.tempQuery->label == "")
 	{
@@ -2354,43 +2371,8 @@ query_expression:			  		T_LABEL T_DBL_COLON T_INTEGER
 		ltsyyreportError();
 		YYERROR;
 	}
-}
-/*
-							| T_MAXSTEP T_DBL_COLON T_INTEGER
-{
-	$$ = PARSERULE_NOT_USED;
-	if(mainTrans.tempQuery->maxstep == "")
-	{
-		mainTrans.tempQuery->maxstep = utils::to_string($3);
-	}
-	else
-	{
-		ltsyystartParseError(ltsyylloc);
-		ltsyyossErr << "maxstep already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
-		ltsyyreportError();
-		YYERROR;
-	}
-}
-							| T_MAXSTEP T_DBL_COLON T_INTEGER T_DBL_PERIOD T_INTEGER
-{
-	$$ = PARSERULE_NOT_USED;
-	// Explicit declaration of a limited form of a number range that only supports (positive) integers as its bounds.
-	if(mainTrans.tempQuery->maxstep == "")
-	{
-		mainTrans.tempQuery->maxstep = utils::to_string($3);
-		mainTrans.tempQuery->maxstep += "..";
-		mainTrans.tempQuery->maxstep += utils::to_string($5);
-	}
-	else
-	{
-		ltsyystartParseError(ltsyylloc);
-		ltsyyossErr << "maxstep already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
-		ltsyyreportError();
-		YYERROR;
-	}
-}
-*/
 
+}
 							| T_MAXSTEP T_DBL_COLON num_range
 {
 	$$ = PARSERULE_NOT_USED;
