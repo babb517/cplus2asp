@@ -372,24 +372,15 @@ bool Config::def(std::string const& constant, std::string const& value) {
 			bad = true;
 		}
 	} else if (constant_trimmed == CONST_QUERY) {
+		unsigned int q = UNDEFINED;
 
-		// The query allows for some special options...
-		if (value_trimmed == CONST_QUERY_NONE) {
-			// The user has requested we use no query.
-			redef = intConfigOpt(OPT_QUERY, NO_QUERY);
-		} else if (value_trimmed == CONST_QUERY_STATES) {
-			// The user has requested that we find the sytem's states.
-			redef = intConfigOpt(OPT_QUERY, STATES_QUERY);
-		} else if (value_trimmed == CONST_QUERY_TRANSITIONS) {
-			// The user has requested that we find the system's transitions.
-			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
-		} else if (from_string(tmpVal,value_trimmed)) {
-			// The user has provided us with a query to perform.
-			redef = intConfigOpt(OPT_QUERY,tmpVal);
-		} else {
-			// Oops... Throw a warning, ignore it, and continue.
-			bad = true;
-		}
+		for (QueryMap::const_iterator it = beginQueries(); it != endQueries(); it++)
+			if (value_trimmed == it->second.cmd) q = it->first;
+
+
+		if (q != UNDEFINED) redef = intConfigOpt(OPT_QUERY, q);
+		else bad = true;
+
 	} else if (constant_trimmed == CONST_MAXADDITIVE) {
 		if (from_string(tmpVal,value_trimmed)) {
 			redef = intConfigOpt(OPT_MAXADDITIVE,tmpVal);
