@@ -286,6 +286,8 @@ false <- not 1{ occ(eql(V_action,Object1),t-1) : constant_object(V_action,Object
 %-------------------------------------------------------------
 
 % Etc
+#hide step/1.
+#hide astep/1.
 #hide constant_object/2.
 #hide constant_posobject/2.
 #hide constant_negobject/2.

@@ -572,7 +572,9 @@ public:
 	 */
 	inline BaseLikeElement(ParseElementType elemType, std::string const& baseName, Element const* symbolRef, ParseElementList* params = NULL, bool parens = false)
 		: ParseElement(elemType, parens), mBaseName(baseName), mSymbolRef(symbolRef)
-	{ if (params) mParams = *params; }
+	{ 
+		if (params) mParams = *params; 
+	}
 
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const = 0;
@@ -613,7 +615,7 @@ public:
 	inline ParseElementList::const_iterator paramsEnd() const 		{ return mParams.end(); }
 
 	/// Gets the number of parameters the element has.
-	inline size_t arity() const										{ return (ref() ? ref()->arity() : mParams.size()); }
+	inline size_t arity() const										{ return mParams.size(); }
 
 
 	/// Clears the list of parameters without deallocating them.

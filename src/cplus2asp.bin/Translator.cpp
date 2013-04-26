@@ -379,11 +379,11 @@ Query* Translator::getQuery(std::string const& testLabel)
 }
 
 
-Object* Translator::getOrCreateObject(std::string const& symName, Object::ObjectType type, size_t arity) {
+Object* Translator::getOrCreateObject(std::string const& symName, Object::ObjectType type, bool internal, size_t arity) {
 	Element* ret = getSymbol(symName, arity);
 
 	if (!ret) {
-		ret = new Object(symName, type, arity);
+		ret = new Object(symName, type, internal, arity);
 		if (addSymbol(ret) != SymbolTable::ADDSYM_OK) {
 			delete ret;
 		}
@@ -498,6 +498,7 @@ void Translator::translateConstantDecl(Constant const* transConst)
 	// Sanity check: make sure the element isn't NULL.
 	if(transConst)
 	{
+
 		// Detect if it's an abnormality constant and set the appropriate flag.
 		if (transConst->isAbnormal()) {
 			blnFoundAbnormalities = true;
@@ -624,10 +625,9 @@ void Translator::handleLUACall(ObjectLikeElement const* lua_elem) {
 	StmtList stmts;
 	Sort *sortObj = getSort("computed");
 	ClauseList extraClauses, freeVars;
-
 	Context c(Context::POS_TERM, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
-
 	std::stringstream stmtBuilder;					// Used to build each individual statement required for this declaration.
+
 	stmtBuilder << sortObj->fullTransName() << "(";
 	lua_elem->translate(stmtBuilder, c);
 	stmtBuilder << ")";
@@ -850,7 +850,6 @@ void Translator::translateCausalLaw(
 	RuleType type = RULE_STATIC;	// The type of the rule we're currently working with.
 
 	bool afterNotNot = false;		// Whether the after body should be encased in double negation.
-	bool ifNotNot = false;			// Whether the if body should be encased in double negation.
 	bool assumingNotNot = false;	// Whether the assuming body should be encased in double negation.
 	bool malformed = false; 		// true if one or more problems with the law have been detected.
 
@@ -864,17 +863,26 @@ void Translator::translateCausalLaw(
 	// Do some basic checking on the structure of the law. This includes determining the type of law we're working with
 	// and performing some basic sanity checking on each of the components...
 
-
+	ParseElement* tmpAssuming = NULL;
+	SimpleBinaryOperator *tmp = NULL;
 
 	// step -1: Check language specific constructs
 	switch (lang()) {
 	case LANG_CPLUS:
-		if (assumingBody) {
-			error("The assuming/ifcons clause is not supported in language C+. Please use the if clause.", true);
-			malformed = true;
+		if (!ifBody) tmpAssuming = assumingBody;	
+		else if (!assumingBody) { 
+			tmpAssuming = ifBody;
+			ifBody = NULL;
+		} else {
+			ifBody->parens(true);
+			assumingBody->parens(true);
+			tmpAssuming = tmp = new SimpleBinaryOperator(ifBody, SimpleBinaryOperator::BOP_AND, assumingBody);
+			ifBody = NULL;
 		}
 		break;
 	case LANG_BC:
+		tmpAssuming = assumingBody;
+
 		if (whenBody) {
 			error("The when clause is not supported in language BC.", true);
 			malformed = true;
@@ -884,6 +892,7 @@ void Translator::translateCausalLaw(
 			error("The following clause is not supported in language BC.", true);
 			malformed = true;
 		}
+		break;
 	}
 
 
@@ -892,7 +901,7 @@ void Translator::translateCausalLaw(
 	BaseElementList maybeUndefined, undefined;
 	if (head) head->aggregateUndefined(maybeUndefined);
 	if (ifBody) ifBody->aggregateUndefined(maybeUndefined);
-	if (assumingBody) assumingBody->aggregateUndefined(maybeUndefined);
+	if (tmpAssuming) tmpAssuming->aggregateUndefined(maybeUndefined);
 	if (afterBody) afterBody->aggregateUndefined(maybeUndefined);
 	if (whenBody) whenBody->aggregateUndefined(maybeUndefined);
 	if (followingBody) followingBody->aggregateUndefined(maybeUndefined);
@@ -930,7 +939,7 @@ void Translator::translateCausalLaw(
 	// step 2: Ensure that LUA calls only occur in the law's where clause (if it exists).
 	if ( head->hasLuaCalls()
 			|| (ifBody && ifBody->hasLuaCalls())
-			|| (assumingBody && assumingBody->hasLuaCalls())
+			|| (tmpAssuming && tmpAssuming->hasLuaCalls())
 			|| (afterBody && afterBody->hasLuaCalls())
 			|| (unlessBody && unlessBody->hasLuaCalls())
 			|| (whenBody && whenBody->hasLuaCalls())
@@ -947,7 +956,7 @@ void Translator::translateCausalLaw(
 	// step 3: Ensure that abnormalities are where they are supposed to be...
 	if ( head->hasConstants(ParseElement::MASK_AB)
 			|| (ifBody && ifBody->hasConstants(ParseElement::MASK_AB))
-			|| (assumingBody && assumingBody->hasConstants(ParseElement::MASK_AB))
+			|| (tmpAssuming && tmpAssuming->hasConstants(ParseElement::MASK_AB))
 			|| (afterBody && afterBody->hasConstants(ParseElement::MASK_AB))
 			|| (unlessBody && unlessBody->hasConstants(ParseElement::MASK_AB))
 			|| (whereBody && whereBody->hasConstants(ParseElement::MASK_AB)))
@@ -976,7 +985,7 @@ void Translator::translateCausalLaw(
 		// Verification: We don't allow any non-rigid fluents in the rule.
 		if (head->hasConstants(ParseElement::MASK_NON_RIGID)
 				|| (ifBody && ifBody->hasConstants(ParseElement::MASK_NON_RIGID))
-				|| (assumingBody && assumingBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (tmpAssuming && tmpAssuming->hasConstants(ParseElement::MASK_NON_RIGID))
 				|| (afterBody && afterBody->hasConstants(ParseElement::MASK_NON_RIGID))
 				|| (unlessBody && unlessBody->hasConstants(ParseElement::MASK_NON_RIGID))
 				|| (whenBody && whenBody->hasConstants(ParseElement::MASK_NON_RIGID))
@@ -992,7 +1001,7 @@ void Translator::translateCausalLaw(
 	// Static laws...
 	else if (head->hasConstants(ParseElement::MASK_FLUENT | ParseElement::MASK_TRUE_FALSE) && !head->hasConstants(ParseElement::MASK_ACTION)
 			&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_ACTION))
-			&& (!assumingBody || !assumingBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!tmpAssuming || !tmpAssuming->hasConstants(ParseElement::MASK_ACTION))
 			&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_DYNAMIC_AB))
 			&& !afterBody
 			&& !followingBody)
@@ -1004,7 +1013,7 @@ void Translator::translateCausalLaw(
 	// fluent dynamic laws...
 	else if (!head->hasConstants(ParseElement::MASK_ACTION)
 			&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_ACTION))
-			&& (!assumingBody || !assumingBody->hasConstants(ParseElement::MASK_ACTION))
+			&& (!tmpAssuming || !tmpAssuming->hasConstants(ParseElement::MASK_ACTION))
 			&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_DYNAMIC_AB)))
 	{
 		type = RULE_FLUENTDYNAMIC;
@@ -1029,9 +1038,6 @@ void Translator::translateCausalLaw(
 		if (type == RULE_ACTIONDYNAMIC && afterBody && !afterBody->isTrivial())
 			afterNotNot = true;
 		else {
-			if (lang() != LANG_BC 
-				&& (type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID))
-				ifNotNot = true;
 			if	((type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID))
 				assumingNotNot = true;
 		}
@@ -1097,13 +1103,12 @@ void Translator::translateCausalLaw(
 			ossOutputBuffer,
 			stmts,
 			IPART_BASE,
-			ifNotNot,
-			afterNotNot,
 			assumingNotNot,
+			afterNotNot,
 			"0",
 			head,
 			ifBody,
-			assumingBody,
+			tmpAssuming,
 			unlessBody,
 			afterBody,
 			whenBody,
@@ -1120,13 +1125,12 @@ void Translator::translateCausalLaw(
 			ossOutputBuffer,
 			stmts,
 			IPART_CUMULATIVE,
-			ifNotNot,
-			afterNotNot,
 			assumingNotNot,
+			afterNotNot,
 			baseTimeStamp,
 			head,
 			ifBody,
-			assumingBody,
+			tmpAssuming,
 			unlessBody,
 			afterBody,
 			whenBody,
@@ -1141,6 +1145,13 @@ void Translator::translateCausalLaw(
 	// write the resulting statements to the output
 	outputStmts(stmts);
 
+	// cleanup
+	if (tmp) {
+		tmp->detachPostOp();
+		tmp->detachPreOp();
+		delete tmp;
+	}
+
 }
 
 // Helper method for the translation.
@@ -1148,9 +1159,8 @@ std::ostream& Translator::makeCausalTranslation(
 	std::ostream& output,
 	StmtList& extraStmts,
 	IPart ipart,
-	bool ifNotNot,
-	bool afterNotNot,
 	bool assumingNotNot,
+	bool afterNotNot,
 	std::string const& baseTimeStamp,
 	ParseElement* head,
 	ParseElement* ifBody,
@@ -1195,17 +1205,8 @@ std::ostream& Translator::makeCausalTranslation(
 			bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
-			if(ifNotNot) {
-				output << "not not (";
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false, &extraStmts);
-				bindAndTranslate(output, ifBody, localContext, false, true);
-				output << ")";
-			}
-			else {
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
-				ifBody->translate(output, localContext);
-			}
-
+			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+			ifBody->translate(output, localContext);
 		}
 
 		// "assuming" part of body, if there is one.
@@ -1528,11 +1529,11 @@ bool Translator::translateDefaultLaw(
 	{
 		// head and ifBody are going to end up together no matter what.
 		if (head) head->parens(true);
-		if (ifBody) ifBody->parens(true);
-		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, ifBody);
+		if (assumingBody) assumingBody->parens(true);
+		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, assumingBody);
 
-		// This law becomes "caused F if F [& G] [assuming H] [after J] [when K] [following L] [where M]."
-		translateCausalLaw(head, tempPE, assumingBody, afterBody, unlessBody, whenBody, followingBody, whereBody);
+		// This law becomes "caused F if G assuming F [& H] [after J] [when K] [following L] [where M]."
+		translateCausalLaw(head, ifBody, tempPE, afterBody, unlessBody, whenBody, followingBody, whereBody);
 		retVal = true;
 
 		tempPE->detachPostOp();
@@ -1605,12 +1606,12 @@ bool Translator::translatePossiblyCausedLaw(
 	if(head != NULL)
 	{
 		// head and ifBody are going to end up together no matter what.
-		if (ifBody) ifBody->parens(true);
+		if (assumingBody) assumingBody->parens(true);
 		if (head) head->parens(true);
-		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, ifBody);
+		SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(head, SimpleBinaryOperator::BOP_AND, assumingBody);
 
-		// This law becomes "caused F if F [& G] [assuming H] [after J] [unless K] [when L] [following M] [where N]."
-		translateCausalLaw(head, tempPE, assumingBody, afterBody, unlessBody, whenBody, followingBody, whereBody);
+		// This law becomes "caused F if G assuming F [& H] [after J] [unless K] [when L] [following M] [where N]."
+		translateCausalLaw(head, ifBody, tempPE, afterBody, unlessBody, whenBody, followingBody, whereBody);
 
 		retVal = true;
 		tempPE->detachPostOp();
@@ -1620,11 +1621,12 @@ bool Translator::translatePossiblyCausedLaw(
 	return retVal;
 }
 
-// Transforms a causal law of the form "G may cause F [if H] [when J] [where K]." to basic form, then calls the translator on it.
+// Transforms a causal law of the form "G may cause F [if H] [assuming L] [when J] [where K]." to basic form, then calls the translator on it.
 bool Translator::translateMayCauseLaw(
 	ParseElement* causer,
 	ParseElement* causee,
 	ParseElement* ifBody,
+	ParseElement* assumingBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody
 	)
@@ -1635,29 +1637,35 @@ bool Translator::translateMayCauseLaw(
 		// Causer has to be an action formula, or the law is not properly written.
 		if(causer->hasConstants(ParseElement::MASK_ACTION) && !causer->hasConstants(ParseElement::MASK_FLUENT))
 		{
-			// Causer and ifBody are going to end up together no matter what.
+			// Causer and assumingBody are going to end up together no matter what.
 			if (causer) causer->parens(true);
-			if (ifBody) ifBody->parens(true);
-			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, ifBody);
+			if (assumingBody) assumingBody->parens(true);
+			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, assumingBody);
 
 			// Where causer and ifBody end up in the basic form depend on what's in causee.
-			if(causee->hasConstants(ParseElement::MASK_ACTION) && !causee->hasConstants(ParseElement::MASK_FLUENT))
-			{	// Causee is an action formula, this is "caused F if F & G & H following J where K".
-				// Merge F into G & H.
+			if(!causee->hasConstants(ParseElement::MASK_FLUENT))
+			{	// Causee is an action formula, this is "caused F if H assuming F & L following J where K".
+				// Merge F into G & L.
 				if (causee) causee->parens(true);
-				if (tempPE) tempPE->parens(true);
 				SimpleBinaryOperator* tempPE2 = new SimpleBinaryOperator(causee, SimpleBinaryOperator::BOP_AND, tempPE);
-				translateCausalLaw(causee, tempPE2, NULL, NULL, NULL, NULL, whenBody, whereBody);
+				translateCausalLaw(causee, ifBody, tempPE2, NULL, NULL, NULL, whenBody, whereBody);
 
 				retVal = true;
 				tempPE2->detachPostOp();
 				tempPE2->detachPreOp();
-				delete tempPE2;
+				deallocateTempBinaryOp(tempPE);
 			}
-			else if(!causee->hasConstants(ParseElement::MASK_ACTION) && causee->hasConstants(ParseElement::MASK_FLUENT))
-			{	// Causee is a fluent formula, this is "caused F if F after G & H following J where K".
-				translateCausalLaw(causee, causee, NULL, tempPE, NULL, NULL, whenBody, whereBody);
+			else if(!causee->hasConstants(ParseElement::MASK_ACTION))
+			{	// Causee is a fluent formula, this is "caused F assuming F after G & H & L following J where K".
+				// Merge H into G & L.
+				if (ifBody) ifBody->parens(true);
+				SimpleBinaryOperator* tempPE2 = new SimpleBinaryOperator(ifBody, SimpleBinaryOperator::BOP_AND, tempPE);
+				translateCausalLaw(causee, NULL, causee, tempPE2, NULL, NULL, whenBody, whereBody);
+
 				retVal = true;
+				tempPE2->detachPostOp();
+				tempPE2->detachPreOp();
+				deallocateTempBinaryOp(tempPE);
 			}
 			else
 			{	// Causee is mixed, that isn't allowed.
@@ -1676,11 +1684,12 @@ bool Translator::translateMayCauseLaw(
 	return retVal;
 }
 
-// Transforms a causal law of the form "G causes F [if H] [where J]." to basic form, then calls the translator on it.
+// Transforms a causal law of the form "G causes F [if H] [assuming L] [where J]." to basic form, then calls the translator on it.
 bool Translator::translateCausesLaw(
 	ParseElement* causer,
 	ParseElement* causee,
 	ParseElement* ifBody,
+	ParseElement* assumingBody,
 	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody
@@ -1692,20 +1701,26 @@ bool Translator::translateCausesLaw(
 		// Causer has to be an action formula, or the law is not properly written.
 		if(causer->hasConstants(ParseElement::MASK_ACTION) && !causer->hasConstants(ParseElement::MASK_FLUENT))
 		{
-			// Causer and ifBody are going to end up together no matter what.
+			// Causer and assumingBody are going to end up together no matter what.
 			if (causer) causer->parens(true);
-			if (ifBody) ifBody->parens(true);
-			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, ifBody);
+			if (assumingBody) assumingBody->parens(true);
+			SimpleBinaryOperator* tempPE = new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_AND, assumingBody);
 
 			// Where causer and ifBody end up in the basic form depend on what's in causee.
-			if((causee->hasConstants(ParseElement::MASK_ACTION) && !causee->hasConstants(ParseElement::MASK_FLUENT)) || causee->getType() == ParseElement::PELEM_OBJLIKE)
-			{	// Causee is an action formula, this is "caused F if G".
-				translateCausalLaw(causee, tempPE, NULL, NULL, unlessBody, NULL, whenBody, whereBody);
+			if((!causee->hasConstants(ParseElement::MASK_FLUENT)))
+			{	// Causee is an action formula, this is "caused F if H assuming G & L".
+				translateCausalLaw(causee, ifBody, tempPE, NULL, unlessBody, NULL, whenBody, whereBody);
 				retVal = true;
 			}
-			else if(!causee->hasConstants(ParseElement::MASK_ACTION) && causee->hasConstants(ParseElement::MASK_FLUENT))
-			{	// Causee is a fluent formula, this is "caused F after G".
-				translateCausalLaw(causee, NULL, NULL, tempPE, unlessBody, NULL, whenBody, whereBody);
+			else if(!causee->hasConstants(ParseElement::MASK_ACTION))
+			{	// Causee is a fluent formula, this is "caused F after G & L & H".
+				if (ifBody) ifBody->parens(true);
+				SimpleBinaryOperator* tempPE2 = new SimpleBinaryOperator(ifBody, SimpleBinaryOperator::BOP_AND, tempPE);
+
+				translateCausalLaw(causee, NULL, NULL, tempPE2, unlessBody, NULL, whenBody, whereBody);
+				tempPE2->detachPostOp();
+				tempPE2->detachPreOp();
+				delete tempPE2;
 				retVal = true;
 			}
 			else
@@ -1725,12 +1740,13 @@ bool Translator::translateCausesLaw(
 	return retVal;
 }
 
-// Transforms an increment law of the form "A increments B by N [if H] [when J] [where K]." to basic form, then calls the translator on it.
+// Transforms an increment law of the form "A increments B by N [if H] [assuming L] [when J] [where K]." to basic form, then calls the translator on it.
 bool Translator::translateIncrementLaw(
 	ParseElement* causer,
 	ParseElement* causee,
 	ParseElement* increment,
 	ParseElement* ifBody,
+	ParseElement* assumingBody,
 	ParseElement* unlessBody,
 	ParseElement* whenBody,
 	ParseElement* whereBody,
@@ -1852,19 +1868,26 @@ bool Translator::translateIncrementLaw(
 	// The new if body is the result of conjoining the old ifBody
 	// with the boolean causer action.
 
+
 	if (causer) causer->parens(true);
 	tmpBaseElems.push_back(new ObjectLikeElement("true", getOrCreateObject("true")));
 	tmpBinOps.push_back(new SimpleBinaryOperator(causer, SimpleBinaryOperator::BOP_EQ, tmpBaseElems.back()));
 
+	if (ifBody || assumingBody) tmpBinOps.back()->parens(true);
+
+
 	if (ifBody) {
 		ifBody->parens(true);
-		tmpBinOps.back()->parens(true);
-		newIf = new SimpleBinaryOperator(tmpBinOps.back(), SimpleBinaryOperator::BOP_AND, ifBody);
-		tmpBinOps.push_back((SimpleBinaryOperator*) newIf);
-	} else {
-		newIf = tmpBinOps.back();
+		tmpBinOps.push_back(new SimpleBinaryOperator(tmpBinOps.back(), SimpleBinaryOperator::BOP_AND, ifBody));
 	}
 
+	if (assumingBody) {
+		assumingBody->parens(true);
+		tmpBinOps.push_back(new SimpleBinaryOperator(tmpBinOps.back(), SimpleBinaryOperator::BOP_AND, assumingBody));
+	}
+
+	newIf = tmpBinOps.back();		
+	
 	// Finally, translate!
 	translateCausalLaw(head, newIf, NULL, NULL, unlessBody, whenBody, NULL, whereBody);
 

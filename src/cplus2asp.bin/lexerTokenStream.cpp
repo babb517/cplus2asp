@@ -503,14 +503,16 @@ int ltsyyLexer::nextToken()
 	else
 	{
 		// Bug fix: ensure that we print out the last comments!
-		std::list<Comment*>* cList = getFileComments(tempToken->tokenFileName);
-		std::list<Comment*>::iterator* cIter = getFileCommentIterator(tempToken->tokenFileName);
+		if (tempToken) {
+			std::list<Comment*>* cList = getFileComments(tempToken->tokenFileName);
+			std::list<Comment*>::iterator* cIter = getFileCommentIterator(tempToken->tokenFileName);
 
-		while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
-		{
-			std::string tempStr = (*(*cIter))->output();
-			mainTrans.output(tempStr, IPART_NONE, true);
-			++(*cIter);
+			while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
+			{
+				std::string tempStr = (*(*cIter))->output();
+				mainTrans.output(tempStr, IPART_NONE, true);
+				++(*cIter);
+			}
 		}
 
 		// Failed the sanity check, fill the globals with EOF/bad values.

@@ -39,6 +39,14 @@ move(P,P1) causes top(P1)=D if top(P)=D.
 noconcurrency.
 
 :- query
+label :: test;
+0: size(table)=3, size(d1)=2, size(d2)=1, size(d3)=0,
+   loc(d1)=table,  loc(d2)=d1,  loc(d3)=d2,
+   top(p1)=d3, top(p2)=table, top(p3)=table;
+maxstep:
+   loc(d1)=table, loc(d2)=d1, loc(d3)=d2, top(p3)=d3.
+
+:- query
 maxstep :: 6..7;
 0: size(table)=3, size(d1)=2, size(d2)=1, size(d3)=0,
    loc(d1)=table,  loc(d2)=d1,  loc(d3)=d2,

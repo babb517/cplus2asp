@@ -551,12 +551,17 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
 			break;
 		case Constant::CONST_ATTRIBUTE:
-		case Constant::CONST_EXOGENOUSACTION:
 			mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
 			break;
 		case Constant::CONST_ADDITIVEACTION:
 		case Constant::CONST_ADDITIVEFLUENT:
 			mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+			break;
+		case Constant::CONST_ACTION:
+			// bc uses only exogenous actions.
+			$3->constType = Constant::CONST_EXOGENOUSACTION;
+			break;
+		case Constant::CONST_EXOGENOUSACTION:
 			break;
 		}
 	}
@@ -1635,6 +1640,7 @@ cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_
 
 cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
+
 	bool transResult = mainTrans.translateDefaultLaw($2, $3, $4, $5, $6, $7, $8, $9);
 	deallocateItem($2);
 	deallocateItem($3);
@@ -1736,14 +1742,15 @@ cl_possibly_caused_forms:	  			T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl
 }
 							;
 
-cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clause cl_when_clause cl_where_clause
+cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clause cl_assuming_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateMayCauseLaw($1, $3, $4, $5, $6);
+	bool transResult = mainTrans.translateMayCauseLaw($1, $3, $4, $5, $6, $7);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
 	deallocateItem($5);
 	deallocateItem($6);
+	deallocateItem($7);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1752,15 +1759,16 @@ cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clau
 }
 							;
 
-cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
+cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6, $7);
+	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6, $7, $8);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
 	deallocateItem($5);
 	deallocateItem($6);
 	deallocateItem($7);
+	deallocateItem($8);
 	$$ = PARSERULE_NOT_USED;
 	if(!transResult)
 	{
@@ -1783,9 +1791,9 @@ cl_noconcurrency_forms:		  			T_NOCONCURRENCY
 }
 							;
 
-cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
+cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, true);
+	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, true);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);
@@ -1793,6 +1801,7 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 	deallocateItem($7);
 	deallocateItem($8);
 	deallocateItem($9);
+	deallocateItem($10);
 	$$ = PARSERULE_NOT_USED;
 	
 	if(!transResult)
@@ -1800,15 +1809,17 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 		YYERROR;
 	}
 }
-							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
+							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, false);
+	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, false);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);
 	deallocateItem($6);
 	deallocateItem($7);
 	deallocateItem($8);
+	deallocateItem($9);
+	deallocateItem($10);
 	$$ = PARSERULE_NOT_USED;
 	
 	if(!transResult)
@@ -2650,7 +2661,7 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, $4->size());
+		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, false, $4->size());
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;

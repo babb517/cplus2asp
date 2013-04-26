@@ -2618,10 +2618,11 @@ void cleanup(Config const& config, bool const* ran) {
 	bfs::remove(config.errFile());
 
 	for (int i = 0; i < (int)Config::TC_LENGTH; i++) {
-		if (!config.customOut((Config::Toolchain)i))
+		if (!config.customOut((Config::Toolchain)i)) {
+			debug("Deleting '%s'.", true, config.output((Config::Toolchain)i).c_str());
 			bfs::remove(config.output((Config::Toolchain)i));	
+		}
 	}
-
 }
 
 // Attempts to echo the specified file to the specified output stream.
