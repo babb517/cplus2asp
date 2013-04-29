@@ -1,0 +1,13 @@
+#begin_lua
+
+function a()
+return 7
+end
+
+#end_lua.
+
+
+:- constants
+	p(computed)	:: sdFluent.
+
+p(@a()).

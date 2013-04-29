@@ -727,10 +727,11 @@ protected:
 	 * @param[out] out - The output stream to write the translation to.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
+	 * @param maximize - Whether to maximize the extent of the variable by bindign it with the domain rather than the constant.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context) const;
+	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context, bool maximize = false) const;
 
 };
 

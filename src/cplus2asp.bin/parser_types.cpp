@@ -424,7 +424,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 		case BOP_LTHAN_EQ:
 		case BOP_GTHAN_EQ:
 			// arithmetic expressions...
-			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM) {
+			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM || context.getPos() == Context::POS_LUA_TERM) {
 				// Already inside an arithmetic expression.
 				// pass all the variables up to the highest arith-expr level.
 				preOp()->translate(out, context);
@@ -931,6 +931,10 @@ std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context
 	case Context::POS_ARITHEXPR:
 		translateAsVariable(out, context);
 		break;
+	case Context::POS_LUA_TERM:
+		// in LUA expression where the extent should be maximal.
+		translateAsVariable(out, context, true);
+		break;
 	}
 
 	return out;
@@ -963,7 +967,7 @@ std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, Contex
 }
 
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context) const {
+std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context, bool maximize) const {
 	Context localContext;
 	std::ostringstream tmp;
 	// We are in a term or arithmetic expression, translate it as a temporary variable.
@@ -974,9 +978,13 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 		context.addFreeVariable(var, domain());
 
 		// add the appropriate extra clause
-		localContext = context.mkPos(Context::POS_BODY).mkValue(var);
-		translate(tmp, localContext);
-		context.addExtraClause(tmp.str());
+		if (maximize) {
+			localContext = context.mkPos(Context::POS_BODY).mkValue(var);
+			translate(tmp, localContext);
+			context.addExtraClause(tmp.str());
+		} else {
+			context.addExtraClause(domain()->fullTransName() + "(" + var + ")");
+		}
 
 		// return the variable name
 		out << translateBeforeParen() + var + translateAfterParen();
@@ -1035,7 +1043,8 @@ std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context) 
 
 	if(((Object const*)ref())->isLua()) {
 			if (context.getPos() != Context::POS_ARITHEXPR
-					&& context.getPos() != Context::POS_TERM)
+					&& context.getPos() != Context::POS_TERM
+					&& context.getPos() != Context::POS_LUA_TERM)
 				out << " == 1";
 			out << "}";
 	}
@@ -1078,6 +1087,7 @@ std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context
 	case Context::POS_TERM:
 	case Context::POS_ARITHEXPR:
 	case Context::POS_INTERNAL:
+	case Context::POS_LUA_TERM:
 		// Occurs as a term or within an arithmetic expression, translate as a variable.
 		translateAsVariable(out, context);
 		break;

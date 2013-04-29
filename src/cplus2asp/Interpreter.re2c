@@ -63,14 +63,14 @@ Interpreter::Action Interpreter::interpret(std::string const& command, std::stri
 
 	// Figure out the action.
 	if ((pos = command.find("=")) != std::string::npos) {
-		action = lex(trimWhitespace(command.substr(0,pos)));
+		action = lex(utils::trimWhitespace(command.substr(0,pos)));
 	} else {
-		action = lex(trimWhitespace(command));
+		action = lex(utils::trimWhitespace(command));
 	}
 
 	// get the associated value if applicable.
 	if (action != INVALID && pos != std::string::npos && pos + 1 <= command.size()) {
-		outVal = trimWhitespace(command.substr(pos+1));
+		outVal = utils::trimWhitespace(command.substr(pos+1));
 	} else {
 		outVal = "";
 	}

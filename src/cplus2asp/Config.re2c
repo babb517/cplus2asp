@@ -50,9 +50,6 @@ namespace bp = boost::process;
 /***************************************************************/
 unsigned int const Config::UNDEFINED = UINT_MAX;
 unsigned int const Config::INF = UINT_MAX - 4;
-unsigned int const Config::STATES_QUERY = UINT_MAX - 3;
-unsigned int const Config::TRANSITIONS_QUERY = UINT_MAX - 2;
-unsigned int const Config::NO_QUERY = UINT_MAX - 1;
 
 /***************************************************************/
 /* Methods */
@@ -68,7 +65,7 @@ Config::Config(std::string const& name) {
 		try {
 			mPath = fs::canonical(bp::search_path(name)).parent_path().native();
 		} catch (fs::filesystem_error &e) {
-			debug("Caught exception: '%s'", true, e.what());
+			utils::debug("Caught exception: '%s'", true, e.what());
 			mPath = "";
 		}
 	} else {
@@ -83,11 +80,9 @@ Config::Config(std::string const& name) {
 	mLang = DEF_LANG;
 	mCustomLang = 0;
 
-	mNoneAlias = "";
-	mCustomNone = 0;
+	strOpt(STR_NONE_ALIAS, "");
 
-	mSymTabFile = (temppath / fs::unique_path()).native();
-	mCustomSymTab = 0;
+	strOpt(STR_SYMTAB_FILE, (temppath / fs::unique_path()).native());
 
 	mConfigOpts[OPT_INCL_STD] = DEF_INCL_STD;
 	mConfigOpts[OPT_INCL_ADDITIVE] = DEF_INCL_ADDITIVE;
@@ -95,7 +90,6 @@ Config::Config(std::string const& name) {
 	mConfigOpts[OPT_SUPPRESS_INTERACTION] = DEF_SUPPRESS_INTERACTION;
 	mConfigOpts[OPT_MINSTEP] = UNDEFINED;
 	mConfigOpts[OPT_MAXSTEP] = UNDEFINED;
-	mConfigOpts[OPT_QUERY] = UNDEFINED;
 	mConfigOpts[OPT_MAXADDITIVE] = UNDEFINED;
 	mConfigOpts[OPT_NUM_SOLN] = DEF_NUM_SOLN;
 	mConfigOpts[OPT_EXT_PORT] = UNDEFINED;
@@ -103,42 +97,39 @@ Config::Config(std::string const& name) {
 	mConfigOpts[OPT_SHIFT] = DEF_SHIFT;
 	mConfigOpts[OPT_STATS] = DEF_STATS;
 
-	memset(mCustomConfig,0,OPT_LENGTH);
-
-	mCommands[TC_TRANSLATOR] = DEF_TRANS_CMD;
-	mCommands[TC_PREPROC] = DEF_PREPROC_CMD;
-	mCommands[TC_GROUNDER] = DEF_GRD_CMD;
-	mCommands[TC_SOLVER] = DEF_SO_CMD;
-	mCommands[TC_POSTPROC] = DEF_POSTPROC_CMD;
-	mCommands[TC_REACTIVE_BRIDGE] = DEF_REACTIVE_BRIDGE_CMD;
+	memset(mCustomConfig,0,_OPT_LENGTH_);
 
 
-	memset(mCustomCmd,0,TC_LENGTH);
+	memset(mRun,1,_TC_LENGTH_);
 
-	memset(mRun,1,TC_LENGTH);
+	command(TC_TRANSLATOR,DEF_TRANS_CMD);
+	command(TC_PREPROC,DEF_PREPROC_CMD);
+	command(TC_GROUNDER,DEF_GRD_CMD);
+	command(TC_SOLVER,DEF_SO_CMD);
+	command(TC_POSTPROC,DEF_POSTPROC_CMD);
+	command(TC_REACTIVE_BRIDGE,DEF_REACTIVE_BRIDGE_CMD);
+	
+	memset(mRun,1,_TC_LENGTH_);
 	mRun[TC_GROUNDER] = false;
+	memset(mCustomRun,0,_TC_LENGTH_);
 
-	memset(mCustomRun,0,TC_LENGTH);
+	opts(TC_TRANSLATOR,DEF_TRANS_OPTS);
+	opts(TC_PREPROC,DEF_PREPROC_OPTS);
+	opts(TC_GROUNDER,DEF_GRD_OPTS);
+	opts(TC_SOLVER,DEF_SO_OPTS);
+	opts(TC_POSTPROC,DEF_POSTPROC_OPTS);
+	opts(TC_REACTIVE_BRIDGE,DEF_REACTIVE_BRIDGE_OPTS);
 
-	mOpts[TC_TRANSLATOR] = DEF_TRANS_OPTS;
-	mOpts[TC_PREPROC] = DEF_PREPROC_OPTS;
-	mOpts[TC_GROUNDER] = DEF_GRD_OPTS;
-	mOpts[TC_SOLVER] = DEF_SO_OPTS;
-	mOpts[TC_POSTPROC] = DEF_POSTPROC_OPTS;
-	mOpts[TC_REACTIVE_BRIDGE] = DEF_REACTIVE_BRIDGE_OPTS;
-
-	memset(mCustomOpts,0,TC_LENGTH);
-
-	for (int i = (int)TC_BEGIN; i < (int)TC_LENGTH; i++) {
-		mOutFiles[(Toolchain)i] = (temppath / fs::unique_path()).native();
+	for (int i = (int)_TC_BEGIN_; i < (int)_TC_LENGTH_; i++) {
+		output((Toolchain)i,(temppath / fs::unique_path()).native());
 	}
-
-	memset(mCustomOut, 0, TC_LENGTH);
+	
+	memset(mCustomStr,0,_STR_LENGTH_);
 
 	// Default queries which should always be made available...
-	mQueries[Config::TRANSITIONS_QUERY] = Query(Config::TRANSITIONS_QUERY, "System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
-	mQueries[Config::STATES_QUERY] = Query(Config::STATES_QUERY, "System states", CONST_QUERY_STATES, 0, 0);
-	mQueries[Config::NO_QUERY] = Query(Config::NO_QUERY, "Satisfiability Check", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
+	mQueries[CONST_QUERY_TRANSITIONS] = Query("System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
+	mQueries[CONST_QUERY_STATES] = Query("System states", CONST_QUERY_STATES, 0, 0);
+	mQueries[CONST_QUERY_NONE] = Query("Satisfiability Check", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
 }
 
 // Install directory
@@ -187,33 +178,11 @@ std::string const* Config::def(std::string const& constant) const {
 }
 
 
-// Gets the query specified by the ID, or null if it doesn't exist.
-Config::Query const* Config::query(unsigned int queryID) const {
-	if (hasQuery(queryID)) return &(mQueries.at(queryID));
+// Gets the query specified by the command, or null if it doesn't exist.
+Config::Query const* Config::query(std::string const& queryCmd) const {
+	if (hasQuery(queryCmd)) return &(mQueries.at(queryCmd));
 	else return NULL;
 }
-
-// Convenience method to get the name of a query.
-std::string const* Config::queryName(unsigned int queryID) const {
-	Query const* q;
-	if ((q = query(queryID)) != NULL) return &(q->name);
-	else return NULL;
-}
-
-// Convenience method to get the maxstep of a query
-unsigned int Config::queryMaxStep(unsigned int queryID) const {
-	Query const* q;
-	if ((q = query(queryID)) != NULL) return q->maxstep;
-	else return UNDEFINED;
-}
-
-// Convenience method to get the minstep of a query.
-unsigned int Config::queryMinStep(unsigned int queryID) const {
-	Query const* q;
-	if ((q = query(queryID)) != NULL) return q->minstep;
-	else return UNDEFINED;
-}
-
 
 
 // Set the running mode for the program
@@ -222,21 +191,20 @@ bool Config::mode(Mode newMode) {
 	if (mRunningMode == newMode) return false;
 	mRunningMode = newMode;
 
-
 	switch (newMode) {
 	case MODE_STATIC_AUTO:
 	case MODE_STATIC_MANUAL:
-		if (!customCmd(TC_GROUNDER)) mCommands[TC_GROUNDER] = DEF_GRD_STATIC_CMD;
-		if (!customCmd(TC_SOLVER)) mCommands[TC_SOLVER] = DEF_SO_STATIC_CMD;
+		if (!customCmd(TC_GROUNDER)) mStrOpts[TC_GROUNDER + _STR_TC_BEGIN_] = DEF_GRD_STATIC_CMD;
+		if (!customCmd(TC_SOLVER)) mStrOpts[TC_SOLVER + _STR_TC_BEGIN_] = DEF_SO_STATIC_CMD;
 		break;
 	case MODE_INCREMENTAL:
-		if (!customCmd(TC_GROUNDER)) mCommands[TC_GROUNDER] = DEF_GRD_INCREMENTAL_CMD;
-		if (!customCmd(TC_SOLVER)) mCommands[TC_SOLVER] = DEF_SO_INCREMENTAL_CMD;
+		if (!customCmd(TC_GROUNDER)) mStrOpts[TC_GROUNDER + _STR_TC_BEGIN_] = DEF_GRD_INCREMENTAL_CMD;
+		if (!customCmd(TC_SOLVER)) mStrOpts[TC_SOLVER + _STR_TC_BEGIN_] = DEF_SO_INCREMENTAL_CMD;
 		break;
 	case MODE_REACTIVE:
-		if (!customCmd(TC_GROUNDER)) mCommands[TC_GROUNDER] = DEF_GRD_REACTIVE_CMD;
+		if (!customCmd(TC_GROUNDER)) mStrOpts[TC_GROUNDER + _STR_TC_BEGIN_] = DEF_GRD_REACTIVE_CMD;
 		if (!customCmd(TC_POSTPROC)) mRun[TC_POSTPROC] = false;
-		if (!customCmd(TC_SOLVER)) mCommands[TC_SOLVER] = DEF_SO_REACTIVE_CMD;
+		if (!customCmd(TC_SOLVER)) mStrOpts[TC_SOLVER + _STR_TC_BEGIN_] = DEF_SO_REACTIVE_CMD;
 		break;
 	case MODE_UNKNOWN:
 		break;
@@ -265,14 +233,14 @@ bool Config::lang(Language newLang) {
 
 // Checks if a constant is defined
 inline bool Config::isDefined(std::string const& constant) const {
-	std::string constant_trimmed = trimWhitespace(constant);
+	std::string constant_trimmed = utils::trimWhitespace(constant);
 
 	if (constant_trimmed == CONST_MAXSTEP) {
 		return customConfigOpt(OPT_MAXSTEP);
 	} else if (constant_trimmed == CONST_MINSTEP) {
 		return customConfigOpt(OPT_MINSTEP);
 	} else if (constant_trimmed == CONST_QUERY) {
-		return customConfigOpt(OPT_QUERY);
+		return customStrOpt(STR_QUERY);
 	} else if (constant_trimmed == CONST_MAXADDITIVE) {
 		return customConfigOpt(OPT_MAXADDITIVE);
 	} else {
@@ -297,12 +265,11 @@ bool Config::intConfigOpt(ConfigOption opt, unsigned int val) {
 }
 
 // Sets a command option to the provided value.
-bool Config::command(Toolchain tool, std::string const& val) {
-	bool ret = mCustomCmd[tool]++;
-	if (mCommands[tool] == val) return run(tool, val != "");
-	ret |= run(tool, val != "");
-	mCommands[tool] = val;
-	return ret;
+bool Config::strOpt(StrOption opt, std::string const& val) {
+	mCustomStr[opt]++;
+	if (mStrOpts[opt] == val) return false;
+	mStrOpts[opt] = val;
+	return (bool)(mCustomStr[opt] - 1);
 }
 
 /// @return If the run status has been previously changed.
@@ -313,42 +280,11 @@ bool Config::run(Toolchain tool, bool val) {
 	return (bool)(mCustomRun[tool] - 1);
 }
 
-bool Config::opts(Toolchain tool, std::string const& val) {
-	mCustomOpts[tool]++;
-	if (mOpts[tool] == val) return false;
-	mOpts[tool] = val;
-	return (bool)(mCustomOpts[tool] - 1);
-}
-
-
-// Sets the target output file for the toolchain component.
-bool Config::output(Toolchain tool, std::string const& file) {
-	mCustomOut[tool]++;
-	if (mOutFiles[tool] == file) return false;
-	mOutFiles[tool] = file;
-	return (bool)(mCustomOut[tool] - 1);
-}
-	
-// Sets a new value to use as a none alias.
-bool Config::noneAlias(std::string const& alias) {
-	mCustomNone++;
-	if (mNoneAlias == alias) return false;
-	mNoneAlias = alias;
-	return (bool)(mCustomNone - 1);
-}
-
-// Sets the file to output the symbol table to.
-bool Config::symTabFile(std::string const& file) {
-	mCustomSymTab++;
-	if (mSymTabFile == file) return false;
-	mSymTabFile = file;
-	return (bool)(mCustomSymTab - 1);
-}
 
 // Defines a constant
 bool Config::def(std::string const& constant, std::string const& value) {
-	std::string constant_trimmed = trimWhitespace(constant);
-	std::string value_trimmed = trimWhitespace(value);
+	std::string constant_trimmed = utils::trimWhitespace(constant);
+	std::string value_trimmed = utils::trimWhitespace(value);
 	unsigned int tmpVal;
 	bool redef = false;
 	bool bad = false;
@@ -365,7 +301,7 @@ bool Config::def(std::string const& constant, std::string const& value) {
 		}
 
 	} else if (constant_trimmed == CONST_MINSTEP) {
-		if (from_string(tmpVal,value_trimmed)) {
+		if (utils::from_string(tmpVal,value_trimmed)) {
 			redef = intConfigOpt(OPT_MINSTEP, tmpVal);
 		} else {
 			// Oops... Throw a warning, ignore it, and continue.
@@ -373,25 +309,10 @@ bool Config::def(std::string const& constant, std::string const& value) {
 		}
 	} else if (constant_trimmed == CONST_QUERY) {
 
-		// The query allows for some special options...
-		if (value_trimmed == CONST_QUERY_NONE) {
-			// The user has requested we use no query.
-			redef = intConfigOpt(OPT_QUERY, NO_QUERY);
-		} else if (value_trimmed == CONST_QUERY_STATES) {
-			// The user has requested that we find the sytem's states.
-			redef = intConfigOpt(OPT_QUERY, STATES_QUERY);
-		} else if (value_trimmed == CONST_QUERY_TRANSITIONS) {
-			// The user has requested that we find the system's transitions.
-			redef = intConfigOpt(OPT_QUERY, TRANSITIONS_QUERY);
-		} else if (from_string(tmpVal,value_trimmed)) {
-			// The user has provided us with a query to perform.
-			redef = intConfigOpt(OPT_QUERY,tmpVal);
-		} else {
-			// Oops... Throw a warning, ignore it, and continue.
-			bad = true;
-		}
+	redef = strOpt(STR_QUERY,value_trimmed);
+
 	} else if (constant_trimmed == CONST_MAXADDITIVE) {
-		if (from_string(tmpVal,value_trimmed)) {
+		if (utils::from_string(tmpVal,value_trimmed)) {
 			redef = intConfigOpt(OPT_MAXADDITIVE,tmpVal);
 		} else {
 			// Oops... Throw a warning, ignore it, and continue.
@@ -406,7 +327,7 @@ bool Config::def(std::string const& constant, std::string const& value) {
 
 	if (bad) {
 		// If the value was bad then go ahead and warn the user.
-		warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
+		utils::warning("The value '%s' is not valid for the reserved constant '%s'. It will be ignored.",true, value_trimmed.c_str() ,constant_trimmed.c_str());
 	}
 
 	return redef;
@@ -422,7 +343,7 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (Toolchain i = tool; i >= TC_BEGIN; i = (Toolchain)((int)i - 1)) {
+	for (Toolchain i = tool; i >= _TC_BEGIN_; i = (Toolchain)((int)i - 1)) {
 		// Only include files which haven't been included by a previous tool.
 		if (i != tool && run(i)) break;
 
@@ -433,7 +354,7 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 
 	// Compile the input files from previous step's outputs.
 	switch (tool) {
-	case TC_END:
+	case _TC_END_:
 	case TC_REACTIVE_BRIDGE:
 		// Reactive bridge is different.
 		if (run(TC_TRANSLATOR)) {
@@ -510,14 +431,14 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 
 	// Add step specific instructions
 	switch (tool) {
-	case TC_END:
+	case _TC_END_:
 	case TC_TRANSLATOR:
 		compileInputArgs(tool, arglist);
 
 		// The translator should be told to output the symbol table
 		//TODO
 		arglist.push_back("--symbol-table");
-		arglist.push_back(symTabFile());
+		arglist.push_back(strOpt(STR_SYMTAB_FILE));
 
 		// We also should have it tell us what special constants it finds.
 		arglist.push_back("--expressive-return");
@@ -571,26 +492,26 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 
 		// # solutions
 		if (subconfig) {
-			arglist.push_back(to_string(subconfig->numSoln));
+			arglist.push_back(utils::to_string(subconfig->numSoln));
 		} else {
-			arglist.push_back(to_string(intConfigOpt(OPT_NUM_SOLN)));
+			arglist.push_back(utils::to_string(intConfigOpt(OPT_NUM_SOLN)));
 		}
 
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
 			if (subconfig) {
-				if (subconfig->queryId != UNDEFINED) arglist.push_back("-c query=" + query(subconfig->queryId)->cmd);
-				if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + to_string(subconfig->maxstep));
-				if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + to_string(subconfig->minstep));
+				if (subconfig->query != "") arglist.push_back("-c query=" + query(subconfig->query)->cmd);
+				if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(subconfig->maxstep));
+				if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(subconfig->minstep));
 			} else {
-				if (intConfigOpt(OPT_QUERY) != UNDEFINED) arglist.push_back("-c query=" + to_string(intConfigOpt(OPT_QUERY)));
-				if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) arglist.push_back("-c maxstep=" + to_string(intConfigOpt(OPT_MAXSTEP)));
-				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("-c minstep=" + to_string(intConfigOpt(OPT_MINSTEP)));
+				if (strOpt(STR_QUERY) != "") arglist.push_back("-c query=" + strOpt(STR_QUERY));
+				if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(intConfigOpt(OPT_MAXSTEP)));
+				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(intConfigOpt(OPT_MINSTEP)));
 			}
 
 
-			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) arglist.push_back("-c maxAdditive=" + to_string(intConfigOpt(OPT_MAXADDITIVE)));
-			if (noneAlias() != "") arglist.push_back("-c none=" + noneAlias());
+			if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) arglist.push_back("-c maxAdditive=" + utils::to_string(intConfigOpt(OPT_MAXADDITIVE)));
+			if (strOpt(STR_NONE_ALIAS) != "") arglist.push_back("-c none=" + strOpt(STR_NONE_ALIAS));
 
 			// The '--shift' flag signals that gringo should shift disjunction into the body of a rule.
 			if (boolConfigOpt(OPT_SHIFT)) arglist.push_back("--shift");
@@ -605,18 +526,18 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		// min/max step
 		if (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE) {
 			if (subconfig) {
-				if (subconfig->minstep != UNDEFINED) arglist.push_back("--imin=" + to_string(subconfig->minstep));
+				if (subconfig->minstep != UNDEFINED) arglist.push_back("--imin=" + utils::to_string(subconfig->minstep));
 				if (subconfig->maxstep != UNDEFINED) {
 					if (subconfig->maxstep > 0)
-						arglist.push_back("--imax=" + to_string(subconfig->maxstep));
+						arglist.push_back("--imax=" + utils::to_string(subconfig->maxstep));
 					else
 						arglist.push_back("--ibase");
 				}
 			} else {
-				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("--imin=" + to_string(intConfigOpt(OPT_MINSTEP)));
+				if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("--imin=" + utils::to_string(intConfigOpt(OPT_MINSTEP)));
 				if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED){
 					if (intConfigOpt(OPT_MAXSTEP) > 0)
-						arglist.push_back("--imax=" + to_string(intConfigOpt(OPT_MAXSTEP)));
+						arglist.push_back("--imax=" + utils::to_string(intConfigOpt(OPT_MAXSTEP)));
 					else
 						arglist.push_back("--ibase");
 				}
@@ -636,14 +557,14 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 
 #ifdef NO_REACTIVE_BRIDGE
 			if (intConfigOpt(OPT_EXT_PORT) != UNDEFINED)
-				arglist.push_back("--port=" + to_string(intConfigOpt(OPT_EXT_PORT)));
+				arglist.push_back("--port=" + utils::to_string(intConfigOpt(OPT_EXT_PORT)));
 			else
 #endif
-				arglist.push_back("--port=" + to_string(intConfigOpt(OPT_INT_PORT)));
+				arglist.push_back("--port=" + utils::to_string(intConfigOpt(OPT_INT_PORT)));
 		} else if (mode() == MODE_REACTIVE) {
 			// we aren't running the reactive bridge.
 			// connect to the external port instead.
-			arglist.push_back("--port=" + to_string(intConfigOpt(OPT_EXT_PORT)));
+			arglist.push_back("--port=" + utils::to_string(intConfigOpt(OPT_EXT_PORT)));
 		} 
 			
 
@@ -652,18 +573,18 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		compileInputArgs(tool, arglist);
 
 		if (subconfig) {
-			if (subconfig->queryId != UNDEFINED) arglist.push_back("-c query=" + to_string(subconfig->queryId));
-			if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + to_string(subconfig->maxstep));
-			if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + to_string(subconfig->minstep));
+			if (subconfig->query != "") arglist.push_back("-c query=" + utils::to_string(subconfig->query));
+			if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(subconfig->maxstep));
+			if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(subconfig->minstep));
 		} else {
-			if (intConfigOpt(OPT_QUERY) != UNDEFINED) arglist.push_back("-c query=" + to_string(intConfigOpt(OPT_QUERY)));
-			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) arglist.push_back("-c maxstep=" + to_string(intConfigOpt(OPT_MAXSTEP)));
-			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("-c minstep=" + to_string(intConfigOpt(OPT_MINSTEP)));
+			if (strOpt(STR_QUERY) != "") arglist.push_back("-c query=" + utils::to_string(strOpt(STR_QUERY)));
+			if (intConfigOpt(OPT_MAXSTEP) != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(intConfigOpt(OPT_MAXSTEP)));
+			if (intConfigOpt(OPT_MINSTEP) != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(intConfigOpt(OPT_MINSTEP)));
 		}
 
 
-		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) arglist.push_back("-c maxAdditive=" + to_string(intConfigOpt(OPT_MAXADDITIVE)));
-		if (noneAlias() != "") arglist.push_back("-c none=" + noneAlias());
+		if (intConfigOpt(OPT_MAXADDITIVE) != UNDEFINED) arglist.push_back("-c maxAdditive=" + utils::to_string(intConfigOpt(OPT_MAXADDITIVE)));
+		if (strOpt(STR_NONE_ALIAS) != "") arglist.push_back("-c none=" + strOpt(STR_NONE_ALIAS));
 
 		// The '--shift' flag signals that gringo should shift disjunction into the body of a rule.
 		if (boolConfigOpt(OPT_SHIFT)) arglist.push_back("--shift");
@@ -683,19 +604,19 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		// Just the ports to use and where to find the symbol table
 		compileInputArgs(tool, arglist);
 
-		arglist.push_back("--port=" + to_string(intConfigOpt(OPT_INT_PORT)));
+		arglist.push_back("--port=" + utils::to_string(intConfigOpt(OPT_INT_PORT)));
 
 		if (intConfigOpt(OPT_EXT_PORT) != UNDEFINED)
-			arglist.push_back("--client-port=" + to_string(intConfigOpt(OPT_EXT_PORT)));
-		if (noneAlias() != "") 
-			arglist.push_back("--none=" + noneAlias());
+			arglist.push_back("--client-port=" + utils::to_string(intConfigOpt(OPT_EXT_PORT)));
+		if (strOpt(STR_NONE_ALIAS) != "") 
+			arglist.push_back("--none=" + strOpt(STR_NONE_ALIAS));
 #endif
 		break;
 
 	case TC_POSTPROC:
 		compileInputArgs(tool, arglist);
-		if (noneAlias() != "")
-			arglist.push_back("--none=" + noneAlias());
+		if (strOpt(STR_NONE_ALIAS) != "")
+			arglist.push_back("--none=" + strOpt(STR_NONE_ALIAS));
 		break;
 	}
 }
@@ -704,10 +625,10 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 bool Config::setRunTo(Toolchain tool) {
 	bool conflict = false;
 
-//	for (int i = (int)TC_BEGIN; i < (int)tool+1; i++) {
+//	for (int i = (int)_TC_BEGIN_; i < (int)tool+1; i++) {
 //		conflict |= run((Toolchain)i, true);
 //	}
-	for (int i = ((int)tool)+1; i < (int)TC_END; i++) {
+	for (int i = ((int)tool)+1; i < (int)_TC_END_; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
 	return conflict;
@@ -717,7 +638,7 @@ bool Config::setRunTo(Toolchain tool) {
 bool Config::setRunFrom(Toolchain tool) {
 	bool conflict = false;
 
-	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
+	for (int i = (int)_TC_BEGIN_; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
 //	for (int i = (int)tool; i < (int)TC_END; i++) {
@@ -730,25 +651,25 @@ bool Config::setRunFrom(Toolchain tool) {
 bool Config::setOnlyRun(Toolchain tool) {
 	bool conflict = false;
 
-	for (int i = (int)TC_BEGIN; i < (int)tool; i++) {
+	for (int i = (int)_TC_BEGIN_; i < (int)tool; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
 	conflict |= run(tool,true);
-	for (int i = ((int)tool)+1; i < (int)TC_END; i++) {
+	for (int i = ((int)tool)+1; i < (int)_TC_END_; i++) {
 		conflict |= run((Toolchain)i, false);
 	}
 	return conflict;
 }
 
 // Attempts to add a query to the list of known queries.
-bool Config::addQuery(unsigned int queryID, std::string const& name, std::string const& cmd, unsigned int maxstep, unsigned int minstep) {
+bool Config::addQuery(std::string const& name, std::string const& cmd, unsigned int maxstep, unsigned int minstep) {
 	bool unique = true;
 
 	// ensure that the query is not already present...
-	if (hasQuery(queryID) || hasQuery(cmd)) unique = false;
+	if (hasQuery(cmd)) unique = false;
 
 	if (unique) {
-		mQueries[queryID] = Query(queryID,name,cmd,minstep,maxstep);
+		mQueries[cmd] = Query(name,cmd,minstep,maxstep);
 	}
 
 	return unique;
@@ -759,36 +680,27 @@ bool Config::addQuery(Query const& query) {
 	bool unique = true;
 
 	// ensure that the query is not already present...
-	if (hasQuery(query.id) || hasQuery(query.cmd)) unique = false;
+	if (hasQuery(query.cmd)) unique = false;
 
 	if (unique) {
-		mQueries[query.id] = query;
+		mQueries[query.cmd] = query;
 	}
 
 	return unique;
 }
 
-// Checks if the query exists by command.
-bool Config::hasQuery(std::string const& cmd) const {
-	for(std::pair<unsigned int,Query> const& q : mQueries) {
-		if (q.second.cmd == cmd) return true;
-	}
-	return false;
-}
-
-
 Config::FileType Config::addInput(std::string const& input) {
 
 	char const* input_cstr = input.c_str();
-	FileType type(false,TC_BEGIN, MODE_UNKNOWN);
+	FileType type(false,_TC_BEGIN_, MODE_UNKNOWN);
 
-	debug("Adding input file '%s'.", true, input.c_str());
+	utils::debug("Adding input file '%s'.", true, input.c_str());
 
 	// Try to find the extension the file extension.
 	size_t pos = input.find_last_of('.');
 	if (pos == std::string::npos) {
 		// No file extension to speak of, default to the beginning of the toolchain.
-		mInputs[TC_BEGIN].push_back(input);
+		mInputs[_TC_BEGIN_].push_back(input);
 		return type;
 	}
 
@@ -796,12 +708,12 @@ Config::FileType Config::addInput(std::string const& input) {
 	checkExtension(&input_cstr[pos], type);
 
 	if (type.known) {
-		debug("Found the extension. It belongs to toolchain component '%d'", true, type.tool);
+		utils::debug("Found the extension. It belongs to toolchain component '%d'", true, type.tool);
 		mInputs[type.tool].push_back(input);
 	} else {
-		debug("Unknown extension.", true);
+		utils::debug("Unknown extension.", true);
 		// Default to the beginning of the toolchain if we don't know what it is.
-		mInputs[TC_BEGIN].push_back(input);
+		mInputs[_TC_BEGIN_].push_back(input);
 	}
 
 
@@ -817,7 +729,7 @@ std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& ma
 
 	if ((pos = maxstep.find("..")) != std::string::npos) {
 		// They've provided a range. Interpret it as a minstep and maxstep.
-		tmp = trimWhitespace(maxstep.substr(pos+2));
+		tmp = utils::trimWhitespace(maxstep.substr(pos+2));
 
 	} else {
 		tmp = maxstep;
@@ -825,7 +737,7 @@ std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& ma
 
 	if (tmp == CONST_MAXSTEP_INFINITE) {
 		ret.second = INF;	
-	} else  if (!from_string(ret.second,tmp)) {
+	} else  if (!utils::from_string(ret.second,tmp)) {
 		// error
 		ret.first = UNDEFINED;
 		ret.second = UNDEFINED;
@@ -833,7 +745,7 @@ std::pair<unsigned int, unsigned int> Config::parseMaxstep(std::string const& ma
 
 	if (ret.second != UNDEFINED 
 		&& pos != std::string::npos 
-		&& !from_string(ret.first,trimWhitespace(maxstep.substr(0,pos)))) {
+		&& !utils::from_string(ret.first,utils::trimWhitespace(maxstep.substr(0,pos)))) {
 		// error
 		ret.first = UNDEFINED;
 		ret.second = UNDEFINED;
@@ -851,7 +763,7 @@ void Config::compileInputArgs(Toolchain tool, std::list<std::string>& args) cons
 
 	// Compile the input files from previous step's outputs.
 	switch (tool) {
-	case TC_END:
+	case _TC_END_:
 	case TC_REACTIVE_BRIDGE:
 		// Reactive bridge is different.
 		// TODO Finalize this
@@ -894,7 +806,7 @@ void Config::compileInputArgs(Toolchain tool, std::list<std::string>& args) cons
 
 	}
 
-	for (int i = (int)tool; i >= (int)TC_BEGIN; i--) {
+	for (int i = (int)tool; i >= (int)_TC_BEGIN_; i--) {
 		// Only include files which haven't been included by a previous tool.
 		if (i != (int)tool && run((Toolchain)i)) break;
 
@@ -910,14 +822,14 @@ Config::FileType& Config::checkExtension(char const* ext, FileType& out) const {
 
 	out.known = true;
 	out.runningMode = MODE_UNKNOWN;
-	out.tool = TC_BEGIN;
+	out.tool = _TC_BEGIN_;
 
 
 
 	// Skip the period if they included it.
 	if (ext[0] == '.') ext++;
 
-	debug("Checking extension '%s'.", true, ext);
+	utils::debug("Checking extension '%s'.", true, ext);
 
 	/*!re2c
 		re2c:define:YYCTYPE = "char";

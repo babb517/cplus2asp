@@ -124,7 +124,7 @@ public:
 	/// A list of each component of the toolchain.
 	enum Toolchain
 	{
-		TC_BEGIN = 0x00,						///< An alias for the beginning of the toolchain.
+		_TC_BEGIN_ = 0x00,						///< An alias for the beginning of the toolchain.
 
 		TC_TRANSLATOR = 0x00,					///< translator
 		TC_PREPROC = 0x01,						///< pre-processor
@@ -133,8 +133,8 @@ public:
 		TC_POSTPROC = 0x04,						///< post-processor. Ignored in reactive mode.
 		TC_REACTIVE_BRIDGE = 0x05,				///< The process to launch which interacts with a reactive solver.
 
-		TC_END = 0x06,							///< Dummy constant to provide the end of the toolchain command list.
-		TC_LENGTH = 0x06						///< (Not a tool) Provides the total length of the toolchain command.
+		_TC_END_ = 0x06,						///< Dummy constant to provide the end of the toolchain command list.
+		_TC_LENGTH_ = 0x06						///< (Not a tool) Provides the total length of the toolchain command.
 	};
 
 	/// The various operating modes that we can use.
@@ -157,10 +157,10 @@ public:
 	/// The various extra configurations that can be set.
 	enum ConfigOption
 	{
-		OPT_BEGIN = 0x00,				///< Dummy constant to mark the beginning of the configuration list.
+		_OPT_BEGIN_ = 0x00,				///< Dummy constant to mark the beginning of the configuration list.
 
 		// boolean
-		OPT_INCL_STD = OPT_BEGIN,		///< Whether we should include the standard files.
+		OPT_INCL_STD = _OPT_BEGIN_,		///< Whether we should include the standard files.
 		OPT_INCL_ADDITIVE,				///< Whether we should include the standard additive files.
 		OPT_DISCARD_F2LP,				///< Whether we should discard all F2LP intermediate files when we're done.
 		OPT_SUPPRESS_INTERACTION,		///< Whether we should operate in silent mode.
@@ -170,14 +170,56 @@ public:
 		// integer
 		OPT_MINSTEP,					///< The currently configured minimum step, or UNDEFINED.
 		OPT_MAXSTEP,					///< The currently configured maximum step, or UNDEFINED.
-		OPT_QUERY,						///< The currently configured query, or UNDEFINED.
 		OPT_MAXADDITIVE,				///< The currently configured maximum additive, or UNDEFINED.
 		OPT_NUM_SOLN,					///< The currently configured # of solutions to find.
 		OPT_EXT_PORT,					///< The port that we should make available for the user.
 		OPT_INT_PORT,					///< The port which we should use internally to communicate with oClingo.
 
-		OPT_LENGTH,						///< Dummy constant to provide the number configuration options.
-		OPT_END = OPT_LENGTH			///< Dummy constant to mark the end of the configuration list.
+		_OPT_LENGTH_,					///< Dummy constant to provide the number configuration options.
+		_OPT_END_ = _OPT_LENGTH_		///< Dummy constant to mark the end of the configuration list.
+	};
+
+	/// A list of all string options
+	enum StrOption
+	{
+		// Toolchain commands
+		_STR_BEGIN_ = 0,										///< psuedo option marking the beginning of the string options.
+		_STR_TC_BEGIN_ = 0,										///< psuedo option marking the toolchain beginning.
+		STR_TRANSLATOR = TC_TRANSLATOR,							///< translator
+		STR_PREPROC = TC_PREPROC,								///< pre-processor
+		STR_GROUNDER = TC_GROUNDER,								///< grounder
+		STR_SOLVER = TC_SOLVER,									///< solver
+		STR_POSTPROC = TC_POSTPROC,								///< post-processor. Ignored in reactive mode.
+		STR_REACTIVE_BRIDGE = TC_REACTIVE_BRIDGE,				///< The process to launch which interacts with a reactive solver.
+
+
+		// Toolchain options
+		_STR_TC_OPT_BEGIN_ = STR_REACTIVE_BRIDGE,				///< psuedo string option marking the toolchain options beginning
+		STR_OPT_TRANSLATOR = _STR_TC_OPT_BEGIN_ + TC_TRANSLATOR,
+		STR_OPT_PREPROC = _STR_TC_OPT_BEGIN_ + TC_PREPROC,
+		STR_OPT_GROUNDER = _STR_TC_OPT_BEGIN_ + TC_GROUNDER,
+		STR_OPT_SOLVER = _STR_TC_OPT_BEGIN_ + TC_SOLVER,
+		STR_OPT_POSTPROC = _STR_TC_OPT_BEGIN_ + TC_POSTPROC,
+		STR_OPT_REACTIVE_BRIDGE = _STR_TC_OPT_BEGIN_ + TC_REACTIVE_BRIDGE,
+
+		
+	
+		// Toolchain output files
+		_STR_TC_OUT_BEGIN_ = STR_OPT_REACTIVE_BRIDGE,				///< psuedo string option marking the toolchain output files beginning
+		STR_OUT_TRANSLATOR = _STR_TC_OUT_BEGIN_ + TC_TRANSLATOR,
+		STR_OUT_PREPROC = _STR_TC_OUT_BEGIN_ + TC_PREPROC,
+		STR_OUT_GROUNDER = _STR_TC_OUT_BEGIN_ + TC_GROUNDER,
+		STR_OUT_SOLVER = _STR_TC_OUT_BEGIN_ + TC_SOLVER,
+		STR_OUT_POSTPROC = _STR_TC_OUT_BEGIN_ + TC_POSTPROC,
+		STR_OUT_REACTIVE_BRIDGE = _STR_TC_OUT_BEGIN_ + TC_REACTIVE_BRIDGE,
+
+		// other options
+		STR_QUERY,													///< The query to run
+		STR_SYMTAB_FILE,											///< The symbol table output file.
+		STR_NONE_ALIAS,												///< The value to replace none with.
+
+		_STR_LENGTH_											///< psuedo string option marking the end of the options list.
+
 	};
 
 	/// A flag-type used to specify multiple modes simultaneously
@@ -191,7 +233,7 @@ public:
 		Modes runningMode;		///< The running mode the file is associated with.
 
 		inline FileType()
-			: known(false), tool(TC_BEGIN), runningMode(MODE_UNKNOWN)
+			: known(false), tool(_TC_BEGIN_), runningMode(MODE_UNKNOWN)
 			{ /* Intentionally Left Blank */ }
 
 		inline FileType(bool _known, Toolchain _tool, Modes _runningMode)
@@ -204,18 +246,17 @@ public:
 	/// A structure which is used to describe a query.
 	struct Query
 	{
-		unsigned int id;		///< ID for the query.
 		std::string name;		///< The human-readable name of the query.
 		std::string cmd;		///< The short name or command used for query selection.
 		unsigned int minstep;	/// Minimum step for the query (if specified, UNDEFINED otherwise).
 		unsigned int maxstep;	/// Maximum step for the query (if specified, UNDEFINED otherwise).
 
 		inline Query()
-			: id(UNDEFINED), name(""), cmd(""), minstep(UNDEFINED), maxstep(UNDEFINED)
+			: name(""), cmd(""), minstep(UNDEFINED), maxstep(UNDEFINED)
 			{ /* Intentionally Lef Blank */ }
 
-		inline Query(unsigned int _id, std::string const& _name, std::string const& _cmd, unsigned int _minstep, unsigned int _maxstep)
-			: id(_id), name(_name), cmd(_cmd), minstep(_minstep), maxstep(_maxstep)
+		inline Query(std::string const& _name, std::string const& _cmd, unsigned int _minstep, unsigned int _maxstep)
+			: name(_name), cmd(_cmd), minstep(_minstep), maxstep(_maxstep)
 			{ /* Intentionally Left Blank */ }
 
 		inline virtual ~Query() { /* Intentionally Left Blank */ }
@@ -225,14 +266,14 @@ public:
 	/// A structure used to describe the current runtime subconfiguration (used for iterative runs where the configuration can change).
 	struct RunConfig
 	{
-		unsigned int queryId;					///< The query that should be run.
+		std::string query;						///< The query that should be run.
 		unsigned int minstep;					///< The minimum step that should be solved for.
 		unsigned int maxstep;					///< The maximum step that should be solved for.
 		unsigned int numSoln;					///< The number of solutions to display.
 
 	};
 
-	typedef std::map<unsigned int, Query> QueryMap;						///< A map of queries indexed by their ID and their max steps.
+	typedef std::map<std::string, Query> QueryMap;						///< A map of queries indexed by their commands.
 	typedef std::map<std::string,std::string> ConstantMap;				///< A map between constant names and their definitions.
 	typedef std::vector<std::string> InputList;							///< A list of input files.
 
@@ -248,16 +289,6 @@ public:
 	/// Indicates an infinite value.
 	static unsigned int const INF;
 	
-	/// Indicates that the user wishes to perform a satisfiability check to find system states.
-	static unsigned int const STATES_QUERY;
-
-	/// Indicates that the user wishes to find system transitions
-	static unsigned int const TRANSITIONS_QUERY;
-
-
-	/// Indicates that the user wishes to run without a query.
-	static unsigned int const NO_QUERY;
-
 	/***************************************************************/
 	/* Members */
 	/***************************************************************/
@@ -273,27 +304,17 @@ private:
 	unsigned char mCustomLang;					///< Whether the input language has been manually set.
 
 	// Misc Configurations
-	unsigned int	mConfigOpts   [OPT_LENGTH];		///< The available configuration options.
-	unsigned char	mCustomConfig [OPT_LENGTH];		///< Whether each configuration option has been set previously.
+	unsigned int	mConfigOpts   [_OPT_LENGTH_];		///< The available configuration options.
+	unsigned char	mCustomConfig [_OPT_LENGTH_];		///< Whether each configuration option has been set previously.
 
 	QueryMap mQueries;								///< The set of all known queries.
 
-	std::string		mNoneAlias;						///< The alias for the 'none' object, or "".
-	unsigned char  	mCustomNone;					///< Whether the none alias has been modified.
-
-	std::string		mSymTabFile;					///< The name of the file to store the symbol table in.
-	unsigned char	mCustomSymTab;					///< Whether the symbol table file has been manually set.
-
 	// Toolchain configuration
-	std::string 	mCommands	[TC_LENGTH];		///< The command to use for each step in the toolchain.
-	unsigned char 	mCustomCmd 	[TC_LENGTH];		///< Whether each toolchain command has been custom set.
-	bool 			mRun	 	[TC_LENGTH];		///< Whether we should run each part of the toolchain.
-	unsigned char	mCustomRun	[TC_LENGTH];		///< Whether each toolchain component has been custom set to run or not.
-	std::string 	mOpts	 	[TC_LENGTH];		///< The options to use for each part of the toolchain.
-	unsigned char	mCustomOpts [TC_LENGTH];		///< Whether each toolchain component's options have been changed or not.
-	std::string		mOutFiles 	[TC_LENGTH];		///< The files that each toolchain component is to be bound to.
-	unsigned char	mCustomOut	[TC_LENGTH];		///< Whether each toolchain output file has been custom set to run or not.
-	InputList		mInputs 	[TC_LENGTH];		///< The files which are designated dynamically as input for each of the toolchain components.
+	std::string 	mStrOpts	[_STR_LENGTH_];		///< The set of string options.
+	unsigned char 	mCustomStr 	[_STR_LENGTH_];		///< Whether each string option has been modified.
+	bool 			mRun	 	[_TC_LENGTH_];		///< Whether we should run each part of the toolchain.
+	unsigned char	mCustomRun	[_TC_LENGTH_];		///< Whether each toolchain component has been custom set to run or not.
+	InputList		mInputs 	[_TC_LENGTH_];		///< The files which are designated dynamically as input for each of the toolchain components.
 	ConstantMap		mConstDefs;						///< The constants which have been defined and should be passed to the grounder.
 
 public:
@@ -350,20 +371,24 @@ public:
 	inline unsigned int intConfigOpt(ConfigOption opt) const		{ return mConfigOpts[opt]; }
 	///@return Whether the specified option has been manually modified.
 	inline bool customConfigOpt(ConfigOption opt) const				{ return (bool)mCustomConfig[opt]; }
+	///@return The string value of the specified option.
+	inline std::string const& strOpt(StrOption opt) const			{ return mStrOpts[opt]; }
+	///@return Whether the specified option has been manually modified.
+	inline bool customStrOpt(StrOption opt) const					{ return (bool)mCustomStr[opt]; }
 
 	// command options
 	///@return The base command for the specifed tool.
-	inline std::string const& command(Toolchain tool) const			{ return mCommands[tool]; }
+	inline std::string const& command(Toolchain tool) const			{ return strOpt((StrOption)(tool + _STR_TC_BEGIN_)); }
 	///@return Whether the base command for the tool has been manually modififed.
-	inline bool customCmd(Toolchain tool) const						{ return (bool)mCustomCmd[tool]; }
+	inline bool customCmd(Toolchain tool) const						{ return customStrOpt((StrOption)(tool + _STR_TC_BEGIN_)); }
 	///@return Whether the tool is configured to run.
 	inline bool run(Toolchain tool) const							{ return mRun[tool]; }
 	///@return Whether the run status of the tool has been manually modified.
 	inline bool customRun(Toolchain tool) const						{ return (bool)mCustomRun[tool]; }
 	///@return The user-defined command options for the specified tool.
-	inline std::string const& opts(Toolchain tool) const			{ return mOpts[tool]; }
+	inline std::string const& opts(Toolchain tool) const			{ return strOpt((StrOption)(tool + _STR_TC_OPT_BEGIN_)); }
 	///@return Whether the command options have been manually modififed.
-	inline bool customOpts(Toolchain tool) const					{ return (bool)mCustomOpts[tool]; }
+	inline bool customOpts(Toolchain tool) const					{ return customStrOpt((StrOption)(tool + _STR_TC_OPT_BEGIN_)); }
 
 
 	// constants
@@ -372,30 +397,17 @@ public:
 
 	// queries
 	inline size_t queryCount() const								{ return mQueries.size(); }
-	inline bool hasQuery(unsigned int queryID) const				{ return (bool)mQueries.count(queryID); }
-	bool hasQuery(std::string const& cmd) const;
-	inline Query const* activeQuery() const							{ return query(intConfigOpt(OPT_QUERY));  }
-	Query const* query(unsigned int queryID) const;
-	std::string const* queryName(unsigned int queryID) const;
-	unsigned int queryMaxStep(unsigned int queryID) const;
-	unsigned int queryMinStep(unsigned int queryID) const;
+	inline bool hasQuery(std::string const& queryCmd) const			{ return (bool)mQueries.count(queryCmd); }
+	inline Query const* activeQuery() const							{ return query(strOpt(STR_QUERY));  }
+	Query const* query(std::string const& queryCmd) const;
 
 	// etc
 	///@return The file we should use for stderr from our children.
 	inline std::string const& errFile() const						{ return mErrFile; }
 	///@return A description of the output file for the provided tool.
-	inline std::string const& output(Toolchain tool) const			{ return mOutFiles[tool]; }
+	inline std::string const& output(Toolchain tool) const			{ return strOpt((StrOption)(tool + _STR_TC_OUT_BEGIN_)); }
 	///@return Whether the output file for the specified tool has been manually modified.
-	inline bool customOut(Toolchain tool) const						{ return (bool)mCustomOut[tool]; }
-	///@return The current value configured as the alias for 'none'.
-	inline std::string const& noneAlias() const						{ return mNoneAlias; }
-	///@return Whether the none alias has been manually modified.
-	inline bool customNoneAlias() const								{ return mCustomNone; }
-	///@return The name of the file to store the symbol table in.
-	inline std::string const& symTabFile() const					{ return mSymTabFile; }
-	///@return Whether the symbol table file has been manually set.
-	inline bool customSymTabFile() const							{ return mCustomSymTab; }
-
+	inline bool customOut(Toolchain tool) const						{ return customStrOpt((StrOption)(tool + _STR_TC_OUT_BEGIN_)); }
 
 	/// Basic Mutators.
 
@@ -411,6 +423,9 @@ public:
 	/// @return If the option was previously set.
 	bool intConfigOpt(ConfigOption opt, unsigned int val);
 
+	/// @return If the option was previously set.
+	bool strOpt(StrOption opt, std::string const& val);
+
 	/// @return If the constant was previously defined.
 	bool def(std::string const& constant, std::string const& value);
 
@@ -418,40 +433,35 @@ public:
 	/// An empty value will disable the tool.
 	/// A non-empty value will enable the tool.
 	/// @return If the command has previously been changed.
-	bool command(Toolchain tool, std::string const& val);
+	inline bool command(Toolchain tool, std::string const& val) {
+		return strOpt((StrOption)(tool + _STR_TC_BEGIN_), val) |/*non-shortcutting*/ run(tool, val != "");
+	}
 
 	/// @return If the run status has been previously changed.
-	bool run(Toolchain tool, bool val);
+	bool run(Toolchain tool, bool val); 
 
 	/// @return Whether the option has been previously set.
-	bool opts(Toolchain tool, std::string const& val);
+	bool opts(Toolchain tool, std::string const& val) {
+		return strOpt((StrOption)(tool + _STR_TC_OPT_BEGIN_), val);
+	}
 
 
 	/// Sets the target output file for the toolchain component.
 	/// @param file The new output file.
 	/// @return True if this overrode a previous configuration.
-	bool output(Toolchain tool, std::string const& file);
-	
-	/// Sets a new value to use as a none alias.
-	/// @param alias the new alias to use.
-	/// @return True if this overrode a previous configuration.
-	bool noneAlias(std::string const& alias);
-
-	/// Sets the file to output the symbol table to.
-	/// @param  file The new file for the symbol table.
-	/// @return True if this overrode a previous configuration.
-	bool symTabFile(std::string const& file);
+	bool output(Toolchain tool, std::string const& file) {
+		return strOpt((StrOption)(tool + _STR_TC_OUT_BEGIN_), file);
+	}
 
 	/**
 	 * Attempts to add a query to the list of known queries.
-	 * @param queryID The ID of the query.
 	 * @param name The human readable name of the query.
 	 * @param cmd The command used to select this query.
 	 * @param maxstep The maxstep of the query (or UNDEFINED).
 	 * @param minstep The minstep of the query (or UNDEFINED).
 	 * @return true if the add operation was a success. False if it failed (duplicate ID).
 	 */
-	bool addQuery(unsigned int queryID, std::string const& name, std::string const& cmd, unsigned int maxstep = UNDEFINED, unsigned int minstep = UNDEFINED);
+	bool addQuery(std::string const& name, std::string const& cmd, unsigned int maxstep = UNDEFINED, unsigned int minstep = UNDEFINED);
 
 	/**
 	 * Attempts to add a query to the list of known queries.

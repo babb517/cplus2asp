@@ -37,6 +37,8 @@
 
 #include "utils.h"
 
+namespace utils {
+
 bool isInteger(const char *str)
 {
 	bool retVal = true; // Start optimistic.
@@ -152,4 +154,7 @@ void debug(char const* fmt, bool newline, ...) {
 	   if (newline)
 		   fprintf(stdout, "\n");
 }
+
+
 #endif
+};

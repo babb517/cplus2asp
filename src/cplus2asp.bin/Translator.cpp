@@ -637,6 +637,7 @@ void Translator::handleLUACall(ObjectLikeElement const* lua_elem) {
 		stmtBuilder << " <- ";
 		outputClauses(stmtBuilder, extraClauses, false);
 	}
+
 	
 	stmtBuilder << ".";
 
@@ -1068,14 +1069,19 @@ void Translator::translateCausalLaw(
 						(*it)->baseName(),
 						getSort("boolean"),
 						abType,
+						false,
 						&tmpParamSorts
 				);
 
 				translateConstantDecl(newConst);
-				addSymbol(newConst);
-
-				// Make sure we update the declaration.
-				(*it)->ref(newConst);
+				if (addSymbol(newConst) != SymbolTable::ADDSYM_OK) {
+					error("An error ocurred while declaring the ab constant '" + newConst->baseName() + "/" + utils::to_string(newConst->arity()) + "'", true);
+					delete newConst;
+					malformed = true;
+				} else {
+					// Make sure we update the declaration.
+					(*it)->ref(newConst);
+				}
 			} else {
 				// Unable to dynamically declare the constant.
 				// Tell the user.
@@ -1653,7 +1659,7 @@ bool Translator::translateMayCauseLaw(
 				retVal = true;
 				tempPE2->detachPostOp();
 				tempPE2->detachPreOp();
-				deallocateTempBinaryOp(tempPE);
+				deallocateTempBinaryOp(tempPE2);
 			}
 			else if(!causee->hasConstants(ParseElement::MASK_ACTION))
 			{	// Causee is a fluent formula, this is "caused F assuming F after G & H & L following J where K".
@@ -1665,7 +1671,7 @@ bool Translator::translateMayCauseLaw(
 				retVal = true;
 				tempPE2->detachPostOp();
 				tempPE2->detachPreOp();
-				deallocateTempBinaryOp(tempPE);
+				deallocateTempBinaryOp(tempPE2);
 			}
 			else
 			{	// Causee is mixed, that isn't allowed.

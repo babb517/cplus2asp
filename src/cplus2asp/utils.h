@@ -34,6 +34,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace utils {
+
 /// A list of possible exit codes...
 enum ExitCodes
 {
@@ -169,6 +171,6 @@ void debug(char const* fmt, bool newline, ...);
 #else
 inline void debug(char const* fmt, bool newline, ...) { /* Intentionally left blank */ }
 #endif
-
+};
 
 #endif /* UTILS_H_ */

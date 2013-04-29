@@ -1283,7 +1283,25 @@ sort_identifier:
 					}
 				}
 			} else {
-				// TODO: Unresolved range
+				tempSort = mainTrans.addSort(*$$, true, NULL, true, false);
+				Element* obj = mainTrans.getSymbol($1->baseName());
+				if (obj) {
+					if (obj->getElemType() != Element::ELEM_OBJ) {
+						mainTrans.error("detected a conflicting definition of \"" + $1->baseName() + "\"", true);
+						obj = NULL;
+					}
+				} else {
+					obj = new Object($1->baseName(), Object::OBJ_NAME, false);
+					if (mainTrans.addSymbol(obj) != SymbolTable::ADDSYM_OK) {
+						delete obj;
+						obj = NULL;
+					} 
+				}
+
+				if (obj) {
+					tempSort->addObject((Object*)obj);
+					mainTrans.translateObjectDecl((Object*)obj, tempSort);
+				}
 			}
 		}
 

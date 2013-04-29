@@ -39,7 +39,7 @@ class Context
 {
 public:
 	/// An enum providing the different positions an expression may be located in.
-	enum Position { POS_HEAD, POS_BODY, POS_QUERY, POS_TERM, POS_ARITHEXPR, POS_INTERNAL};
+	enum Position { POS_HEAD, POS_BODY, POS_QUERY, POS_TERM, POS_ARITHEXPR, POS_INTERNAL, POS_LUA_TERM };
 
 
 	static std::string const TRUE_STR;		///< Concrete default string to instantiate 'true' default values.
