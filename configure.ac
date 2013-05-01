@@ -51,7 +51,7 @@ AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
 LT_INIT
 
 # BOOST Libraries
-BOOST_REQUIRE([1.36])
+BOOST_REQUIRE([1.44])
 BOOST_ASIO()							# Required by acplusbridge
 BOOST_BIND()							# Required by acplusbridge
 

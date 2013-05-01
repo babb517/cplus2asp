@@ -65,6 +65,9 @@
 #include <iomanip>
 #include <exception>
 
+#ifndef BOOST_FILESYSTEM_VERSION
+#define BOOST_FILESYSTEM_VERSION 3
+#endif
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include "boost/process.hpp"

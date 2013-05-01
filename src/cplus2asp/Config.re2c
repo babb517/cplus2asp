@@ -35,6 +35,9 @@
 #include <stdexcept>
 #include <climits>
 
+#ifndef BOOST_FILESYSTEM_VERSION
+#define BOOST_FILESYSTEM_VERSION 3
+#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include "boost/process.hpp"
