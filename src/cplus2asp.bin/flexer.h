@@ -258,8 +258,12 @@ extern char *flextext;
 #define LINE_COMMENT 2
 #define SINGLE_QUOTE_STR 3
 #define DOUBLE_QUOTE_STR 4
-#define RAW_ASP 5
-#define RAW_LUA 6
+#define RAW_ASP_CP 5
+#define RAW_ASP 6
+#define RAW_LUA_CP 7
+#define RAW_LUA 8
+#define RAW_F2LP_CP 9
+#define RAW_F2LP 10
 
 #endif
 
@@ -368,9 +372,9 @@ extern int flexlex (void);
 #undef YY_DECL
 #endif
 
-#line 505 "flexer.ll"
+#line 645 "flexer.ll"
 
 
-#line 375 "flexer.h"
+#line 379 "flexer.h"
 #undef flexIN_HEADER
 #endif /* flexHEADER_H */

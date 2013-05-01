@@ -148,8 +148,12 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 %x LINE_COMMENT
 %x SINGLE_QUOTE_STR
 %x DOUBLE_QUOTE_STR
+%x RAW_ASP_CP
 %x RAW_ASP
+%x RAW_LUA_CP
 %x RAW_LUA
+%x RAW_F2LP_CP
+%x RAW_F2LP
 
 %%
 "/*"				{
@@ -248,14 +252,15 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 					}
 }
 	/* Intercept any raw ASP code blocks and pass them straight through. */
-^\:\-{WHITESPACE}begin_asp\.		{
-									tempStr = "";
+^\:\-{WHITESPACE}?begin_asp\.		{
+									tempStr = "#begin_asp";
 									tempLoc.first_line = flexerLineNum;
 									tempLoc.first_column = flexerCharPos - 2;
-									BEGIN(RAW_ASP);
+									BEGIN(RAW_ASP_CP);
 								}
-<RAW_ASP>{
-^\:\-{WHITESPACE}end_asp\.		{	// ASP code block finished, return its contents.
+<RAW_ASP_CP>{
+^\:\-{WHITESPACE}?end_asp\.		{	// ASP code block finished, return its contents.
+									tempStr += "#end_asp.";
 									tempLoc.last_line = flexerLineNum;
 									tempLoc.last_column = flexerCharPos;
 									TOK_ASP(tempStr);
@@ -265,21 +270,46 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 [^\n]+							{	// Grab anything that isn't a newline.
 									tempStr += yytext;
 								}
-\n								{	// Handle newlines in ASP code blocks.
+\n								{	// Handle newlines in LUA code blocks.
 									flexerLineNum++;
 									flexerCharPos = 1;
 									tempStr += "\n";
 								}
 }
 
-^\#begin_lua	{	
+^\:\-{WHITESPACE}?begin_f2lp\.		{
+									tempStr = "";
+									tempLoc.first_line = flexerLineNum;
+									tempLoc.first_column = flexerCharPos - 2;
+									BEGIN(RAW_F2LP_CP);
+								}
+<RAW_F2LP_CP>{
+^\:\-{WHITESPACE}?end_f2lp\.	{	// ASP code block finished, return its contents.
+									tempLoc.last_line = flexerLineNum;
+									tempLoc.last_column = flexerCharPos;
+									TOK_ASP(tempStr);
+									BEGIN(INITIAL);
+									return T_ASP;
+								}
+[^\n]+							{	// Grab anything that isn't a newline.
+									tempStr += yytext;
+								}
+\n								{	// Handle newlines in LUA code blocks.
+									flexerLineNum++;
+									flexerCharPos = 1;
+									tempStr += "\n";
+								}
+}
+
+^\:\-{WHITESPACE}?begin_lua\.	{
 									tempStr = "#begin_lua";
 									tempLoc.first_line = flexerLineNum;
 									tempLoc.first_column = flexerCharPos - 2;
-									BEGIN(RAW_LUA);
+									BEGIN(RAW_LUA_CP);
 								}
-<RAW_LUA>{
-^\#end_lua\.		{	// LUA code block finished, return its contents.
+
+<RAW_LUA_CP>{
+^\:\-{WHITESPACE}?end_lua\.		{	// LUA code block finished, return its contents.
 									tempStr += "#end_lua.";
 									tempLoc.last_line = flexerLineNum;
 									tempLoc.last_column = flexerCharPos;
@@ -288,6 +318,81 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 									return T_ASP;
 								}
 
+[^\n]+							{	// Grab anything that isn't a newline.
+									tempStr += yytext;
+								}
+\n								{	// Handle newlines in LUA code blocks.
+									flexerLineNum++;
+									flexerCharPos = 1;
+									tempStr += "\n";
+								}
+}
+
+^\#begin_lua\.? {	
+									tempStr = "#begin_lua";
+									tempLoc.first_line = flexerLineNum;
+									tempLoc.first_column = flexerCharPos - 2;
+									BEGIN(RAW_LUA);
+								}
+<RAW_LUA>{
+^\#end_lua\.?					{	// LUA code block finished, return its contents.
+									tempStr += "#end_lua.";
+									tempLoc.last_line = flexerLineNum;
+									tempLoc.last_column = flexerCharPos;
+									TOK_ASP(tempStr);
+									BEGIN(INITIAL);
+									return T_ASP;
+								}
+
+[^\n]+							{	// Grab anything that isn't a newline.
+									tempStr += yytext;
+								}
+\n								{	// Handle newlines in LUA code blocks.
+									flexerLineNum++;
+									flexerCharPos = 1;
+									tempStr += "\n";
+								}
+}
+
+^\#begin_asp\.?				{
+									tempStr = "#begin_asp";
+									tempLoc.first_line = flexerLineNum;
+									tempLoc.first_column = flexerCharPos - 2;
+									BEGIN(RAW_ASP);
+								}
+<RAW_ASP>{
+^\#end_asp\.?					{	// ASP code block finished, return its contents.
+									tempStr += "#end_asp.";
+									tempLoc.last_line = flexerLineNum;
+									tempLoc.last_column = flexerCharPos;
+									TOK_ASP(tempStr);
+									BEGIN(INITIAL);
+									return T_ASP;
+								}
+[^\n]+							{	// Grab anything that isn't a newline.
+									tempStr += yytext;
+								}
+\n								{	// Handle newlines in LUA code blocks.
+									flexerLineNum++;
+									flexerCharPos = 1;
+									tempStr += "\n";
+								}
+}
+
+^\#begin_f2lp\.?				{
+									tempStr = "";
+									tempLoc.first_line = flexerLineNum;
+									tempLoc.first_column = flexerCharPos - 2;
+									BEGIN(RAW_F2LP);
+								}
+<RAW_F2LP>{
+^\#end_f2lp\.?					{	// ASP code block finished, return its contents.
+									tempLoc.last_line = flexerLineNum;
+									tempLoc.last_column = flexerCharPos;
+									TOK_ASP(tempStr);
+									BEGIN(INITIAL);
+									return T_ASP;
+								}
 [^\n]+							{	// Grab anything that isn't a newline.
 									tempStr += yytext;
 								}
@@ -491,6 +596,41 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 <RAW_ASP><<EOF>>	{
 						TOK_EOF;
 						flexerError("Unterminated ASP code block.");
+						flexerLineNum = 1; // Reset flexerLineNum on EOF
+						flexerCharPos = 1; // Also reset flexerCharPos
+						return BAD_TOKEN;
+					}
+<RAW_ASP_CP><<EOF>>	{
+						TOK_EOF;
+						flexerError("Unterminated ASP code block.");
+						flexerLineNum = 1; // Reset flexerLineNum on EOF
+						flexerCharPos = 1; // Also reset flexerCharPos
+						return BAD_TOKEN;
+					}
+<RAW_LUA><<EOF>>	{
+						TOK_EOF;
+						flexerError("Unterminated LUA code block.");
+						flexerLineNum = 1; // Reset flexerLineNum on EOF
+						flexerCharPos = 1; // Also reset flexerCharPos
+						return BAD_TOKEN;
+					}
+<RAW_LUA_CP><<EOF>>	{
+						TOK_EOF;
+						flexerError("Unterminated LUA code block.");
+						flexerLineNum = 1; // Reset flexerLineNum on EOF
+						flexerCharPos = 1; // Also reset flexerCharPos
+						return BAD_TOKEN;
+					}
+<RAW_F2LP><<EOF>>	{
+						TOK_EOF;
+						flexerError("Unterminated F2LP code block.");
+						flexerLineNum = 1; // Reset flexerLineNum on EOF
+						flexerCharPos = 1; // Also reset flexerCharPos
+						return BAD_TOKEN;
+					}
+<RAW_F2LP_CP><<EOF>>	{
+						TOK_EOF;
+						flexerError("Unterminated F2LP code block.");
 						flexerLineNum = 1; // Reset flexerLineNum on EOF
 						flexerCharPos = 1; // Also reset flexerCharPos
 						return BAD_TOKEN;
