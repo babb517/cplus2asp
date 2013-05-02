@@ -301,6 +301,7 @@ false <- not 1{ occ(eql(V_action,Object1),V_astep-1) : constant_object(V_action,
 #hide strong_noconcurrency.
 #hide query_label/1.
 #hide rigid/1.
+#hide computed/1.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
