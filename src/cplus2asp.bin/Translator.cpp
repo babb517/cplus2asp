@@ -939,16 +939,13 @@ void Translator::translateCausalLaw(
 
 	// step 2: Ensure that LUA calls only occur in the law's where clause (if it exists).
 	if ( head->hasLuaCalls()
-			|| (ifBody && ifBody->hasLuaCalls())
-			|| (tmpAssuming && tmpAssuming->hasLuaCalls())
-			|| (afterBody && afterBody->hasLuaCalls())
 			|| (unlessBody && unlessBody->hasLuaCalls())
 			|| (whenBody && whenBody->hasLuaCalls())
 			|| (followingBody && followingBody->hasLuaCalls()))
 	{
 		// They have at least one call to lua outside the where clause.
 		// Throw an error.
-		error("External function calls are only permitted within the where clause of a causal law.\n");
+		error("External function calls are only permitted in the if, after, and where clauses of a causal law.\n");
 		malformed = true;
 	}
 
