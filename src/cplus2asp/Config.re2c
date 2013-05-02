@@ -503,7 +503,7 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		// special constants (if we're running what looks like a grounder/solver)
 		if (!run(TC_GROUNDER)) {
 			if (subconfig) {
-				if (subconfig->query != "") arglist.push_back("-c query=" + query(subconfig->query)->cmd);
+				if (subconfig->query != "") arglist.push_back("-c query=" +subconfig->query);
 				if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(subconfig->maxstep));
 				if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(subconfig->minstep));
 			} else {
@@ -576,7 +576,7 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		compileInputArgs(tool, arglist);
 
 		if (subconfig) {
-			if (subconfig->query != "") arglist.push_back("-c query=" + utils::to_string(subconfig->query));
+			if (subconfig->query != "") arglist.push_back("-c query=" +subconfig->query);
 			if (subconfig->maxstep != UNDEFINED) arglist.push_back("-c maxstep=" + utils::to_string(subconfig->maxstep));
 			if (subconfig->minstep != UNDEFINED) arglist.push_back("-c minstep=" + utils::to_string(subconfig->minstep));
 		} else {

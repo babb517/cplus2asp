@@ -9,8 +9,8 @@ echo "% ------------------------------------------------------ LUA Examples ----
 
 # --------------------------- Simple ---------------------------
 echo "% --------------------------- Simple ---------------------------" 
-echo "$ cplus2asp lua/simple-lua query=states" 
-cplus2asp lua/simple-lua query=states
+echo "$ cplus2asp lua/simple-lua.cp query=states" 
+cplus2asp lua/simple-lua.cp query=states
 
 
 # Pragma: Running Query 'System states'.
@@ -20,6 +20,23 @@ cplus2asp lua/simple-lua query=states
 #          computed(7)
 # 
 #         0:  p(7)
+# 
+# SATISFIABLE
+# Models      : 1
+# Time        : 0.000
+# Prepare   : 0.000
+# Prepro.   : 0.000
+
+# --------------------------- Random ---------------------------
+echo "% --------------------------- Random ---------------------------" 
+echo "$ cplus2asp lua/random.cp query=states" 
+cplus2asp lua/random.cp query=states
+
+# % Pragma: Running Query 'System states'.
+# % Pragma: Minimum Step = '0', Maximum Step = '0'.
+# % Pragma: Searching for 1 solutions.
+# Solution: 1
+#          r=98
 # 
 # SATISFIABLE
 # Models      : 1

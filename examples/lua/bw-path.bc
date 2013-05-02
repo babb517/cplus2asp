@@ -2,7 +2,7 @@
 % NOTE: This is a BC example of LUA usage
 % Call with: cplus2asp bw-path.bc -l bc
 
-#begin_lua
+:- begin_lua.
 
 function plan_path(l_loc,l_height,l_loc2,l_height2,r_loc,r_height,r_loc2,r_height2)
 	-- In practice any path calculations can be embeded here.
@@ -10,7 +10,7 @@ function plan_path(l_loc,l_height,l_loc2,l_height2,r_loc,r_height,r_loc2,r_heigh
 	return l_loc ~= r_loc and l_loc2 ~= r_loc2
 end
 
-#end_lua.
+:- end_lua.
 
 :- macros
 	N -> 4; M -> 5.
