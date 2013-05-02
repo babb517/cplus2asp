@@ -855,7 +855,6 @@ Config::FileType& Config::checkExtension(char const* ext, FileType& out) const {
 		[ao]"f2lp"					{ out.tool = TC_PREPROC; out.runningMode = MODE_REACTIVE; return out;}
 		"if2lp"						{ out.tool = TC_PREPROC; out.runningMode = MODE_INCREMENTAL; return out;}
 
-		"lua"						{ out.tool = TC_GROUNDER; out.runningMode = MODE_STATIC_AUTO | MODE_STATIC_MANUAL | MODE_INCREMENTAL | MODE_REACTIVE; return out; }
 		"lp"						{ out.tool = TC_GROUNDER; out.runningMode = MODE_STATIC_AUTO | MODE_STATIC_MANUAL; return out;}
 		[ao]"lp"					{ out.tool = TC_GROUNDER; out.runningMode = MODE_REACTIVE; return out;}
 		"ilp"						{ out.tool = TC_GROUNDER; out.runningMode = MODE_INCREMENTAL; return out;}

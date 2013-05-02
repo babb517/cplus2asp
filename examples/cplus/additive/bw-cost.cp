@@ -1,4 +1,4 @@
-% File: 'bw'
+% file 'bw-cost.cp'.
 
 :- sorts
   location >> block.
@@ -31,5 +31,7 @@ nonexecutable move(B) & move(B1) if destination(B)=B1.
 % two blocks can't be on the same block at the same time
 constraint loc(B)=loc(B1) ->> loc(B)=table where B @< B1.  
 
+:- constants
+  cost            :: additiveFluent(0..maxAdditive). 
 
-%%%%%%%
+move(B) increments cost by 1.

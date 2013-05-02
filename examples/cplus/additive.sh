@@ -10,8 +10,8 @@ echo "% ------------------------------------------------------ Buying ----------
 # ------------------------- Query 1 -------------------------
 echo "% ------------------------- Query 1 -------------------------" 
 
-echo "$ cplus2asp additive/buying-test query=1  --none-alias" 
-cplus2asp additive/buying-test query=1 --none-alias
+echo "$ cplus2asp additive/buying.query query=1  --none-alias" 
+cplus2asp additive/buying.query query=1 --none-alias
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -38,8 +38,8 @@ cplus2asp additive/buying-test query=1 --none-alias
 # ------------------------- Query 2 -------------------------
 echo "% ------------------------- Query 2 -------------------------" 
 
-echo "$ cplus2asp additive/buying-test query=2  --none-alias" 
-cplus2asp additive/buying-test query=2  --none-alias
+echo "$ cplus2asp additive/buying.query query=2  --none-alias" 
+cplus2asp additive/buying.query query=2  --none-alias
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -62,8 +62,8 @@ echo "% ---------------------------------------------------- Spacecraft --------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp additive/spacecraft-test query=0 0 --none-alias" 
-cplus2asp additive/spacecraft-test query=0 0 --none-alias 
+echo "$ cplus2asp additive/spacecraft.query query=0 0 --none-alias" 
+cplus2asp additive/spacecraft.query query=0 0 --none-alias 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '7'.
@@ -164,8 +164,8 @@ echo "% -------------------------------------------------------- MCP -----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp additive/mcp-test query=0 --none-alias" 
-cplus2asp additive/mcp-test query=0 --none-alias 
+echo "$ cplus2asp additive/mcp.query query=0 --none-alias" 
+cplus2asp additive/mcp.query query=0 --none-alias 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '3'.
@@ -220,8 +220,8 @@ echo "% ------------------------------------------------------ BW-Cost ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp additive/bw-cost-test query=0 --none-alias" 
-cplus2asp additive/bw-cost-test query=0 --none-alias 
+echo "$ cplus2asp additive/bw-cost.query query=0 --none-alias" 
+cplus2asp additive/bw-cost.query query=0 --none-alias 
 
 # % Pragma: One or more additive constants have been detected. Including the additive standard file.
 # % Pragma: Found a maxAdditive hint. Setting maxAdditive to '19'.

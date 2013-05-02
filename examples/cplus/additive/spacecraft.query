@@ -1,4 +1,4 @@
-% File 'spacecraft-test'
+% File 'spacecraft.query'
 
 :- maxAdditive :: 7.
 
@@ -6,7 +6,7 @@
   mass -> 1;
   maxForce -> 2.
 
-:- include 'spacecraft'.
+:- include 'spacecraft.cp'.
 
 :- query
 maxstep :: 1;

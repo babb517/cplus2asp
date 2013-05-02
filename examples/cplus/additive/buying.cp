@@ -1,4 +1,4 @@
-% File 'buying'
+% File 'buying.cp'
 
 :- sorts
   agent;

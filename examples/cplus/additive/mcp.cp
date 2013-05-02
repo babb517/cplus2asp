@@ -1,4 +1,4 @@
-% File 'mcp'
+% File 'mcp.cp'
 
 :- sorts
   vessel;  location;  group.

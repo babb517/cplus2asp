@@ -1,4 +1,4 @@
-% File 'spacecraft'
+% File 'spacecraft.cp'
 
 :- sorts
   integer;
