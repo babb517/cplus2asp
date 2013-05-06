@@ -13,5 +13,5 @@ end
 
 caused p(@a()).
 
-caused q if @a() = 7.
+caused q where @a() = 7.
 

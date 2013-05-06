@@ -2614,12 +2614,12 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
+		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
-		$$ = new ObjectLikeElement(*$2, (Object*)elem);
+		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem);
 		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
 
@@ -2656,12 +2656,12 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA);
+		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
-		$$ = new ObjectLikeElement(*$2, (Object*)elem);
+		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem);
 		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
 	} else {
@@ -2679,13 +2679,13 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$2, Object::OBJ_LUA, false, $4->size());
+		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA, false, $4->size());
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
 			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
 
-		$$ = new ObjectLikeElement(*$2, (Object*)elem, $4);
+		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem, $4);
 		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
 	} else if ((elem = mainTrans.getSymbol(*$2, $4->size()))) {

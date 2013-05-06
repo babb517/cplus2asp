@@ -131,9 +131,11 @@ public:
 	/**
 	 * Returns true if the element (or any of its children) are constants of the provided types.
 	 * @param types A mask containing flags for the types to search for. See ConstMask enum.
+	 * @param includeParams Whether to check the parameters of constants.
+	 * @param includeEq Whether to check the right side of equality within an atom. (The right hand side of comparisons will be checked regardless.)
 	 * @return True if the element, or any elements "beneach" it, are constants, false otherwise.
 	 */
-	virtual bool hasConstants(unsigned int types) const = 0;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const = 0;
 	
 	/**
 	 * Determines if the element contains a single atom (or a unary expression w/ a single atom), which would be suitable for the head of a rule.
@@ -143,9 +145,11 @@ public:
 
 	/**
 	 * Determines if the element contains no (real) constants. (i.e. only "true" and/or "false").
+	 * @param includeParams Whether we should check parameter lists.
+	 * @param includeEq Whether we should check atomic equality.
 	 * @return True if the only constants contained in the formula are "true" and "false".
 	 */
-	inline bool isTrivial() const { return !hasConstants(MASK_NON_TRIVIAL); }
+	inline bool isTrivial(bool includeParams = true, bool includeEq = true) const { return !hasConstants(MASK_NON_TRIVIAL, includeParams, includeEq); }
 
 	/**
 	 * Determines if the element is a valid arithmetic expression.
@@ -155,9 +159,11 @@ public:
 
 	/**
 	 * Determines if the element contains any calls to LUA.
+	 * @param includeParams Whether to search base element parameter lists.
+	 * @param includeEq Whether to check the right side of equality within an atom. (The right hand side of comparisons will be checked regardless.)
 	 * @return True if the element or any of its children is a LUA call.
 	 */
-	virtual bool hasLuaCalls() const = 0;
+	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const = 0;
 
 	/**
 	 * Determines the proper IPart to place the formula in.
@@ -263,10 +269,11 @@ public:
 	
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
-	virtual bool hasConstants(unsigned int types) const;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
 	virtual bool isDefinite() const;
 	virtual bool isArithExpr() const;
-	virtual bool hasLuaCalls() const							{ return postOp() && postOp()->hasLuaCalls(); }
+	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 
+																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
 	inline virtual IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
 	virtual std::ostream& fullName(std::ostream& out) const;
 	inline virtual ParseElement* copy() const					{ return new SimpleUnaryOperator(opType(), (postOp()) ? postOp()->copy() : NULL, parens()); }
@@ -358,10 +365,10 @@ public:
 
 	// inherted stuffs
 	inline virtual std::ostream& translate(std::ostream& out, Context& context) const { return translate(out, context, opType()); }
-	virtual bool hasConstants(unsigned int types) const;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
 	virtual bool isDefinite() const;
 	virtual bool isArithExpr() const;
-	inline virtual bool hasLuaCalls() const						{ return (preOp() && preOp()->hasLuaCalls()) || (postOp() && postOp()->hasLuaCalls()); }
+	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const; 
 	virtual IPart determineQueryIPart() const;
 	virtual std::ostream& fullName(std::ostream& out) const;
 	inline virtual ParseElement* copy() const					{ return new SimpleBinaryOperator(preOp()->copy(), opType(), postOp()->copy(), parens()); }
@@ -373,6 +380,15 @@ public:
 	/// Sets the operator's type.
 	inline void opType(BinaryOperatorType op) 	{ mOpType = op; }
 
+	/// Determines if this binary operator is an atomic equality.
+	/// (ie. c=v where c is a constant and v is some value.
+	inline bool isAtomicEq() const { 
+		return (opType() == BOP_EQ
+					&& preOp() && postOp()
+					&& preOp()->getType() == PELEM_CONSTLIKE
+					&& preOp()->hasConstants(MASK_NON_TRIVIAL, false, false)
+					&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true));
+	}
 
 
 	/// Gets the operator's sub expression.
@@ -450,10 +466,11 @@ public:
 
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
-	virtual bool hasConstants(unsigned int types) const;
-	inline virtual bool isDefinite() const					{ return false; }
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
+	inline virtual bool isDefinite() const						{ return false; }
 	inline virtual bool isArithExpr() const						{ return false; }
-	inline virtual bool hasLuaCalls() const						{ return postOp() && postOp()->hasLuaCalls(); }
+	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 	
+																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
 	virtual inline IPart determineQueryIPart() const			{ return (postOp()) ? postOp()->determineQueryIPart() : IPART_BASE; }
 	virtual std::ostream& fullName(std::ostream& out) const;
 	virtual ParseElement* copy() const;
@@ -518,11 +535,12 @@ public:
 
 	virtual inline std::ostream& translate(std::ostream& out, Context& context) const
 																{ return mWrapped->translate(out, context, opType(), mForceParens); }
-	inline virtual bool hasConstants(unsigned int types) const
-																{ return mWrapped->hasConstants(types); }
+	inline virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const
+																{ return mWrapped->hasConstants(types, includeParams); }
 	inline virtual bool isDefinite() const						{ return mWrapped->isDefinite(); }
 	inline virtual bool isArithExpr() const						{ return mWrapped->isArithExpr(); }
-	inline virtual bool hasLuaCalls() const						{ return mWrapped->hasLuaCalls(); }
+	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
+																{ return mWrapped->hasLuaCalls(includeParams, includeEq); }
 	inline virtual IPart determineQueryIPart() const			{ return mWrapped->determineQueryIPart(); }
 	inline virtual std::ostream& fullName(std::ostream& out) const
 																{ return mWrapped->fullName(out); }
@@ -578,10 +596,10 @@ public:
 
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const = 0;
-	virtual bool hasConstants(unsigned int types) const = 0;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const = 0;
 	virtual bool isDefinite() const = 0;
 	inline virtual bool isArithExpr() const 								{ return isNumeric(); }
-	virtual bool hasLuaCalls() const = 0;
+	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const = 0;
 	virtual IPart determineQueryIPart() const = 0;
 	virtual std::ostream& fullName(std::ostream& out) const;
 	virtual ParseElement* copy() const = 0;
@@ -634,12 +652,11 @@ public:
 	 * Internal helper to translate, creates a list of translated params.
 	 * @param[out] out The stream to output to.
 	 * @param context The context used for translation.
-	 * @param internal Whether to indicate that the parameters should be treated as internal or not.
 	 * @param force Whether to force the presence of parens regardless of the presence of arguments.
 	 * @return A parentheses-surrounded, comma-separated list of translated
 	 * params, or a blank string if params is empty.
 	 */
-	virtual std::ostream& translateParams(std::ostream& out, Context& context, bool internal = false, bool force = false) const;
+	virtual std::ostream& translateParams(std::ostream& out, Context& context, bool force = false) const;
 	
 	/**
 	 * Destructor. Deallocates contents of params.
@@ -653,6 +670,14 @@ protected:
 
 	/// Gets an iterator for the end of the parameter list.
 	inline ParseElementList::iterator paramsEnd() { return mParams.end(); }
+
+
+	/// Determines if the base element has a LUA call in its parameter list.
+	bool hasLuaCallParameters() const;
+
+	/// Checks to see if there is a nested constant matching the type mask within the parameter list.
+	/// @param types A mask of the types of elements to look for.
+	bool hasConstantParameters(unsigned int types) const;
 
 };
 
@@ -677,9 +702,10 @@ public:
 
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
-	virtual bool hasConstants(unsigned int types) const;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
 	inline virtual bool isDefinite() const				{ return ref() && ((Constant const*)ref())->isBoolean(); }
-	inline virtual bool hasLuaCalls() const					{ return false; }
+	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
+														{ return includeParams && hasLuaCallParameters(); }
 	inline virtual IPart determineQueryIPart() const 		{ return IPART_CUMULATIVE; }
 	virtual ParseElement* copy() const;
 
@@ -689,6 +715,7 @@ public:
 
 	/// Gets the domain of the constant ( or null )
 	inline Sort const* domain() const							{ return (ref()) ? ((Constant const*)ref())->domain() : NULL; }
+	inline bool isContribConstant() const						{ return ref() && ((Constant const*)ref())->isContribConstant(); }
 
 	/**
 	 * Destructor. Does not deallocate anything.
@@ -727,11 +754,10 @@ protected:
 	 * @param[out] out - The output stream to write the translation to.
 	 * preceeding @ if a symbol is understood as a lua function call.
 	 * @param context -  The formula context to be used for translation.
-	 * @param maximize - Whether to maximize the extent of the variable by bindign it with the domain rather than the constant.
 	 * Uses constant translating conventions for the base name.
 	 * @return A string containing the translated form of the element.
 	 */
-	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context, bool maximize = false) const;
+	virtual std::ostream& translateAsVariable(std::ostream& out, Context& context) const;
 
 };
 
@@ -756,10 +782,11 @@ public:
 
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
-	virtual bool hasConstants(unsigned int types) const;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
 	virtual bool isDefinite() const						{ return baseName() == "true" || baseName() == "false"; }
-	virtual bool hasLuaCalls() const						{ return ref() && ((Object const*)ref())->isLua(); }
-	inline virtual IPart determineQueryIPart() const 		{ return IPART_BASE; }
+	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
+														{ return (ref() && ((Object const*)ref())->isLua()) || (includeParams && hasLuaCallParameters()); }
+	inline virtual IPart determineQueryIPart() const 	{ return IPART_BASE; }
 	virtual ParseElement* copy() const;
 
 	virtual bool isNumeric() const;
@@ -791,11 +818,12 @@ public:
 	
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
-	virtual bool hasConstants(unsigned int types) const;
+	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
 	inline virtual bool isDefinite() const						{ return ref() && isConstantVariable() && ref()->isBoolean(); }
-	inline virtual bool hasLuaCalls() const							{ return false; }
-	inline virtual IPart determineQueryIPart() const 				{ return IPART_BASE; }
-	inline virtual ParseElement* copy() const						{ return new VariableLikeElement(baseName(), (Variable const*)ref(), parens()); }
+	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
+																{ return false; }
+	inline virtual IPart determineQueryIPart() const 			{ return IPART_BASE; }
+	inline virtual ParseElement* copy() const					{ return new VariableLikeElement(baseName(), (Variable const*)ref(), parens()); }
 
 	inline virtual bool isNumeric() const							{ return ref() && ref()->isNumeric(); }
 	inline virtual bool isBoolean() const							{ return ref() && ref()->isBoolean(); }

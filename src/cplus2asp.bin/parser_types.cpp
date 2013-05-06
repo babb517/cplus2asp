@@ -153,8 +153,9 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	case UOP_ABS: 	// Absolute value.
 
 		localContext = context.mkPos(Context::POS_ARITHEXPR);
-		out << translateOpType(opType());
+		out << translateOpType(opType()) << "(";
 		postOp()->translate(out, localContext);
+		out << ")";
 		break;
 
 	case UOP_EXOGENOUS: // Exogenous declaration.
@@ -180,8 +181,9 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 		break;
 	default:
 		// Unknown operator, just do a blind translation.
-		out << translateOpType(opType());
+		out << translateOpType(opType()) << "(";
 		postOp()->translate(out, context);
+		out << ")";
 		break;
 	}
 
@@ -189,18 +191,18 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	return out;
 }
 
-bool SimpleUnaryOperator::hasConstants(unsigned int types) const {
+bool SimpleUnaryOperator::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
 	if (postOp()) {
 		if ((types & MASK_RIGID))
 			return  opType() == UOP_EXOGENOUS
 						|| opType() == UOP_INERTIAL
 						|| opType() == UOP_RIGID
-						|| postOp()->hasConstants(types);
+						|| postOp()->hasConstants(types, includeParams, includeEq);
 		else
 			return  opType() != UOP_EXOGENOUS
 						&& opType() != UOP_INERTIAL
 						&& opType() != UOP_RIGID
-						&& postOp()->hasConstants(types);
+						&& postOp()->hasConstants(types, includeParams, includeEq);
 	} else return false;
 
 }
@@ -379,37 +381,36 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 		*/
 		case BOP_EQ:
 
-			if (preOp()->getType() == PELEM_CONSTLIKE) {
-				if (postOp()->isTrivial()) {
-					// special case, direct assignment to a constant...
-					// just translate the constant with the appropriate value.
-					localContext = context.mkPos(Context::POS_TERM);
-					postOp()->translate(tmp, localContext);
-					std::string tmpstr = tmp.str();
-					localContext = context.mkValue(tmpstr);
-					preOp()->translate(out, localContext);
-					break;
-				} else if (postOp()->getType() == PELEM_CONSTLIKE) {
+			if (isAtomicEq()) {
 
-					// special case, equality between two constants.
-					// c=d is translated to (exists x)(c(x) & d(x))
+				// special case, direct assignment to a constant...
+				// just translate the constant with the appropriate value.
+				localContext = context.mkPos(Context::POS_TERM);
+				postOp()->translate(tmp, localContext);
+				std::string tmpstr = tmp.str();
+				localContext = context.mkValue(tmpstr);
+				preOp()->translate(out, localContext);
+				break;
+			} else if (preOp()->getType() == PELEM_CONSTLIKE && postOp()->getType() == PELEM_CONSTLIKE) {
 
-					// Setup the new variable
-					std::string tmpvar = getNewVar();
+				// special case, equality between two constants.
+				// c=d is translated to (exists x)(c(x) & d(x))
 
-					Sort const* domain = (((ConstantLikeElement const*)preOp())->domain()) ?
-							((ConstantLikeElement const*)preOp())->domain()
-							: ((ConstantLikeElement const*)postOp())->domain();
+				// Setup the new variable
+				std::string tmpvar = getNewVar();
 
-					context.addFreeVariable(tmpvar, domain);
-					localContext = context.mkValue(tmpvar);
+				Sort const* domain = (((ConstantLikeElement const*)preOp())->domain()) ?
+						((ConstantLikeElement const*)preOp())->domain()
+						: ((ConstantLikeElement const*)postOp())->domain();
 
-					// Make sure the constants are equal.
-					preOp()->translate(out, localContext);
-					out << " & ";
-					postOp()->translate(out, localContext);
-					break;
-				}
+				context.addFreeVariable(tmpvar, domain);
+				localContext = context.mkValue(tmpvar);
+
+				// Make sure the constants are equal.
+				preOp()->translate(out, localContext);
+				out << " & ";
+				postOp()->translate(out, localContext);
+				break;
 			}
 			/* no break */
 		case BOP_DBL_EQ:
@@ -424,7 +425,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 		case BOP_LTHAN_EQ:
 		case BOP_GTHAN_EQ:
 			// arithmetic expressions...
-			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM || context.getPos() == Context::POS_LUA_TERM) {
+			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM || context.getPos() == Context::POS_MAXIMIZED_INTERNAL) {
 				// Already inside an arithmetic expression.
 				// pass all the variables up to the highest arith-expr level.
 				preOp()->translate(out, context);
@@ -498,10 +499,27 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 	return out;
 }
 
-bool SimpleBinaryOperator::hasConstants(unsigned int types) const {
+bool SimpleBinaryOperator::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
 	bool ret = false;
-	if (postOp())  ret = postOp()->hasConstants(types);
-	if (!ret && preOp()) ret = preOp()->hasConstants(types);
+
+	if (preOp()) {
+		ret = preOp()->hasConstants(types, includeParams, includeEq);
+
+		if (!ret) {
+
+			if (isAtomicEq()) {
+
+				// Atomic Equality
+				ret = includeEq && postOp() && postOp()->hasConstants(types, includeParams, includeEq);
+
+			} else {
+				// not atomic equality.
+				ret = postOp() && postOp()->hasConstants(types, includeParams, includeEq);
+			}
+		}
+	} else if (postOp()) {
+		ret = postOp() && postOp()->hasConstants(types, includeParams, includeEq);
+	}
 	return ret;
 }
 
@@ -515,8 +533,34 @@ bool SimpleBinaryOperator::isDefinite() const {
 		return preOp()->isDefinite() && postOp()->isDefinite();
 	} else if (opType() == BOP_EQ) {
 		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
-				&& !postOp()->hasConstants(MASK_NON_TRIVIAL);
+				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
 	} else return false;
+}
+
+
+
+bool SimpleBinaryOperator::hasLuaCalls(bool includeParams, bool includeEq) const { 
+	bool ret = false;
+	if (preOp()) {
+		ret = preOp()->hasLuaCalls(includeParams, includeEq);
+
+		if (postOp() && !ret) {
+
+			if (isAtomicEq()) {
+				
+				// This is equality within an atom.
+				ret = includeEq && postOp()->hasLuaCalls(includeParams, includeEq);
+			} else {
+				// Not atomic equality
+				ret = postOp()->hasLuaCalls(includeParams, includeEq);
+			}
+		}
+	}
+	else if (postOp()) {
+		ret = postOp()->hasLuaCalls(includeParams, includeEq);
+	}
+
+	return ret;
 }
 
 IPart SimpleBinaryOperator::determineQueryIPart() const {
@@ -743,8 +787,8 @@ std::ostream& BigQuantifiers::translate(std::ostream& out, Context& context) con
 }
 
 
-bool BigQuantifiers::hasConstants(unsigned int types) const {
-	return postOp() && postOp()->hasConstants(types);
+bool BigQuantifiers::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
+	return postOp() && postOp()->hasConstants(types, includeParams, includeEq);
 }
 
 // Returns an original string representation of the quantifiers and what's getting quantified.
@@ -846,13 +890,16 @@ bool BaseLikeElement::guessParamSorts(ConstSortList& outSorts) {
 
 
 // Translator helper method for params.
-std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context, bool internal, bool force) const
+std::ostream& BaseLikeElement::translateParams(std::ostream& out, Context& context, bool force) const
 {
 	Context localContext;
-	if (internal)
-		localContext = context.mkPos(Context::POS_INTERNAL);
-	else
+
+	if (context.getPos() != Context::POS_INTERNAL 
+			&& context.getPos() != Context::POS_TERM
+			&& context.getPos() != Context::POS_MAXIMIZED_INTERNAL)
 		localContext = context.mkPos(Context::POS_TERM);
+	else
+		localContext = context;
 
 	int i = 0;
 	if(arity() || force) {
@@ -887,6 +934,28 @@ std::ostream& BaseLikeElement::fullName(std::ostream& out) const
 	}
 	return out;
 }
+
+// Determines if the base element has a LUA call in its parameter list.
+bool BaseLikeElement::hasLuaCallParameters() const 
+{
+
+	for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++) {
+		if (*vIter && (*vIter)->hasLuaCalls()) return true;
+	}
+	return false;
+}
+
+// Checks to see if there is a nested constant matching the type mask within the parameter list.
+bool BaseLikeElement::hasConstantParameters(unsigned int types) const
+{
+
+	for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++) {
+		if (*vIter && (*vIter)->hasConstants(types, true)) return true;
+	}
+	return false;
+
+}
+
 
 // Destructor.
 BaseLikeElement::~BaseLikeElement()
@@ -929,18 +998,15 @@ std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context
 		break;
 	case Context::POS_TERM:
 	case Context::POS_ARITHEXPR:
+	case Context::POS_MAXIMIZED_INTERNAL:
 		translateAsVariable(out, context);
-		break;
-	case Context::POS_LUA_TERM:
-		// in LUA expression where the extent should be maximal.
-		translateAsVariable(out, context, true);
 		break;
 	}
 
 	return out;
 }
 
-bool ConstantLikeElement::hasConstants(unsigned int types) const {
+bool ConstantLikeElement::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
 	bool ret = false;
 	Constant::ConstantType type = (ref()) ? ((Constant const*)ref())->constType() : Constant::CONST_UNKNOWN;
 
@@ -950,6 +1016,23 @@ bool ConstantLikeElement::hasConstants(unsigned int types) const {
 	if (types & MASK_RIGID)  		ret |= type == Constant::CONST_RIGID || type == Constant::CONST_UNKNOWN;
 	if (types & MASK_STATIC_AB)		ret |= type == Constant::CONST_STATICAB;
 	if (types & MASK_DYNAMIC_AB)	ret |= type == Constant::CONST_DYNAMICAB;
+
+	if (!ret && includeParams) {
+		// check the parameters for constants.
+		// If this is a contribution constant we should skip the first layer.
+		if (isContribConstant()) {
+			for(ParseElementList::const_iterator vIter = paramsBegin(); vIter != paramsEnd(); vIter++) {
+				if (((ConstantLikeElement const*)(*vIter))->hasConstantParameters(types)) {
+					ret = true;
+					break;
+				}
+			}
+		} else {
+			ret = hasConstantParameters(types);
+		}
+	}
+
+
 	return ret;
 }
 
@@ -960,14 +1043,23 @@ std::ostream& ConstantLikeElement::translateAsConstant(std::ostream& out, Contex
 	out <<	translateBeforeParen()
 				<< translatePrefix()
 				<< (ref() ? ref()->baseTransName() : Translator::sanitizeConstantName(baseName()));
-	translateParams(out, context, ref() && ((Constant const*)ref())->isContribConstant());
+
+	Context localContext;
+
+	if ( isContribConstant()) {
+		localContext = context.mkPos(Context::POS_INTERNAL);
+	} else {
+		localContext = context;
+	}
+
+	translateParams(out, localContext);
 	out << translatePostfix(context)
 				<< translateAfterParen();
 	return out;
 }
 
 // Translator helper
-std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context, bool maximize) const {
+std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Context& context) const {
 	Context localContext;
 	std::ostringstream tmp;
 	// We are in a term or arithmetic expression, translate it as a temporary variable.
@@ -978,7 +1070,7 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 		context.addFreeVariable(var, domain());
 
 		// add the appropriate extra clause
-		if (maximize) {
+		if (context.getPos() != Context::POS_MAXIMIZED_INTERNAL) {
 			localContext = context.mkPos(Context::POS_BODY).mkValue(var);
 			translate(tmp, localContext);
 			context.addExtraClause(tmp.str());
@@ -987,7 +1079,8 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 		}
 
 		// return the variable name
-		out << translateBeforeParen() + var + translateAfterParen();
+//		out << translateBeforeParen() + var + translateAfterParen();
+		out << var;
 
 	} else if (!ref()) {
 		ltsyystartParseError();
@@ -1009,7 +1102,7 @@ std::ostream& ConstantLikeElement::translateAsVariable(std::ostream& out, Contex
 }
 
 /*******************************************************************/
-/* ConstantLikeElement */
+/* ObjectLikeElement */
 /*******************************************************************/
 
 ParseElement* ObjectLikeElement::copy() const {
@@ -1025,11 +1118,12 @@ ParseElement* ObjectLikeElement::copy() const {
 // Translator method.
 std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context) const
 {
-	out << translateBeforeParen();
+
+//	out << translateBeforeParen();
 
 	if(ref())
 	{	// Use the canonical translated object name if it's available.
-		if(((Object const*)ref())->isLua()) out << "#spatom{@";//need to make f2lp pass this through to ASP
+		if(((Object const*)ref())->isLua()) out << "#spatom{";//need to make f2lp pass this through to ASP
 		out << ref()->baseTransName();
 	}
 	else
@@ -1037,23 +1131,25 @@ std::ostream& ObjectLikeElement::translate(std::ostream& out, Context& context) 
 		out << Translator::sanitizeObjectName(baseName());
 	}
 
-	translateParams(out, context, false, ((Object const*)ref())->isLua());
-	out << translateAfterParen();
+
+	translateParams(out, context, ((Object const*)ref())->isLua());
+//	out << translateAfterParen();
 
 
 	if(((Object const*)ref())->isLua()) {
+			out << "}";
 			if (context.getPos() != Context::POS_ARITHEXPR
 					&& context.getPos() != Context::POS_TERM
-					&& context.getPos() != Context::POS_LUA_TERM)
+					&& context.getPos() != Context::POS_MAXIMIZED_INTERNAL)
 				out << " == 1";
-			out << "}";
 	}
 
 	return out;
 }
 
-bool ObjectLikeElement::hasConstants(unsigned int types) const {
-	return (types & MASK_TRUE_FALSE) && arity() == 0 && (baseName() == "true" || baseName() == "false");
+bool ObjectLikeElement::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
+	return ((types & MASK_TRUE_FALSE) && arity() == 0 && (baseName() == "true" || baseName() == "false"))
+		||  (includeParams && hasConstantParameters(types));
 }
 
 // Determines if the element is a valid arithmetic expression.
@@ -1087,7 +1183,7 @@ std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context
 	case Context::POS_TERM:
 	case Context::POS_ARITHEXPR:
 	case Context::POS_INTERNAL:
-	case Context::POS_LUA_TERM:
+	case Context::POS_MAXIMIZED_INTERNAL:
 		// Occurs as a term or within an arithmetic expression, translate as a variable.
 		translateAsVariable(out, context);
 		break;
@@ -1096,7 +1192,7 @@ std::ostream& VariableLikeElement::translate(std::ostream& out, Context& context
 	return out;
 }
 
-bool VariableLikeElement::hasConstants(unsigned int types) const {
+bool VariableLikeElement::hasConstants(unsigned int types, bool includeParams, bool includeEq) const {
 	return false;
 }
 

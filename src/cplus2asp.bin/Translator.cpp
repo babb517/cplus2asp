@@ -388,7 +388,7 @@ Object* Translator::getOrCreateObject(std::string const& symName, Object::Object
 			delete ret;
 		}
 	} else if (ret->getElemType() != Element::ELEM_OBJ) {
-		error("Detected conflicting definition of identifier \"" + symName + std::string("/0")+"\".", true);
+		error("Detected conflicting definition of identifier \"" + symName + "/" + utils::to_string(arity)+"\".", true);
 	}
 
 
@@ -625,7 +625,7 @@ void Translator::handleLUACall(ObjectLikeElement const* lua_elem) {
 	StmtList stmts;
 	Sort *sortObj = getSort("computed");
 	ClauseList extraClauses, freeVars;
-	Context c(Context::POS_TERM, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
+	Context c(Context::POS_MAXIMIZED_INTERNAL, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
 	std::stringstream stmtBuilder;					// Used to build each individual statement required for this declaration.
 
 	stmtBuilder << sortObj->fullTransName() << "(";
@@ -938,14 +938,17 @@ void Translator::translateCausalLaw(
 	}
 
 	// step 2: Ensure that LUA calls only occur in the law's where clause (if it exists).
-	if ( head->hasLuaCalls()
-			|| (unlessBody && unlessBody->hasLuaCalls())
-			|| (whenBody && whenBody->hasLuaCalls())
-			|| (followingBody && followingBody->hasLuaCalls()))
+	if ( head->hasLuaCalls(false,false)
+			|| (unlessBody && unlessBody->hasLuaCalls(false,false))
+			|| (ifBody && ifBody->hasLuaCalls(false,false))
+			|| (afterBody && afterBody->hasLuaCalls(false,false))
+			|| (tmpAssuming && tmpAssuming->hasLuaCalls(false,false))
+			|| (whenBody && whenBody->hasLuaCalls(false,false))
+			|| (followingBody && followingBody->hasLuaCalls(false,false)))
 	{
 		// They have at least one call to lua outside the where clause.
 		// Throw an error.
-		error("External function calls are only permitted in the if, after, and where clauses of a causal law.\n");
+		error("External function calls are only permitted in the where clauses of a causal law.\n");
 		malformed = true;
 	}
 
@@ -966,6 +969,15 @@ void Translator::translateCausalLaw(
 			error("Abnormality constants cannot occur outside of 'when' and 'following' clauses of a law.\n");
 		malformed = true;
 	}
+
+
+	// step 3.5: Ensure that the where clause doesn't contain anything special.
+	if ( whereBody && whereBody->hasConstants(ParseElement::MASK_NON_TRIVIAL)) {
+		error("The 'where' clause of a law must not contain constants.\n");
+		malformed = true;
+	}
+
+
 
 	// ensure that the when and following bodies have _only_ abnormalities.
 	if ((whenBody && ( whenBody->hasConstants(ParseElement::MASK_ACTION | ParseElement::MASK_FLUENT)))
@@ -1187,7 +1199,7 @@ std::ostream& Translator::makeCausalTranslation(
 	/// @todo If head and ifBody are: not NULL, both const-like or both UOP_NOT(const-like), make a choice rule out of head and translate that.
 
 	localContext = Context(Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true, &extraStmts);
-	bindAndTranslate(output, head, localContext, true);
+	bindAndTranslate(output, head, localContext, true, true);
 
 	// The body, if there is one.
 	if(ifBody
@@ -1201,11 +1213,22 @@ std::ostream& Translator::makeCausalTranslation(
 	{
 		output << " <- ";
 
+		// head clauses should be placed in the scope of double negation.
+		if (localClauses.size()) {
+			bodyContent = true;
+			output << "not not (";
+			outputClauses(output, localClauses, false);
+			output << ")";
+			localClauses.clear();
+
+		}
+
+
 		// "if" part of body, if there is one.
 		if(ifBody)
 		{
-			// we have something
-			bodyContent = true;
+			if(bodyContent)	output << " & ";
+			else bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);

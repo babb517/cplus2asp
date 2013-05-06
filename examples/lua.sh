@@ -27,6 +27,51 @@ cplus2asp lua/simple-lua.cp query=states
 # Prepare   : 0.000
 # Prepro.   : 0.000
 
+# --------------------------- Simple2 ---------------------------
+echo "% --------------------------- Simple2 ---------------------------" 
+echo "$ cplus2asp lua/simple-lua-2.cp query=states 0" 
+cplus2asp lua/simple-lua-2.cp query=states 0
+
+# % Pragma: Running Query 'System states'.
+# % Pragma: Minimum Step = '0', Maximum Step = '0'.
+# % Pragma: Searching for all solutions.
+# Solution: 1
+#         0:  even=1 n=2
+# 
+# Solution: 2
+#         0:  even=1 n=4
+# 
+# Solution: 3
+#         0:  even=1 n=6
+# 
+# Solution: 4
+#         0:  even=1 n=8
+# 
+# Solution: 5
+#         0:  even=1 n=10
+# 
+# Solution: 6
+#         0:  even=0 n=1
+# 
+# Solution: 7
+#         0:  even=0 n=3
+# 
+# Solution: 8
+#         0:  even=0 n=5
+# 
+# Solution: 9
+#         0:  even=0 n=7
+# 
+# Solution: 10
+#         0:  even=0 n=9
+# 
+# SATISFIABLE
+# Models      : 10
+# Time        : 0.000
+# Prepare   : 0.000
+# Prepro.   : 0.000
+ 
+ 
 # --------------------------- Random ---------------------------
 echo "% --------------------------- Random ---------------------------" 
 echo "$ cplus2asp lua/random.cp query=states" 
