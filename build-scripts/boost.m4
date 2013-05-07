@@ -956,22 +956,21 @@ CPPFLAGS=$boost_threads_save_CPPFLAGS
 # Look for Boost.Timer.  For the documentation of PREFERRED-RT-OPT,
 # see the documentation of BOOST_FIND_LIB above.
 BOOST_DEFUN([Timer],
-[AC_REQUIRE([BOOST_SYSTEM])dnl
+[BOOST_SYSTEM([$1])
 boost_timer_save_LIBS=$LIBS
 boost_timer_save_LDFLAGS=$LDFLAGS
 m4_pattern_allow([^BOOST_SYSTEM_(LIBS|LDFLAGS)$])dnl
 LIBS="$LIBS $BOOST_SYSTEM_LIBS"
 LDFLAGS="$LDFLAGS $BOOST_SYSTEM_LDFLAGS"
-if test $enable_static_boost = yes; then
-  AC_SUBST([BOOST_TIMER_LIBS], ["$BOOST_TIMER_LIBS $BOOST_SYSTEM_LIBS"])
-fi
 BOOST_FIND_LIB([timer], [$1],
                [boost/timer/timer.hpp],
                [boost::timer::cpu_timer t;])
+if test $enable_static_boost = yes; then
+  AC_SUBST([BOOST_TIMER_LIBS], ["$BOOST_TIMER_LIBS $BOOST_SYSTEM_LIBS"])
+fi
 LIBS=$boost_timer_save_LIBS
 LDFLAGS=$boost_timer_save_LDFLAGS
 ])# BOOST_TIMER
-
 
 # BOOST_TOKENIZER()
 # -----------------

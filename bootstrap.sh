@@ -3,6 +3,11 @@
 SCRIPT_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CALL_PATH="$PWD"
 
+# NOTE: To link statically: --enable-static
+# The boost libraries still appear to want to link dynamically. 
+# The best way I've found to ensure static linking is to move all 
+# the libboost_*.so* files out of sight of the linker temporarily.
+
 
 # Make sure as2transition is there or try to get it.
 if [ ! -e "$SCRIPT_PATH/externals/as2transition/bootstrap.sh" ]

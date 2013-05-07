@@ -50,30 +50,59 @@ AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
 
 LT_INIT
 
+
+# Allow static building
+AC_ARG_ENABLE(static,
+AS_HELP_STRING([--enable-static],
+               [enable static build, default: no]),
+[case "${enableval}" in
+             yes) static=true; enable_static_boost=yes;;
+             no)  static=false ;;
+             *)   AC_MSG_ERROR([bad value ${enableval} for --enable-static]) ;;
+esac],
+[static=false])
+
 # BOOST Libraries
+
+if [ test "x$static" == x"true" ]
+then
+	rt_type="s"
+else
+	rt_type=""
+fi
+
+ 
 BOOST_STATIC()
 BOOST_REQUIRE([1.44])
-BOOST_ASIO()							# Required by acplusbridge
-BOOST_BIND()							# Required by acplusbridge
+BOOST_ASIO([$rt_type])							# Required by acplusbridge
+BOOST_BIND([$rt_type])							# Required by acplusbridge
 
-BOOST_FIND_HEADER(
-	["boost/timer/timer.hpp"], 
-	[
-		AC_MSG_WARN(["Could not locate the boost timer library. Some benchmarking functions will be disabled."])
-		AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "y" ])
-	],
-	[
-		BOOST_TIMER()
-		AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "x"])
-	])
-#BOOST_TIMER()							# Required by acplusbridge
+BOOST_STRING_ALGO([$rt_type])						# Required by cplus2asp
+BOOST_FILESYSTEM([$rt_type])						# Required by cplus2asp
+BOOST_FUNCTION([$rt_type])						# Required by acplusbridge
+BOOST_IOSTREAMS([$rt_type])						# Required by cplus2asp						
+BOOST_THREADS([$rt_type])						# Required by acplusbridge
 
 
-BOOST_STRING_ALGO()						# Required by cplus2asp
-BOOST_FILESYSTEM()						# Required by cplus2asp
-BOOST_FUNCTION()						# Required by acplusbridge
-BOOST_IOSTREAMS([])						# Required by cplus2asp						
-BOOST_THREADS([])						# Required by acplusbridge
+# Static linking appears to be problematic with the boost timers.
+if [ test "x$static" != x"true" ]
+then
+
+	BOOST_FIND_HEADER(
+		["boost/timer/timer.hpp"], 
+		[
+			AC_MSG_WARN(["Could not locate the boost timer library. Some benchmarking functions will be disabled."])
+			AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "y" ])
+		],
+		[
+			BOOST_TIMER([$rt_type])
+			AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "x"])
+		])
+else
+	AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "y" ])
+fi
+
+
 
 
 AC_PATH_PROG([ICLINGO],[iclingo],[false])
