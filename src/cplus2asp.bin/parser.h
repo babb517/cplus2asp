@@ -1,10 +1,8 @@
+/* A Bison parser, made by GNU Bison 2.5.  */
 
-/* A Bison parser, made by GNU Bison 2.4.1.  */
-
-/* Skeleton interface for Bison's Yacc-like parsers in C
+/* Bison interface for Yacc-like parsers in C
    
-      Copyright (C) 1984, 1989, 1990, 2000, 2001, 2002, 2003, 2004, 2005, 2006
-   Free Software Foundation, Inc.
+      Copyright (C) 1984, 1989-1990, 2000-2011 Free Software Foundation, Inc.
    
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -34,7 +32,7 @@
 
 /* "%code requires" blocks.  */
 
-/* Line 1676 of yacc.c  */
+/* Line 2068 of yacc.c  */
 #line 32 "parser.yy"
 
 #include <iostream>
@@ -69,8 +67,8 @@
 
 
 
-/* Line 1676 of yacc.c  */
-#line 74 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 72 "parser.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -287,7 +285,7 @@
 typedef union YYSTYPE
 {
 
-/* Line 1676 of yacc.c  */
+/* Line 2068 of yacc.c  */
 #line 64 "parser.yy"
 
 	/* Types returned by the lexer. */
@@ -323,8 +321,8 @@ typedef union YYSTYPE
 
 
 
-/* Line 1676 of yacc.c  */
-#line 328 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 326 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -350,7 +348,7 @@ extern YYLTYPE ltsyylloc;
 
 /* "%code provides" blocks.  */
 
-/* Line 1676 of yacc.c  */
+/* Line 2068 of yacc.c  */
 #line 97 "parser.yy"
 
 /**
@@ -514,5 +512,5 @@ YYLTYPE ltsyyGetLoc();
 
 
 
-/* Line 1676 of yacc.c  */
-#line 519 "parser.h"
+/* Line 2068 of yacc.c  */
+#line 517 "parser.h"
