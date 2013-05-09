@@ -62,6 +62,7 @@ AS_HELP_STRING([--enable-static],
 esac],
 [static=false])
 
+
 # BOOST Libraries
 
 if [ test "x$static" == x"true" ]
@@ -102,6 +103,9 @@ else
 	AM_CONDITIONAL([HAVE_BOOST_TIMER],[test "x" == "y" ])
 fi
 
+
+# Other libraries
+AC_CHECK_LIB(rt, clock_gettime,[],[AC_MSG_ERROR([Could not find librt, which is required for compilation. Please install librt and try again.])])
 
 
 
