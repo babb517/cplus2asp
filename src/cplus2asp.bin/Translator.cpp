@@ -850,7 +850,6 @@ void Translator::translateCausalLaw(
 	// The initialized values default to "static law" (i.e., fluents only, no "after").
 	RuleType type = RULE_STATIC;	// The type of the rule we're currently working with.
 
-	bool afterNotNot = false;		// Whether the after body should be encased in double negation.
 	bool assumingNotNot = false;	// Whether the assuming body should be encased in double negation.
 	bool malformed = false; 		// true if one or more problems with the law have been detected.
 
@@ -988,10 +987,42 @@ void Translator::translateCausalLaw(
 		malformed = true;
 	}
 
+//#define VERBOSE_DEBUG
+
+#ifdef VERBOSE_DEBUG
+	std::cout << "# Head: ";
+	if (head) head->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tAssuming: ";
+	if (tmpAssuming) tmpAssuming->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tIf: ";
+	if (ifBody) ifBody->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tAfter: ";
+	if (afterBody) afterBody->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tUnless: ";
+	if (unlessBody) unlessBody->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tWhen: ";
+	if (whenBody) whenBody->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tFollowing: ";
+	if (followingBody) followingBody->fullName(std::cout);
+	else std::cout << "NULL";
+	std::cout << "\n#\tWhere: ";
+	if (whereBody) whereBody->fullName(std::cout);
+	else std::cout << "NULL";
+#endif
+
+
 	// Step 4a: Determine if the law is a 'rigid' law, which contains a rigid fluent in the head (Alternatively, if it contains 'exogenous' or 'inertial').
 	if (head->hasConstants(ParseElement::MASK_RIGID)) {
 		type = RULE_RIGID;
-
+#ifdef VERBOSE_DEBUG
+		std::cout << "# RIGID LAW\n";
+#endif
 		// Verification: We don't allow any non-rigid fluents in the rule.
 		if (head->hasConstants(ParseElement::MASK_NON_RIGID)
 				|| (ifBody && ifBody->hasConstants(ParseElement::MASK_NON_RIGID))
@@ -1018,6 +1049,9 @@ void Translator::translateCausalLaw(
 	{
 		type = RULE_STATIC;
 		baseTimeStamp = staticTimeStamp;
+#ifdef VERBOSE_DEBUG
+		std::cout << "# STATIC LAW\n";
+#endif
 	}
 
 	// fluent dynamic laws...
@@ -1028,6 +1062,9 @@ void Translator::translateCausalLaw(
 	{
 		type = RULE_FLUENTDYNAMIC;
 		baseTimeStamp = dynamicTimeStamp;
+#ifdef VERBOSE_DEBUG
+		std::cout << "# FLUENT DYNAMIC LAW\n";
+#endif
 	}
 	// action dynamic laws...
 	else if (head->hasConstants(ParseElement::MASK_ACTION) && !head->hasConstants(ParseElement::MASK_FLUENT)
@@ -1035,6 +1072,9 @@ void Translator::translateCausalLaw(
 	{
 		type = RULE_ACTIONDYNAMIC;
 		baseTimeStamp = dynamicTimeStamp + "-1";
+#ifdef VERBOSE_DEBUG
+		std::cout << "# ACTION DYNAMIC LAW\n";
+#endif
 	}
 	// Malformed laws...
 	else
@@ -1044,13 +1084,11 @@ void Translator::translateCausalLaw(
 	}
 
 	// Now check if we actually need "not not (...)" encasing the law's body (if it has one).
-	if (!head->isTrivial()) {
-		if (type == RULE_ACTIONDYNAMIC && afterBody && !afterBody->isTrivial())
-			afterNotNot = true;
-		else {
-			if	((type == RULE_FLUENTDYNAMIC || type == RULE_STATIC || type == RULE_RIGID))
-				assumingNotNot = true;
-		}
+	if (!head->isTrivial() && tmpAssuming && !tmpAssuming->isTrivial()) {
+			assumingNotNot = true;
+#ifdef VERBOSE_DEBUG
+			std::cout << "# ADDING NOT NOT...";
+#endif
 	}
 
 
@@ -1119,7 +1157,6 @@ void Translator::translateCausalLaw(
 			stmts,
 			IPART_BASE,
 			assumingNotNot,
-			afterNotNot,
 			"0",
 			head,
 			ifBody,
@@ -1141,7 +1178,6 @@ void Translator::translateCausalLaw(
 			stmts,
 			IPART_CUMULATIVE,
 			assumingNotNot,
-			afterNotNot,
 			baseTimeStamp,
 			head,
 			ifBody,
@@ -1175,7 +1211,6 @@ std::ostream& Translator::makeCausalTranslation(
 	StmtList& extraStmts,
 	IPart ipart,
 	bool assumingNotNot,
-	bool afterNotNot,
 	std::string const& baseTimeStamp,
 	ParseElement* head,
 	ParseElement* ifBody,
@@ -1284,16 +1319,16 @@ std::ostream& Translator::makeCausalTranslation(
 			else bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
-			if(afterNotNot) {
-				output << "not not (";
-				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false, &extraStmts);
-				bindAndTranslate(output, afterBody, localContext, false, true);
-				output << ")";
-			}
-			else {
+//			if(afterNotNot) {
+//				output << "not not (";
+//				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, NULL, NULL, true, false, &extraStmts);
+//				bindAndTranslate(output, afterBody, localContext, false, true);
+//				output << ")";
+//			}
+//			else {
 				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 				afterBody->translate(output, localContext);
-			}
+//			}
 
 		}
 		
