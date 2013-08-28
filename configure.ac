@@ -71,8 +71,8 @@ esac],
 AC_ARG_ENABLE([relpath],
   AC_HELP_STRING([--enable-relpath], [Data and libraries are searched relative to the executable]),
   [want_relative=yes], [want_relative=no])
-if test "$want_relative" = yes; then
-fi
+# if [ test "$want_relative" == "yes" ]; then
+# fi
 
 # BOOST Libraries
 
@@ -125,22 +125,22 @@ AC_PATH_PROG([OCLINGO],[oclingo],[false])
 AC_PATH_PROG([CLINGO], [clingo], [false])
 AC_PATH_PROG([F2LP],   [f2lp], 	 [false])
 
-if test x"$ICLINGO" == x"false"
+if [ test x"$ICLINGO" == x"false" ]
 then
 	AC_MSG_WARN([Could not find iclingo which is required for the normal operation of cplus2asp. Please install iclingo from http://potassco.sourceforge.net before continuing.])
 fi
 
-if test x"$OCLINGO" == x"false"
+if [ test x"$OCLINGO" == x"false" ]
 then
 	AC_MSG_WARN([Could not find oclingo which is required for using the reactive features of cplus2asp. Please install oclingo from http://potassco.sourceforge.net before attempting to use these features.])
 fi
 
-if test x"$CLINGO" == x"false"
+if [ test x"$CLINGO" == x"false" ]
 then
 	AC_MSG_WARN([Could not find clingo which is required for the static running modes of cplus2asp. Please install clingo from http://potassco.sourceforge.net before attempting to use these features.])
 fi
 
-if test x"$F2LP" == x"false"
+if [ test x"$F2LP" == x"false" ]
 then
 	AC_MSG_WARN([Could not find f2lp which is required for the normal operation of cplus2asp. Please install f2lp from http://reasoning.eas.asu.edu/f2lp before continuing.])
 fi
