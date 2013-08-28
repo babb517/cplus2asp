@@ -1,0 +1,220 @@
+$ ./coala-static.sh ferryman-15-4-benchmark.alc ferryman-15-4-benchmark.stat 27
+UNSATISFIABLE
+
+Models      : 0
+Time        : 0.200
+  Prepare   : 0.160
+  Prepro.   : 0.040
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 0.450
+  Prepare   : 0.330
+  Prepro.   : 0.120
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 0.700
+  Prepare   : 0.530
+  Prepro.   : 0.170
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 0.960
+  Prepare   : 0.720
+  Prepro.   : 0.240
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 1.230
+  Prepare   : 0.930
+  Prepro.   : 0.300
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 1.500
+  Prepare   : 1.140
+  Prepro.   : 0.360
+  Solving   : 0.000
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 1.780
+  Prepare   : 1.350
+  Prepro.   : 0.420
+  Solving   : 0.010
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 2.090
+  Prepare   : 1.550
+  Prepro.   : 0.490
+  Solving   : 0.050
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 2.420
+  Prepare   : 1.770
+  Prepro.   : 0.550
+  Solving   : 0.100
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 2.810
+  Prepare   : 2.000
+  Prepro.   : 0.610
+  Solving   : 0.200
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 3.160
+  Prepare   : 2.230
+  Prepro.   : 0.680
+  Solving   : 0.250
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 4.080
+  Prepare   : 2.470
+  Prepro.   : 0.750
+  Solving   : 0.860
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 4.130
+  Prepare   : 2.690
+  Prepro.   : 0.800
+  Solving   : 0.640
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 4.510
+  Prepare   : 2.900
+  Prepro.   : 0.870
+  Solving   : 0.740
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 5.370
+  Prepare   : 3.150
+  Prepro.   : 1.060
+  Solving   : 1.160
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 33.700
+  Prepare   : 30.350
+  Prepro.   : 1.090
+  Solving   : 2.260
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 36.310
+  Prepare   : 32.080
+  Prepro.   : 1.210
+  Solving   : 3.020
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 41.800
+  Prepare   : 37.660
+  Prepro.   : 1.280
+  Solving   : 2.860
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 50.640
+  Prepare   : 42.470
+  Prepro.   : 1.370
+  Solving   : 6.800
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 56.370
+  Prepare   : 48.140
+  Prepro.   : 1.440
+  Solving   : 6.790
+
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 71.810
+  Prepare   : 54.370
+  Prepro.   : 1.530
+  Solving   : 15.910
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 73.700
+  Prepare   : 61.200
+  Prepro.   : 1.600
+  Solving   : 10.900
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 78.290
+  Prepare   : 69.470
+  Prepro.   : 1.690
+  Solving   : 7.130
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 108.370
+  Prepare   : 78.820
+  Prepro.   : 1.780
+  Solving   : 27.770
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 109.560
+  Prepare   : 86.330
+  Prepro.   : 1.880
+  Solving   : 21.350
+
+UNSATISFIABLE
+
+Models      : 0
+Time        : 124.970
+  Prepare   : 96.600
+  Prepro.   : 1.960
+  Solving   : 26.410
+
+Answer: 1
+action_cross(4,0,4) action_cross(3,0,24) action_cross(2,2,22) action_cross(2,2,20) action_cross(2,2,18) action_cross(2,2,16) action_cross(2,2,14) action_cross(2,2,12) action_cross(2,2,10) action_cross(2,2,8) action_cross(2,2,6) action_cross(1,1,23) action_cross(1,1,21) action_cross(1,1,19) action_cross(1,1,17) action_cross(1,1,15) action_cross(1,1,13) action_cross(1,1,11) action_cross(1,1,9) action_cross(1,1,7) action_cross(1,1,5) action_cross(0,4,26) action_cross(0,3,2) action_cross(0,2,3) action_cross(0,1,25) action_cross(0,1,1)
+SATISFIABLE
+
+Models      : 1+
+Time        : 141.400
+  Prepare   : 105.400
+  Prepro.   : 2.030
+  Solving   : 33.970
+

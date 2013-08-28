@@ -8,7 +8,7 @@
 	type.
 
 :- macros
-	NUM -> 10;
+	NUM -> 30;
 	CAPACITY -> 4.
 
 :- objects
