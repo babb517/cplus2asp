@@ -51,21 +51,32 @@ AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
 LT_INIT
 
 
-# Allow static building
-AC_ARG_ENABLE(static,
-AS_HELP_STRING([--enable-static],
-               [enable static build, default: no]),
+# Allow portable building
+AC_ARG_ENABLE(portable,
+AS_HELP_STRING([--enable-portable],
+               [enable portable build, default: no]),
 [case "${enableval}" in
-             yes) static=true; enable_static_boost=yes;;
-             no)  static=false ;;
-             *)   AC_MSG_ERROR([bad value ${enableval} for --enable-static]) ;;
+             yes) \
+				portable=true; \
+				enable_static_boost=yes; \
+  				LDFLAGS="-Wl,-rpath -Wl,\\\$\$ORIGIN/lib $LDFLAGS"; \
+				CFLAGS="$CFLAGS -DUSE_RELATIVE_PATHS";;
+             no)  portable=false ;;
+             *)   AC_MSG_ERROR([bad value ${enableval} for --enable-portable]) ;;
 esac],
-[static=false])
+[portable=false])
 
+
+
+AC_ARG_ENABLE([relpath],
+  AC_HELP_STRING([--enable-relpath], [Data and libraries are searched relative to the executable]),
+  [want_relative=yes], [want_relative=no])
+if test "$want_relative" = yes; then
+fi
 
 # BOOST Libraries
 
-if [ test "x$static" == x"true" ]
+if [ test "x$portable" == x"true" ]
 then
 	rt_type="s"
 else
@@ -86,7 +97,7 @@ BOOST_THREADS([$rt_type])						# Required by acplusbridge
 
 
 # Static linking appears to be problematic with the boost timers.
-if [ test "x$static" != x"true" ]
+if [ test "x$portable" != x"true" ]
 then
 
 	BOOST_FIND_HEADER(
