@@ -138,10 +138,11 @@ public:
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const = 0;
 	
 	/**
-	 * Determines if the element contains a single atom (or a unary expression w/ a single atom), which would be suitable for the head of a rule.
-	 * @return True if the element contains a single atom suitable for the head of a rule.
+	 * Determines if the element contains a single atom, a unary expression w/ a single atom, or a conjunction thereof.
+	 * @param allowComparison Whether to allow comparison operators in the formula.
+	 * @return True if the element is a definite formula.
 	 */
-	virtual bool isDefinite() const = 0;
+	virtual bool isDefinite(bool allowComparison = false) const = 0;
 
 	/**
 	 * Determines if the element contains no (real) constants. (i.e. only "true" and/or "false").
@@ -270,7 +271,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite() const;
+	virtual bool isDefinite(bool allowComparison) const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 
 																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
@@ -366,7 +367,7 @@ public:
 	// inherted stuffs
 	inline virtual std::ostream& translate(std::ostream& out, Context& context) const { return translate(out, context, opType()); }
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite() const;
+	virtual bool isDefinite(bool allowComparison) const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const; 
 	virtual IPart determineQueryIPart() const;
@@ -467,7 +468,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite() const						{ return false; }
+	inline virtual bool isDefinite(bool allowComparison) const			{ return false; }
 	inline virtual bool isArithExpr() const						{ return false; }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 	
 																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
@@ -537,7 +538,7 @@ public:
 																{ return mWrapped->translate(out, context, opType(), mForceParens); }
 	inline virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const
 																{ return mWrapped->hasConstants(types, includeParams); }
-	inline virtual bool isDefinite() const						{ return mWrapped->isDefinite(); }
+	inline virtual bool isDefinite(bool allowComparison) const			{ return mWrapped->isDefinite(allowComparison); }
 	inline virtual bool isArithExpr() const						{ return mWrapped->isArithExpr(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 																{ return mWrapped->hasLuaCalls(includeParams, includeEq); }
@@ -597,7 +598,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const = 0;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const = 0;
-	virtual bool isDefinite() const = 0;
+	virtual bool isDefinite(bool allowComparison) const = 0;
 	inline virtual bool isArithExpr() const 								{ return isNumeric(); }
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const = 0;
 	virtual IPart determineQueryIPart() const = 0;
@@ -703,7 +704,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite() const				{ return ref() && ((Constant const*)ref())->isBoolean(); }
+	inline virtual bool isDefinite(bool allowComparison) const		{ return ref() && ((Constant const*)ref())->isBoolean(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 														{ return includeParams && hasLuaCallParameters(); }
 	inline virtual IPart determineQueryIPart() const 		{ return IPART_CUMULATIVE; }
@@ -783,7 +784,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite() const						{ return baseName() == "true" || baseName() == "false"; }
+	virtual bool isDefinite(bool allowComparison) const						{ return baseName() == "true" || baseName() == "false"; }
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 														{ return (ref() && ((Object const*)ref())->isLua()) || (includeParams && hasLuaCallParameters()); }
 	inline virtual IPart determineQueryIPart() const 	{ return IPART_BASE; }
@@ -819,7 +820,7 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite() const						{ return ref() && isConstantVariable() && ref()->isBoolean(); }
+	inline virtual bool isDefinite(bool allowComparison) const			{ return ref() && isConstantVariable() && ref()->isBoolean(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 																{ return false; }
 	inline virtual IPart determineQueryIPart() const 			{ return IPART_BASE; }

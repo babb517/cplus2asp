@@ -209,7 +209,7 @@ bool SimpleUnaryOperator::hasConstants(unsigned int types, bool includeParams, b
 
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleUnaryOperator::isDefinite() const
+bool SimpleUnaryOperator::isDefinite(bool allowComparison) const
 {
 	// Two cases:
 	// the expression is '-p' or 'not p', as this is shorthand for p=false.
@@ -524,16 +524,25 @@ bool SimpleBinaryOperator::hasConstants(unsigned int types, bool includeParams, 
 }
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleBinaryOperator::isDefinite() const {
+bool SimpleBinaryOperator::isDefinite(bool allowComparison) const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
 	// OR if it's a conjunction of single atoms.
-	if (!preOp() && postOp()) return postOp()->isDefinite();
-	else if (!postOp() && preOp()) return preOp()->isDefinite();
+	if (!preOp() && postOp()) return postOp()->isDefinite(allowComparison);
+	else if (!postOp() && preOp()) return preOp()->isDefinite(allowComparison);
 	else if (opType() == BOP_AND) {
-		return preOp()->isDefinite() && postOp()->isDefinite();
+		return preOp()->isDefinite(allowComparison) && postOp()->isDefinite(allowComparison);
 	} else if (opType() == BOP_EQ) {
 		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
 				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
+	} else if (allowComparison 
+			&& ( opType() == BOP_DBL_EQ || opType() == BOP_NEQ || opType() == BOP_LTHAN 
+				|| opType() == BOP_GTHAN || opType() == BOP_LTHAN_EQ || opType() == BOP_GTHAN_EQ)) {
+
+		// Comparison-like operator. Make sure that we aren't comparing two constants.
+		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
+				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true)
+			|| (!preOp()->hasConstants(MASK_NON_TRIVIAL, false, true) 
+				&& postOp()->getType() == ParseElement::PELEM_CONSTLIKE);
 	} else return false;
 }
 

@@ -1092,7 +1092,7 @@ OptionStatus parseCommandOptions(int argc, char const* const* argv, Config& outC
 			}
 
 			if (!outConf.parseLang(tmpptr, l)) {
-				utils::error("'%s' is not a supported language specification.", 0, true, tmpptr);
+				utils::error("'%s' is not a supported language specification.", true,0, tmpptr);
 				return OPT_STAT_BAD_ARG;
 			}
 

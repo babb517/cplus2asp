@@ -223,6 +223,7 @@ bool Config::mode(Mode newMode) {
 // Parses the language represented in the string.
 bool Config::parseLang(char const* str, Language& outLang) {
 	if (boost::iequals(str, "bc")) outLang = LANG_BC;
+	else if (boost::iequals(str, "bc+")) outLang = LANG_BCPLUS;
 	else if (boost::iequals(str, "c+")) outLang = LANG_CPLUS;
 	else return false;
 	return true;
@@ -452,9 +453,11 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 		case LANG_CPLUS:
 			arglist.push_back("--language=c+");
 			break;
-
 		case LANG_BC:
 			arglist.push_back("--language=bc");
+			break;
+		case LANG_BCPLUS:
+			arglist.push_back("--language=bc+");
 			break;
 		}
 

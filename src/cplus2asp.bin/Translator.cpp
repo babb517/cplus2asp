@@ -892,6 +892,42 @@ void Translator::translateCausalLaw(
 			error("The following clause is not supported in language BC.", true);
 			malformed = true;
 		}
+
+
+		// Enforce conjunction of literals in the rule bodies.
+
+#define ENFORCE_BC_ASSUMING_CONJ
+#ifdef ENFORCE_BC_ASSUMING_CONJ
+		// TODO: Do we want to enforce that the assuming body
+		// is a conjunction of literals?
+		if (assumingBody && !assumingBody->isDefinite(true)) {
+			error("Language BC does not support arbitrary formulas in the assuming clause of a rule.", true);
+			malformed = true;
+		}
+#endif
+
+		if (ifBody && !ifBody->isDefinite(true)) {
+			error("Language BC does not support arbitrary formulas in the if clause of a rule.", true);
+			malformed = true;
+		}
+		if (afterBody && !afterBody->isDefinite(true)) {
+			error("Language BC does not support arbitrary formulas in the after clause of a rule.", true);
+			malformed = true;
+		}
+		break;
+
+	case LANG_BCPLUS:
+		tmpAssuming = assumingBody;
+
+		if (whenBody) {
+			error("The when clause is not supported in language BC+.", true);
+			malformed = true;
+
+		} 
+		if (followingBody) {
+			error("The following clause is not supported in language BC+.", true);
+			malformed = true;
+		}
 		break;
 	}
 
@@ -962,7 +998,7 @@ void Translator::translateCausalLaw(
 			|| (whereBody && whereBody->hasConstants(ParseElement::MASK_AB)))
 	{
 		// The law has abnormalities outside of the when / following clauses...
-		if (lang() == LANG_BC)
+		if (lang() == LANG_BC || lang() == LANG_BCPLUS)
 			error("Abnormality constants are not supported in language BC.", true);
 		else 
 			error("Abnormality constants cannot occur outside of 'when' and 'following' clauses of a law.\n");
@@ -2197,6 +2233,7 @@ std::ostream& Translator::bindAndTranslate(std::ostream& out, ParseElement const
 // @brief Converts the name of a language to its corresponding enum type.
 bool Translator::strToLanguage(char const* str, Language& outLang) {
 	if (!strcmp(str, "bc")) outLang = Language::LANG_BC;
+	else if (!strcmp(str, "bc+")) outLang = Language::LANG_BCPLUS;
 	else if (!strcmp(str, "c+")) outLang = Language::LANG_CPLUS;
 	else return false;
 	return true;

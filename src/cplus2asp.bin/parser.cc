@@ -2991,6 +2991,7 @@ yyreduce:
 		break;
 
 	case Translator::LANG_BC:
+	case Translator::LANG_BCPLUS:
 		switch ((yyvsp[(3) - (3)].constant_binder_t)->constType) {
 		case Constant::CONST_UNKNOWN:
 			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);

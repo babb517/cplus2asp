@@ -542,6 +542,7 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 		break;
 
 	case Translator::LANG_BC:
+	case Translator::LANG_BCPLUS:
 		switch ($3->constType) {
 		case Constant::CONST_UNKNOWN:
 			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);

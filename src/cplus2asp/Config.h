@@ -151,7 +151,8 @@ public:
 	enum Language
 	{ 
 		LANG_CPLUS,								///< The action language C+.
-		LANG_BC									///< The action language BC.
+		LANG_BC,								///< The action language BC.
+		LANG_BCPLUS								///< Prototype extension of BC.
 	};
 
 	/// The various extra configurations that can be set.
