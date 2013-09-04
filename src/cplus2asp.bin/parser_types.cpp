@@ -179,6 +179,15 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 			ltsyyreportError();
 		}
 		break;
+                
+        case UOP_CHOICE:
+            
+                localContext = context.mkNegated();
+		out << "{";
+		postOp()->translate(out, localContext);
+		out << "}";
+                break;
+                
 	default:
 		// Unknown operator, just do a blind translation.
 		out << translateOpType(opType()) << "(";
@@ -209,13 +218,15 @@ bool SimpleUnaryOperator::hasConstants(unsigned int types, bool includeParams, b
 
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleUnaryOperator::isDefinite(bool allowComparison) const
+bool SimpleUnaryOperator::isDefinite(bool allowComparison, bool allowChoice /* = false */) const
 {
-	// Two cases:
+	// Three cases:
 	// the expression is '-p' or 'not p', as this is shorthand for p=false.
 	// or this is a declarative law such as exogenous p. where p is a constant.
 	// Alternatively, in the event we are working with a declarative law it may be one of UOP_EXOGENOUS, UOP_INERTIAL, UOP_RIGID
-
+        // Finally, If we are allowing choice rules, then we should check if this is a choice rule and if below us is a single assignment
+        // or boolean atom.
+    
 	// sanity
 	if (!postOp()) return false;
 
@@ -230,8 +241,25 @@ bool SimpleUnaryOperator::isDefinite(bool allowComparison) const
 		return postOp()->getType() == ParseElement::PELEM_CONSTLIKE
 				|| (postOp()->getType() == ParseElement::PELEM_VARLIKE);
 	}
+        
+        // case three
+        if (allowChoice && opType() == UOP_CHOICE) {
+            return (postOp()->isSingleAtom());
+            
+        }
+        
 
 	return false;
+}
+
+// Checks if the expression is a single atom.
+bool SimpleUnaryOperator::isSingleAtom() const
+{
+    // This is only the case if this is '-p' or 'not p' where p is boolean.
+    if (opType() == UOP_NOT) {
+		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
+				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
+	}
 }
 
 // Determines if the element is a valid arithmetic expression.
@@ -523,8 +551,7 @@ bool SimpleBinaryOperator::hasConstants(unsigned int types, bool includeParams, 
 	return ret;
 }
 
-// Returns true if this expression corresponds to a single atom.
-bool SimpleBinaryOperator::isDefinite(bool allowComparison) const {
+bool SimpleBinaryOperator::isDefinite(bool allowComparison, bool allowChoice /* = false */) const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
 	// OR if it's a conjunction of single atoms.
 	if (!preOp() && postOp()) return postOp()->isDefinite(allowComparison);
@@ -546,6 +573,16 @@ bool SimpleBinaryOperator::isDefinite(bool allowComparison) const {
 	} else return false;
 }
 
+// Returns true if this expression corresponds to a single atom.
+bool SimpleBinaryOperator::isSingleAtom() const {
+	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
+	if (!preOp() && postOp()) return postOp()->isSingleAtom();
+	else if (!postOp() && preOp()) return preOp()->isSingleAtom();
+	else if (opType() == BOP_EQ) {
+		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
+				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
+	} else return false;
+}
 
 
 bool SimpleBinaryOperator::hasLuaCalls(bool includeParams, bool includeEq) const { 

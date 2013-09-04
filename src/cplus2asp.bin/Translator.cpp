@@ -865,10 +865,14 @@ void Translator::translateCausalLaw(
 
 	ParseElement* tmpAssuming = NULL;
 	SimpleBinaryOperator *tmp = NULL;
-
+        
+        bool allowChoiceInHead = false; // Whether choice rules are allowed in the head of a rule.
+        
+        
 	// step -1: Check language specific constructs
 	switch (lang()) {
 	case LANG_CPLUS:
+                allowChoiceInHead = false;
 		if (!ifBody) tmpAssuming = assumingBody;	
 		else if (!assumingBody) { 
 			tmpAssuming = ifBody;
@@ -882,6 +886,7 @@ void Translator::translateCausalLaw(
 		break;
 	case LANG_BC:
 		tmpAssuming = assumingBody;
+                allowChoiceInHead = false;
 
 		if (whenBody) {
 			error("The when clause is not supported in language BC.", true);
@@ -918,7 +923,8 @@ void Translator::translateCausalLaw(
 
 	case LANG_BCPLUS:
 		tmpAssuming = assumingBody;
-
+                allowChoiceInHead = true;
+                
 		if (whenBody) {
 			error("The when clause is not supported in language BC+.", true);
 			malformed = true;
@@ -966,7 +972,7 @@ void Translator::translateCausalLaw(
 
 
 	// step 1: ensure the head is non-null and in the correct form
-	if (!head || !head->isDefinite()) {
+	if (!head || !head->isDefinite(false, allowChoiceInHead)) {
 		error("Definite causal laws must have exactly one constant in the head.\n");
 		malformed = true;
 		return;

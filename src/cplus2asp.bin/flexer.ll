@@ -544,6 +544,9 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 "["					{ TOK_INT(T_BRACKET_L); return T_BRACKET_L; }
 "]"					{ TOK_INT(T_BRACKET_R); return T_BRACKET_R; }
 
+"{"					{ TOK_INT(T_CBRACKET_L); return T_CBRACKET_L; }
+"}"					{ TOK_INT(T_CBRACKET_R); return T_CBRACKET_R; }
+
 "("					{ TOK_INT(T_PAREN_L); return T_PAREN_L; }
 ")"					{ TOK_INT(T_PAREN_R); return T_PAREN_R; }
 

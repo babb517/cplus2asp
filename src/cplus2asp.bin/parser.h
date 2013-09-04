@@ -138,43 +138,45 @@
      T_BRACKET_L = 316,
      T_BRACKET_R = 317,
      T_COLON_DASH = 318,
-     T_PAREN_L = 319,
-     T_PAREN_R = 320,
-     T_PERIOD = 321,
-     T_PIPE = 322,
-     T_NOOP = 323,
-     T_SEMICOLON = 324,
-     T_DBL_COLON = 325,
-     T_ARROW_LDASH = 326,
-     T_ARROW_REQ = 327,
-     T_ARROW_LEQ = 328,
-     T_ARROW_RDASH = 329,
-     T_COLON = 330,
-     T_COMMA = 331,
-     T_EQUIV = 332,
-     T_IMPL = 333,
-     T_DBL_PLUS = 334,
-     T_DBL_AMP = 335,
-     T_AMP = 336,
-     T_EQ = 337,
-     T_GTHAN_EQ = 338,
-     T_EQ_LTHAN = 339,
-     T_GTHAN = 340,
-     T_LTHAN = 341,
-     T_NOT_EQ = 342,
-     T_DBL_EQ = 343,
-     T_NOT = 344,
-     T_DBL_PERIOD = 345,
-     T_PLUS = 346,
-     T_DASH = 347,
-     T_DBL_GTHAN = 348,
-     T_MOD = 349,
-     T_INT_DIV = 350,
-     T_STAR = 351,
-     T_BIG_CONJ = 352,
-     T_BIG_DISJ = 353,
-     T_POUND = 354,
-     T_UMINUS = 355
+     T_CBRACKET_L = 319,
+     T_CBRACKET_R = 320,
+     T_PAREN_L = 321,
+     T_PAREN_R = 322,
+     T_PERIOD = 323,
+     T_PIPE = 324,
+     T_NOOP = 325,
+     T_SEMICOLON = 326,
+     T_DBL_COLON = 327,
+     T_ARROW_LDASH = 328,
+     T_ARROW_REQ = 329,
+     T_ARROW_LEQ = 330,
+     T_ARROW_RDASH = 331,
+     T_COLON = 332,
+     T_COMMA = 333,
+     T_EQUIV = 334,
+     T_IMPL = 335,
+     T_DBL_PLUS = 336,
+     T_DBL_AMP = 337,
+     T_AMP = 338,
+     T_EQ = 339,
+     T_GTHAN_EQ = 340,
+     T_EQ_LTHAN = 341,
+     T_GTHAN = 342,
+     T_LTHAN = 343,
+     T_NOT_EQ = 344,
+     T_DBL_EQ = 345,
+     T_NOT = 346,
+     T_DBL_PERIOD = 347,
+     T_PLUS = 348,
+     T_DASH = 349,
+     T_DBL_GTHAN = 350,
+     T_MOD = 351,
+     T_INT_DIV = 352,
+     T_STAR = 353,
+     T_BIG_CONJ = 354,
+     T_BIG_DISJ = 355,
+     T_POUND = 356,
+     T_UMINUS = 357
    };
 #endif
 /* Tokens.  */
@@ -240,43 +242,45 @@
 #define T_BRACKET_L 316
 #define T_BRACKET_R 317
 #define T_COLON_DASH 318
-#define T_PAREN_L 319
-#define T_PAREN_R 320
-#define T_PERIOD 321
-#define T_PIPE 322
-#define T_NOOP 323
-#define T_SEMICOLON 324
-#define T_DBL_COLON 325
-#define T_ARROW_LDASH 326
-#define T_ARROW_REQ 327
-#define T_ARROW_LEQ 328
-#define T_ARROW_RDASH 329
-#define T_COLON 330
-#define T_COMMA 331
-#define T_EQUIV 332
-#define T_IMPL 333
-#define T_DBL_PLUS 334
-#define T_DBL_AMP 335
-#define T_AMP 336
-#define T_EQ 337
-#define T_GTHAN_EQ 338
-#define T_EQ_LTHAN 339
-#define T_GTHAN 340
-#define T_LTHAN 341
-#define T_NOT_EQ 342
-#define T_DBL_EQ 343
-#define T_NOT 344
-#define T_DBL_PERIOD 345
-#define T_PLUS 346
-#define T_DASH 347
-#define T_DBL_GTHAN 348
-#define T_MOD 349
-#define T_INT_DIV 350
-#define T_STAR 351
-#define T_BIG_CONJ 352
-#define T_BIG_DISJ 353
-#define T_POUND 354
-#define T_UMINUS 355
+#define T_CBRACKET_L 319
+#define T_CBRACKET_R 320
+#define T_PAREN_L 321
+#define T_PAREN_R 322
+#define T_PERIOD 323
+#define T_PIPE 324
+#define T_NOOP 325
+#define T_SEMICOLON 326
+#define T_DBL_COLON 327
+#define T_ARROW_LDASH 328
+#define T_ARROW_REQ 329
+#define T_ARROW_LEQ 330
+#define T_ARROW_RDASH 331
+#define T_COLON 332
+#define T_COMMA 333
+#define T_EQUIV 334
+#define T_IMPL 335
+#define T_DBL_PLUS 336
+#define T_DBL_AMP 337
+#define T_AMP 338
+#define T_EQ 339
+#define T_GTHAN_EQ 340
+#define T_EQ_LTHAN 341
+#define T_GTHAN 342
+#define T_LTHAN 343
+#define T_NOT_EQ 344
+#define T_DBL_EQ 345
+#define T_NOT 346
+#define T_DBL_PERIOD 347
+#define T_PLUS 348
+#define T_DASH 349
+#define T_DBL_GTHAN 350
+#define T_MOD 351
+#define T_INT_DIV 352
+#define T_STAR 353
+#define T_BIG_CONJ 354
+#define T_BIG_DISJ 355
+#define T_POUND 356
+#define T_UMINUS 357
 
 
 
@@ -322,7 +326,7 @@ typedef union YYSTYPE
 
 
 /* Line 2068 of yacc.c  */
-#line 326 "parser.h"
+#line 330 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -513,4 +517,4 @@ YYLTYPE ltsyyGetLoc();
 
 
 /* Line 2068 of yacc.c  */
-#line 517 "parser.h"
+#line 521 "parser.h"

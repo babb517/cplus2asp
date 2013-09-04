@@ -359,6 +359,8 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 %token <integer> T_BRACKET_L		// [
 %token <integer> T_BRACKET_R		// ]
 %token <integer> T_COLON_DASH		// :-
+%token <integer> T_CBRACKET_L           // {
+%token <integer> T_CBRACKET_R           // }
 %token <integer> T_PAREN_L			// (
 %token <integer> T_PAREN_R			// )
 %token <integer> T_PERIOD			// .
@@ -436,7 +438,7 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 %type <not_used> cl_always_forms cl_constraint_forms cl_default_forms cl_exogenous_forms cl_inertial_forms cl_nonexecutable_forms cl_rigid_forms 
 %type <not_used> cl_possibly_caused_forms cl_may_cause_forms cl_causes_forms cl_noconcurrency_forms cl_increment_forms cl_trivial_forms
 %type <parseElement> cl_head_formula cl_body_formula cl_body_formula_inner cl_body_term cl_body_term_inner cl_where_expr
-%type <parseElement> literal_assign_conj literal_assign_conj_inner literal_assign_expr //literal_conj literal_conj_inner
+%type <parseElement> literal_assign_choice_conj literal_assign_choice_conj_inner literal_assign_expr literal_assign_choice_expr //literal_conj literal_conj_inner
 %type <parseElement> expr_big_expression
 %type <parseElement> cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 %type <parseElement> cl_when_expr cl_following_expr cl_body_formula_bool cl_body_formula_bool_inner cl_body_term_bool cl_body_term_bool_inner expr_big_expression_bool
@@ -1882,7 +1884,7 @@ causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_
 }
 							;
 
-cl_head_formula:			literal_assign_conj
+cl_head_formula:			literal_assign_choice_conj
 {
 	$$ = $1;
 }
@@ -2097,11 +2099,11 @@ cl_body_term_bool_inner:	  			constant_expr
 }
 							;
 
-literal_assign_conj:		  			literal_assign_conj_inner
+literal_assign_choice_conj:		  		literal_assign_choice_conj_inner
 {
 	$$ = $1;
 }
-							| T_PAREN_L literal_assign_conj_inner T_PAREN_R
+							| T_PAREN_L literal_assign_choice_conj_inner T_PAREN_R
 {
 	if($2 != NULL)
 	{
@@ -2111,13 +2113,17 @@ literal_assign_conj:		  			literal_assign_conj_inner
 }
 							;
 
-literal_assign_conj_inner:	  			literal_assign_expr
+literal_assign_choice_conj_inner:	  		literal_assign_expr
 {
 	$$ = $1;
 }
-							| literal_assign_conj AND %prec T_AMP literal_assign_conj
+							| literal_assign_choice_conj AND %prec T_AMP literal_assign_choice_conj
 {
 	$$ = new SimpleBinaryOperator($1, SimpleBinaryOperator::BOP_AND, $3);
+}
+                                                        | literal_assign_choice_expr
+{
+        $$ = $1;
 }
 							;
 
@@ -2133,7 +2139,13 @@ literal_assign_expr:		  			constant_expr
 {
 	$$ = new SimpleBinaryOperator($1, SimpleBinaryOperator::BOP_EQ, $3);
 }
-							;						;
+							;		
+
+literal_assign_choice_expr:                             T_CBRACKET_L literal_assign_expr T_CBRACKET_R
+{
+        $$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_CHOICE, $2);
+}
+                        				;
 
 expr_big_expression:		  			T_BRACKET_L expr_big_quantifiers T_PIPE cl_body_formula T_BRACKET_R
 {
