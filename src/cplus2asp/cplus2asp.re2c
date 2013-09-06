@@ -28,6 +28,7 @@
  */
 
 /* History:
+ * v2.3 - Fixed several small issues. Added Syntactic checking for BC. Added experimental language BC+ as a proper extension of BC allowing arbitrary formulas in the body and choice rules in the head.
  * v2.2 - Major revision of command-line arguments. Revised command line calls to provide system portability.
  * v2.1 - Restructured the interactive interface for more user friendly interactions.
  * v2.0 - Restructured options parser. Added incremental translation functionality. Added automated detection and handling of additive/abnormal constants.
@@ -82,7 +83,7 @@ namespace bfs = boost::filesystem;
 namespace bio = boost::iostreams;
 
 #define VERSION_MAJOR 2
-#define VERSION_MINOR 2
+#define VERSION_MINOR 3
 #define VERSION_REV 0
 
 #ifndef PATH_MAX
@@ -1906,6 +1907,7 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          <LANG> can be one of the following:" << std::endl
 		  << "                          * c+, C+ -------- [default] The action language C+." << std::endl
  		  << "                          * bc, BC -------- The action language BC." << std::endl
+		  << "                          * bc+, BC+ ------ An experimental extension to language BC." << std::endl;
 		  << std::endl
 		  << "Extra Program Options:" << std::endl
 		  << "  Options with <PROG> or <PROGRAM> in their name affect individual" << std::endl

@@ -29,6 +29,9 @@
  */
 
 /* History:
+ *   3.1 - Several bug fixes.
+ *         Syntactic checking for BC.
+ *         Added experimental language BC+.
  *   3.0 - Full support for symbol table.
  *       - Full support for the language BC.
  *   2.0 - Incremental translation for C+ programs.
@@ -70,7 +73,7 @@
 #include "flexer.h"
 
 #define VERSION_MAJOR 3
-#define VERSION_MINOR 0
+#define VERSION_MINOR 1
 #define VERSION_REV 0
 
 
@@ -302,7 +305,7 @@ int main(int argc, char *argv[])
 						<< std::endl
 						<< "  -l <LANG>" << std::endl
 						<< "  --language=<LANG>  -- Sets the input language accepted by the translator to <LANG>." << std::endl
-						<< "                        <LANG>: c+, bc" << std::endl
+						<< "                        <LANG>: c+, bc, bc+" << std::endl
 						<< std::endl
 						<< "  --help shows this usage information." << std::endl
 						<< "  -v" << std::endl

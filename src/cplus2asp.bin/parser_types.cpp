@@ -128,7 +128,7 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 
 			// Sanity check, make sure that we're not in the head of a rule before capturing clauses../
 			// Make sure we capture the clauses locally...
-			if (context.getPos() != Context::POS_HEAD) {
+			if (context.getPos() != Context::POS_HEAD && context.getPos() != Context::POS_CHOICE_RULE) {
 
 				out << translateOpType(opType()) + "(";
 				Translator::bindAndTranslate(out, postOp(), context, false);
@@ -182,7 +182,7 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
                 
         case UOP_CHOICE:
             
-                localContext = context.mkNegated();
+                localContext = context.mkPos(Context::POS_CHOICE_RULE);
 		out << "{";
 		postOp()->translate(out, localContext);
 		out << "}";
@@ -453,7 +453,10 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 		case BOP_LTHAN_EQ:
 		case BOP_GTHAN_EQ:
 			// arithmetic expressions...
-			if (context.getPos() == Context::POS_ARITHEXPR || context.getPos() == Context::POS_TERM || context.getPos() == Context::POS_MAXIMIZED_INTERNAL) {
+			if (context.getPos() == Context::POS_ARITHEXPR 
+				|| context.getPos() == Context::POS_TERM 
+				|| context.getPos() == Context::POS_MAXIMIZED_INTERNAL
+				|| context.getPos() == Context::POS_CHOICE_RULE ) {
 				// Already inside an arithmetic expression.
 				// pass all the variables up to the highest arith-expr level.
 				preOp()->translate(out, context);
@@ -502,7 +505,7 @@ std::ostream& SimpleBinaryOperator::translate(std::ostream& out, Context& contex
 			// If this isn't conjunction, then we want to capture local clauses for each term.
 			// otherwise we'll just pass the clauses upward.
 
-			if (type != BOP_AND && context.getPos() != Context::POS_HEAD) {
+			if (type != BOP_AND && context.getPos() != Context::POS_HEAD && context.getPos() != Context::POS_CHOICE_RULE) {
 
 				// preop
 				Translator::bindAndTranslate(out, preOp(), context, false);
@@ -1040,6 +1043,7 @@ std::ostream& ConstantLikeElement::translate(std::ostream& out, Context& context
 	case Context::POS_HEAD:
 	case Context::POS_BODY:
 	case Context::POS_QUERY:
+	case Context::POS_CHOICE_RULE:
 		translateAsConstant(out, context);
 		break;
 	case Context::POS_TERM:

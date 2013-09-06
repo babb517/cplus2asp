@@ -9,6 +9,7 @@
 :- constants
 	mv :: var;
 	b(var) :: rigid.
+	mv2(var) :: var.
 
 :- variables
 	V :: var.
@@ -23,5 +24,5 @@ caused {b(V)}.
 caused {-b(V)}.
 caused {not b(V)}.
 %caused false if {mv=V}.
-
+caused {mv2(V)=V}.
 
