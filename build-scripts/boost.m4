@@ -408,11 +408,15 @@ for boost_tag_ in "$boost_prev_tag" $boost_full_tags ''; do
   esac
 
   # Are we looking for a static library?
-  case $boost_ldpath:$boost_rtopt_ in #(
-    *?*:*s*) # Yes (Non empty boost_ldpath + s in rt opt)
+dnl case $boost_ldpath:$boost_rtopt_ in #(
+dnl    *?*:*s*) # Yes (Non empty boost_ldpath + s in rt opt)
+  case $boost_rtopt in #(
+    *s*) # Yes (Non empty boost_ldpath + s in rt opt)
       for boost_ldpath in "$boost_prev_libdir" '' $boost_all_paths
       do
+dnl     Fixed extension to link against the archive file. -- Joe
         Boost_lib_LIBS="$boost_ldpath/lib$boost_lib.$libext"
+dnl     Boost_lib_LIBS="$boost_ldpath/lib$boost_lib.a"
         test -e "$Boost_lib_LIBS" || continue
         LDFLAGS=$boost_save_LDFLAGS
         test x"$boost_ldpath" != x && LDFLAGS="$LDFLAGS -L$boost_ldpath"

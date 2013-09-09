@@ -50,6 +50,7 @@ AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])
 
 LT_INIT
 
+BOOST_STATIC()
 
 # Allow portable building
 AC_ARG_ENABLE(portable,
@@ -59,14 +60,13 @@ AS_HELP_STRING([--enable-portable],
              yes) \
 				portable=true; \
 				enable_static_boost=yes; \
-  				LDFLAGS="-Wl,-rpath -Wl,\\\$\$ORIGIN/lib $LDFLAGS"; \
-				CFLAGS="$CFLAGS -DUSE_RELATIVE_PATHS";;
-             no)  portable=false ;;
+  				LDFLAGS="-Wl,-rpath -Wl,\\\$\$ORIGIN/lib $LDFLAGS";;
+#				CFLAGS="$CFLAGS -DUSE_RELATIVE_PATHS";;
+             no)  \
+				portable=false;; 
              *)   AC_MSG_ERROR([bad value ${enableval} for --enable-portable]) ;;
 esac],
 [portable=false])
-
-
 
 AC_ARG_ENABLE([relpath],
   AC_HELP_STRING([--enable-relpath], [Data and libraries are searched relative to the executable]),
@@ -83,8 +83,8 @@ else
 	rt_type=""
 fi
 
+
  
-BOOST_STATIC()
 BOOST_REQUIRE([1.44])
 BOOST_ASIO([$rt_type])							# Required by acplusbridge
 BOOST_BIND([$rt_type])							# Required by acplusbridge
