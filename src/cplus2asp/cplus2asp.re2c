@@ -1907,7 +1907,7 @@ std::ostream& showHelp(std::string const& execName, std::ostream& out) {
 		  << "                          <LANG> can be one of the following:" << std::endl
 		  << "                          * c+, C+ -------- [default] The action language C+." << std::endl
  		  << "                          * bc, BC -------- The action language BC." << std::endl
-		  << "                          * bc+, BC+ ------ An experimental extension to language BC." << std::endl;
+		  << "                          * bc+, BC+ ------ An experimental extension to language BC." << std::endl
 		  << std::endl
 		  << "Extra Program Options:" << std::endl
 		  << "  Options with <PROG> or <PROGRAM> in their name affect individual" << std::endl
@@ -1973,6 +1973,7 @@ std::ostream& showVersion(std::string const& execName, std::ostream& out) {
 	out << execName << " version " << VERSION_MAJOR;
 	out << "." << VERSION_MINOR;
 	if(VERSION_REV > 0) { out << "." << VERSION_REV; }
+	out << std::endl;
 	return out;
 }
 
