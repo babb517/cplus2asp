@@ -258,7 +258,7 @@ bool SimpleUnaryOperator::isSingleAtom() const
     // This is only the case if this is '-p' or 'not p' where p is boolean.
     if (opType() == UOP_NOT) {
 		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
-				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
+				&& (((BaseLikeElement*)postOp())->isBoolean());
 	}
 }
 

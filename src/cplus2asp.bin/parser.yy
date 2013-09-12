@@ -525,6 +525,7 @@ constant_outer_spec:		  			constant_spec		{ $$ = PARSERULE_NOT_USED; }
 
 constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_binder
 {
+
 	// Fill in each Constant's type and domain and translate each of them.
 	bool constantError = true; // Set to true if any of the constants have trouble getting added to the symbol table.
 	Sort* tempSort = NULL;
@@ -532,40 +533,43 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 	// double check that this is a valid constant type for the language we're working in.
 	// TODO: This is where you would add other language constnat type checks.
 
-	switch (mainTrans.lang()) {
-	case Translator::LANG_CPLUS:
-		switch ($3->constType) {
-		case Constant::CONST_UNKNOWN:
-			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
-			break;
-		default:
-			break;
-		}
-		break;
+	if ($3) {
 
-	case Translator::LANG_BC:
-	case Translator::LANG_BCPLUS:
-		switch ($3->constType) {
-		case Constant::CONST_UNKNOWN:
-			mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+		switch (mainTrans.lang()) {
+		case Translator::LANG_CPLUS:
+			switch ($3->constType) {
+			case Constant::CONST_UNKNOWN:
+				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				break;
+			default:
+				break;
+			}
 			break;
-		case Constant::CONST_STATICAB:
-		case Constant::CONST_DYNAMICAB:
-			mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
-			break;
-		case Constant::CONST_ATTRIBUTE:
-			mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
-			break;
-		case Constant::CONST_ADDITIVEACTION:
-		case Constant::CONST_ADDITIVEFLUENT:
-			mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
-			break;
-		case Constant::CONST_ACTION:
-			// bc uses only exogenous actions.
-			$3->constType = Constant::CONST_EXOGENOUSACTION;
-			break;
-		case Constant::CONST_EXOGENOUSACTION:
-			break;
+
+		case Translator::LANG_BC:
+		case Translator::LANG_BCPLUS:
+			switch ($3->constType) {
+			case Constant::CONST_UNKNOWN:
+				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				break;
+			case Constant::CONST_STATICAB:
+			case Constant::CONST_DYNAMICAB:
+				mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
+				break;
+			case Constant::CONST_ATTRIBUTE:
+				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
+				break;
+			case Constant::CONST_ADDITIVEACTION:
+			case Constant::CONST_ADDITIVEFLUENT:
+				mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+				break;
+			case Constant::CONST_ACTION:
+				// bc uses only exogenous actions.
+				$3->constType = Constant::CONST_EXOGENOUSACTION;
+				break;
+			case Constant::CONST_EXOGENOUSACTION:
+				break;
+			}
 		}
 	}
 
@@ -946,49 +950,55 @@ object_spec:				  object_outer_schema_list T_DBL_COLON sort_outer_identifier
 {
 	// Connect each Object in the list to its sort, (try to) add them to the symbol table, and translate each object.
 
-	Sort* sort = mainTrans.getSort(*$3);
-	Element* elem;
+	if ($1 && $3) {
 
-	if (!sort) {
-		mainTrans.error("Bad object declaration. \"" + *$3 + "\" is not a valid sort.", true);
-	} else if (!$1) {
-		// directly referenced sorts should be made visible.
-		sort->internal(false);
+		Sort* sort = mainTrans.getSort(*$3);
+		Element* elem;
 
-		mainTrans.error("Bad object declaration.", true);
-	} else {
-		// directly referenced sorts should be made visible.
-		sort->internal(false);
+		if (!sort) {
+			mainTrans.error("Bad object declaration. \"" + *$3 + "\" is not a valid sort.", true);
+		} else if (!$1) {
+			// directly referenced sorts should be made visible.
+			sort->internal(false);
 
-		// add each of the objects. 
-		for (ObjectList::iterator it = $1->begin(); it != $1->end(); it++) {
-			// make sure it's valid and hasn't been declared to something conflicting
-			if (!*it) mainTrans.error("Bad object declaration.", true);
-			else if ((elem = mainTrans.getSymbol((*it)->baseName(), (*it)->arity())) && elem->getElemType() != Element::ELEM_OBJ ) {
-					mainTrans.error("Detected a conflicting definition of \"" + elem->baseName() 
-						+ "/" + utils::to_string(elem->arity()) + "\".", true);
-			} else {
-				mainTrans.translateObjectDecl(*it, sort);
-				
-				if (!elem) {
-					elem = *it;
-					if (mainTrans.addSymbol(elem) != SymbolTable::ADDSYM_OK) {
-						mainTrans.error("An error occurred processing the definition of \"" + elem->baseName() 
+			mainTrans.error("Bad object declaration.", true);
+		} else {
+			// directly referenced sorts should be made visible.
+			sort->internal(false);
+
+			// add each of the objects. 
+			for (ObjectList::iterator it = $1->begin(); it != $1->end(); it++) {
+				// make sure it's valid and hasn't been declared to something conflicting
+				if (!*it) mainTrans.error("Bad object declaration.", true);
+				else if ((elem = mainTrans.getSymbol((*it)->baseName(), (*it)->arity())) && elem->getElemType() != Element::ELEM_OBJ ) {
+						mainTrans.error("Detected a conflicting definition of \"" + elem->baseName() 
 							+ "/" + utils::to_string(elem->arity()) + "\".", true);
-						delete elem;
-						elem = NULL;
+				} else {
+					mainTrans.translateObjectDecl(*it, sort);
+					
+					if (!elem) {
+						elem = *it;
+						if (mainTrans.addSymbol(elem) != SymbolTable::ADDSYM_OK) {
+							mainTrans.error("An error occurred processing the definition of \"" + elem->baseName() 
+								+ "/" + utils::to_string(elem->arity()) + "\".", true);
+							delete elem;
+							elem = NULL;
+						}
 					}
-				}
-				else delete *it;
+					else delete *it;
 
-				if (elem) sort->addObject((Object*)elem);
+					if (elem) sort->addObject((Object*)elem);
+				}
 			}
 		}
-	}
 
+		deallocateList($1);
+		deallocateItem($3);
+	} else if ($1) {
+		deallocateList($1);
+	}
+		
 	$$ = PARSERULE_NOT_USED;
-	deallocateList($1);
-	deallocateItem($3);
 }
 							;
 
@@ -2385,40 +2395,43 @@ query_expression_tuple:		  			query_expression
 query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 {
 	$$ = PARSERULE_NOT_USED;
-	if(mainTrans.tempQuery->label == "")
-	{
-		mainTrans.tempQuery->label = *$3;
+	if (mainTrans.tempQuery && $3) {
+		if(mainTrans.tempQuery->label == "")
+		{
+			mainTrans.tempQuery->label = *$3;
+		}
+		else
+		{
+			ltsyystartParseError(ltsyylloc);
+			ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyreportError();
+			YYERROR;
+		}
 	}
-	else
-	{
-		ltsyystartParseError(ltsyylloc);
-		ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
-		ltsyyreportError();
-		YYERROR;
-	}
-	deallocateItem($3);
+	if ($3)	deallocateItem($3);
 }
 							| T_LABEL T_DBL_COLON T_INTEGER
 {
 
 	$$ = PARSERULE_NOT_USED;
-	if(mainTrans.tempQuery->label == "")
-	{
-		mainTrans.tempQuery->label = utils::to_string($3);
+	if (mainTrans.tempQuery) {
+		if(mainTrans.tempQuery->label == "")
+		{
+			mainTrans.tempQuery->label = utils::to_string($3);
+		}
+		else
+		{
+			ltsyystartParseError(ltsyylloc);
+			ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyreportError();
+			YYERROR;
+		}
 	}
-	else
-	{
-		ltsyystartParseError(ltsyylloc);
-		ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
-		ltsyyreportError();
-		YYERROR;
-	}
-
 }
 							| T_MAXSTEP T_DBL_COLON num_range
 {
 	$$ = PARSERULE_NOT_USED;
-	if ($3) {
+	if (mainTrans.tempQuery && $3) {
 		if(mainTrans.tempQuery->maxstep == "")
 		{
 			mainTrans.tempQuery->maxstep = $3->baseName();
@@ -2430,13 +2443,13 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 			ltsyyreportError();
 			YYERROR;
 		}
-		deallocateItem($3);
 	}
+	if ($3) deallocateItem($3);
 
 }
 							| T_MAXSTEP T_DBL_COLON extended_integer
 {
-	if ($3) {
+	if (mainTrans.tempQuery && $3) {
 		if(mainTrans.tempQuery->maxstep == "")
 		{
 			mainTrans.tempQuery->maxstep = *$3;
@@ -2448,8 +2461,8 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 			ltsyyreportError();
 			YYERROR;
 		}
-		deallocateItem($3);
 	}
+	if ($3) deallocateItem($3);
 }
 
 							| query_body_formula
@@ -2701,6 +2714,7 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem, $4);
 		mainTrans.handleLUACall((ObjectLikeElement*)$$);
 
+
 	} else if ((elem = mainTrans.getSymbol(*$2, $4->size()))) {
 
 		switch(elem->getElemType()) {
@@ -2737,9 +2751,9 @@ lua_indicator:				/* empty */				{ $$ = NULL; }
 parameter_list:				  		parameter_general
 {
 	$$ = NULL;
+	$$ = new ParseElementList();
 	if($1 != NULL)
 	{
-		$$ = new ParseElementList();
 		$$->push_back($1);
 	}
 }
