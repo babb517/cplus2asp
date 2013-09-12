@@ -12,6 +12,8 @@ IS_ROOT=0
 INSTALL_F2LP="Y"
 INSTALL_ICLINGO="Y"
 INSTALL_CLINGO="Y"
+INSTALL_GRINGO_3="Y"
+INSTALL_CLASP="Y"
 
 CONTINUE="n"
 
@@ -71,6 +73,25 @@ while true; do
     esac
 done
 
+while true; do
+    read -p "Do you wish to install Gringo 3 (Y/n) [$INSTALL_GRINGO_3]? " yn
+    [ -z "$yn" ] && break;
+    case $yn in
+        [Yy]* ) INSTALL_GRINGO_3="Y"; break;;
+        [Nn]* ) INSTALL_GRINGO_3="n"; break;;
+        * ) echo "Please answer yes (Y) or no (n).";;
+    esac
+done
+
+while true; do
+    read -p "Do you wish to install Clasp (Y/n) [$INSTALL_CLASP]? " yn
+    [ -z "$yn" ] && break;
+    case $yn in
+        [Yy]* ) INSTALL_CLASP="Y"; break;;
+        [Nn]* ) INSTALL_CLASP="n"; break;;
+        * ) echo "Please answer yes (Y) or no (n).";;
+    esac
+done
 
 # Confirm Options to the user...
 
@@ -106,6 +127,18 @@ else
 	echo -e "  clingo\t\t\tskip."
 fi
 
+if [ "$INSTALL_GRINGO_3" = "Y" ]; then 
+	echo -e "  gringo 3\t\t\tinstall."
+else
+	echo -e "  gringo 3\t\t\tskip."
+fi
+
+if [ "$INSTALL_CLASP" = "Y" ]; then 
+	echo -e "  clasp\t\t\t\tinstall."
+else
+	echo -e "  clasp\t\t\t\tskip."
+fi
+
 echo ""
 
 while true; do
@@ -131,10 +164,32 @@ mkdir -p $LIB_PATH
 mkdir -p $BIN_PATH
 
 cp -r lib/cplus2asp $LIB_PATH/
-cp bin/cplus2asp.bin $BIN_PATH/
-cp bin/as2transition $BIN_PATH/
+cp bin/cplus2asp.bin $BIN_PATH/.
+cp bin/as2transition $BIN_PATH/.
 rm -f $BIN_PATH/cplus2asp > /dev/null
 ln -s $LIB_PATH/cplus2asp/cplus2asp $BIN_PATH/cplus2asp 
+
+
+if [ "$INSTALL_F2LP" = "Y" ]; then
+	cp bin/f2lp $BIN_PATH/. 
+fi
+
+if [ "$INSTALL_ICLINGO" = "Y" ]; then 
+	cp bin/iclingo $BIN_PATH/. 
+fi
+
+if [ "$INSTALL_CLINGO" = "Y" ]; then 
+	cp bin/clingo $BIN_PATH/. 
+fi
+
+if [ "$INSTALL_GRINGO_3" = "Y" ]; then 
+	cp bin/gringo $BIN_PATH/. 
+fi
+
+if [ "$INSTALL_CLASP" = "Y" ]; then 
+	cp bin/clasp $BIN_PATH/. 
+fi
+
 
 # Fix permissions
 
@@ -143,14 +198,61 @@ if [ $IS_ROOT -eq 1 ] ; then
 	chmod -R a+r $LIB_PATH/cplus2asp
 	chmod a+x $LIB_PATH/cplus2asp/cplus2asp
 	
-	chown -R root:root $BIN_PATH/cplus2asp.bin
+	chown root:root $BIN_PATH/cplus2asp.bin
 	chmod a+rx $BIN_PATH/cplus2asp.bin
 
-	chown -R root:root $BIN_PATH/as2transition
+	chown root:root $BIN_PATH/as2transition
 	chmod a+rx $BIN_PATH/as2transition
+
+
+	if [ "$INSTALL_F2LP" = "Y" ]; then
+		chown root:root $BIN_PATH/f2lp
+		chmod a+rx $BIN_PATH/f2lp
+	fi
+
+	if [ "$INSTALL_ICLINGO" = "Y" ]; then 
+		chown root:root $BIN_PATH/iclingo
+		chmod a+rx $BIN_PATH/iclingo
+	fi
+
+	if [ "$INSTALL_CLINGO" = "Y" ]; then 
+		chown root:root $BIN_PATH/clingo
+		chmod a+rx $BIN_PATH/clingo
+	fi
+
+	if [ "$INSTALL_GRINGO_3" = "Y" ]; then 
+		chown root:root $BIN_PATH/gringo
+		chmod a+rx $BIN_PATH/gringo
+	fi
+
+	if [ "$INSTALL_CLASP" = "Y" ]; then 
+		chown root:root $BIN_PATH/clasp
+		chmod a+rx $BIN_PATH/clasp
+	fi
+
 else
 	chmod -R ug+r $LIB_PATH/cplus2asp
 	chmod ug+x $LIB_PATH/cplus2asp/cplus2asp
 	chmod ug+rx $BIN_PATH/cplus2asp.bin
 	chmod ug+rx $BIN_PATH/as2transition
+	
+	if [ "$INSTALL_F2LP" = "Y" ]; then
+		chmod ug+rx $BIN_PATH/f2lp
+	fi
+
+	if [ "$INSTALL_ICLINGO" = "Y" ]; then 
+		chmod ug+rx $BIN_PATH/iclingo
+	fi
+
+	if [ "$INSTALL_CLINGO" = "Y" ]; then 
+		chmod ug+rx $BIN_PATH/clingo
+	fi
+
+	if [ "$INSTALL_GRINGO_3" = "Y" ]; then 
+		chmod ug+rx $BIN_PATH/gringo
+	fi
+
+	if [ "$INSTALL_CLASP" = "Y" ]; then 
+		chmod ug+rx $BIN_PATH/clasp
+	fi
 fi
