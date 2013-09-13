@@ -418,7 +418,7 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 /// @todo finish Show decl nonterminal types.
 
 /* Sort declaration nonterminal types */
-%type <not_used> sort_statement
+%type <not_used> sort_statement 
 %type <l_sort> sort_spec_outer_tuple sort_spec_tuple
 %type <sort> sort_spec
 %type <str> sort_outer_identifier sort_identifier sort_identifier_name sort_constant_name sort_identifier_with_ab sort_identifier_no_range
@@ -1160,32 +1160,35 @@ sort_spec_outer_tuple:		  sort_spec_tuple
 }
 							;
 
-sort_spec_tuple:			  sort_spec
+sort_spec_tuple:			  		  sort_spec
 {
 	$$ = new SortList();
 	$$->push_back($1);
 }
 							| sort_spec_outer_tuple T_SEMICOLON sort_spec_outer_tuple
 {
-	$$ = NULL;
-	if($1 != NULL || $3 != NULL)
-	{
-		$$ = new  SortList();
-	}
-	// Merge the two sort lists, if they exist.
-	if($1 != NULL)
-	{
-		for(SortList::iterator lIter = $1->begin(); lIter != $1->end(); ++lIter)
+	if (!$1) $$ = $3;
+	else if (!$3) $$ = $1;
+	else {
+		$$ = $1;
+
+		for(SortList::iterator lIter = $3->begin(); lIter != $3->end(); ++lIter)
 		{
 			if((*lIter) != NULL)
 			{
 				$$->push_back((*lIter));
 			}
 		}
-		deallocateList($1);
+		deallocateList($3);
 	}
-	if($3 != NULL)
-	{
+}
+							| sort_spec_outer_tuple T_COMMA sort_spec_outer_tuple
+{
+	if (!$1) $$ = $3;
+	else if (!$3) $$ = $1;
+	else {
+		$$ = $1;
+
 		for(SortList::iterator lIter = $3->begin(); lIter != $3->end(); ++lIter)
 		{
 			if((*lIter) != NULL)
@@ -1198,7 +1201,7 @@ sort_spec_tuple:			  sort_spec
 }
 							;
 
-sort_spec:					  sort_identifier_no_range
+sort_spec:					  	sort_identifier_no_range
 {
 	// Have a helper function handle making and translating the sort.
 	$$ = mainTrans.addSort(*$1, false, NULL, true, false);
