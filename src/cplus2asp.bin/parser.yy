@@ -547,7 +547,6 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			break;
 
 		case Translator::LANG_BC:
-		case Translator::LANG_BCPLUS:
 			switch ($3->constType) {
 			case Constant::CONST_UNKNOWN:
 				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
@@ -566,6 +565,27 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			case Constant::CONST_ACTION:
 				// bc uses only exogenous actions.
 				$3->constType = Constant::CONST_EXOGENOUSACTION;
+				break;
+			case Constant::CONST_EXOGENOUSACTION:
+				break;
+			}
+		case Translator::LANG_BCPLUS:
+			switch ($3->constType) {
+			case Constant::CONST_UNKNOWN:
+				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				break;
+			case Constant::CONST_STATICAB:
+			case Constant::CONST_DYNAMICAB:
+				mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
+				break;
+			case Constant::CONST_ATTRIBUTE:
+				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
+				break;
+			case Constant::CONST_ADDITIVEACTION:
+			case Constant::CONST_ADDITIVEFLUENT:
+				mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+				break;
+			case Constant::CONST_ACTION:
 				break;
 			case Constant::CONST_EXOGENOUSACTION:
 				break;
