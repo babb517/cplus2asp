@@ -132,7 +132,7 @@ Config::Config(std::string const& name) {
 	// Default queries which should always be made available...
 	mQueries[CONST_QUERY_TRANSITIONS] = Query("System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
 	mQueries[CONST_QUERY_STATES] = Query("System states", CONST_QUERY_STATES, 0, 0);
-	mQueries[CONST_QUERY_NONE] = Query("Satisfiability Check", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
+	mQueries[CONST_QUERY_NONE] = Query("Satisfiability check (no query)", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
 }
 
 // Install directory

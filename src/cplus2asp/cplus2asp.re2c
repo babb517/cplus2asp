@@ -366,6 +366,8 @@ int main(int argc, char** argv)
 		cleanup(config, ran);
 		utils::nice_exit(utils::EXT_CODE_GOOD,NULL);
 		break;
+	default:
+		break;
 	}
 	
 	/***************************************************************************************************/
@@ -815,11 +817,19 @@ int main(int argc, char** argv)
 				// The loop should continue as long as we are:
 				// * Running in static-manual mode and the user hasn't told us to stop, or
 				// * Running in static-auto mode, we haven't reached the maximum step , and we haven't found solutions.
-				(config.mode() == Config::MODE_STATIC_MANUAL && runConfig.maxstep != Config::UNDEFINED)
+				// AND
+				// * We have something to do
+				((config.mode() == Config::MODE_STATIC_MANUAL && runConfig.maxstep != Config::UNDEFINED)
 				|| (config.mode() == Config::MODE_STATIC_AUTO
 						&& runConfig.maxstep != Config::UNDEFINED
 						&& (maxmaxstep == Config::UNDEFINED || runConfig.maxstep <= maxmaxstep)
-						&& !blnFoundSolutions)
+						&& !blnFoundSolutions))
+				&& (
+					config.run(Config::TC_GROUNDER) 
+					|| config.run(Config::TC_SOLVER) 
+					|| config.run(Config::TC_POSTPROC)
+					|| (config.mode() == Config::MODE_REACTIVE && config.run(Config::TC_REACTIVE_BRIDGE))
+				)
 				);
 
 
