@@ -152,7 +152,8 @@ public:
 	{ 
 		LANG_CPLUS,								///< The action language C+.
 		LANG_BC,								///< The action language BC.
-		LANG_BCPLUS								///< Prototype extension of BC.
+		LANG_BCPLUS,								///< Prototype extension of BC.
+		LANG_MVPF								///< Multi-valued propositional logic formulas.
 	};
 
 	/// The various extra configurations that can be set.
