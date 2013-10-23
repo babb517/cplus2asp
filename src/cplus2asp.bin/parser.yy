@@ -436,7 +436,7 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 /* Causal law nonterminal types */
 %type <not_used> causal_law causal_law_shortcut_forms causal_law_basic_forms
 %type <not_used> cl_always_forms cl_constraint_forms cl_default_forms cl_exogenous_forms cl_inertial_forms cl_nonexecutable_forms cl_rigid_forms 
-%type <not_used> cl_possibly_caused_forms cl_may_cause_forms cl_causes_forms cl_noconcurrency_forms cl_increment_forms cl_trivial_forms
+%type <not_used> cl_possibly_caused_forms cl_may_cause_forms cl_causes_forms cl_noconcurrency_forms cl_increment_forms cl_basic_rule_forms
 %type <parseElement> cl_head_formula cl_body_formula cl_body_formula_inner cl_body_term cl_body_term_inner cl_where_expr
 %type <parseElement> literal_assign_choice_conj literal_assign_choice_conj_inner literal_assign_expr literal_assign_choice_expr //literal_conj literal_conj_inner
 %type <parseElement> expr_big_expression
@@ -452,6 +452,7 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 %type <parseElement> parameter_general extended_value_expression extended_math_expression extended_math_expr_inner extended_math_term
 %type <numRange> num_range
 %type <str> extended_integer extended_integer_outer_expression extended_integer_expression lua_indicator
+
 
 /* Destructors for union types that had dynamic memory associated with them. */
 %destructor { delete $$; } <str>
@@ -590,6 +591,27 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			case Constant::CONST_EXOGENOUSACTION:
 				break;
 			}
+			break;
+		case Translator::LANG_MVPF:
+			// MVPF only allows rigid constants.
+			switch ($3->constType) {
+			case Constant::CONST_UNKNOWN:
+				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				break;
+			case Constant::CONST_RIGID:
+				break;
+			case Constant::CONST_STATICAB:
+			case Constant::CONST_DYNAMICAB:
+			case Constant::CONST_ATTRIBUTE:
+			case Constant::CONST_ADDITIVEACTION:
+			case Constant::CONST_ADDITIVEFLUENT:
+			case Constant::CONST_ACTION:
+			case Constant::CONST_EXOGENOUSACTION:
+				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in MVPF.", true);
+				break;
+			}
+			break;
+
 		}
 	}
 
@@ -1626,7 +1648,7 @@ causal_law_shortcut_forms:	  			cl_always_forms			{ $$ = PARSERULE_NOT_USED; }
 							| cl_causes_forms		{ $$ = PARSERULE_NOT_USED; }
 							| cl_noconcurrency_forms	{ $$ = PARSERULE_NOT_USED; }
 							| cl_increment_forms		{ $$ = PARSERULE_NOT_USED; }
-							| cl_trivial_forms		{ $$ = PARSERULE_NOT_USED; }
+							| cl_basic_rule_forms		{ $$ = PARSERULE_NOT_USED; }
 							;
 
 
@@ -1796,7 +1818,7 @@ cl_possibly_caused_forms:	  			T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl
 }
 							;
 
-cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clause cl_assuming_clause cl_when_clause cl_where_clause
+cl_may_cause_forms:			  		literal_assign_expr T_MAY_CAUSE cl_head_formula cl_if_clause cl_assuming_clause cl_when_clause cl_where_clause
 {
 	bool transResult = mainTrans.translateMayCauseLaw($1, $3, $4, $5, $6, $7);
 	deallocateItem($1);
@@ -1813,7 +1835,7 @@ cl_may_cause_forms:			  		cl_body_formula T_MAY_CAUSE cl_head_formula cl_if_clau
 }
 							;
 
-cl_causes_forms:			 		 cl_body_formula T_CAUSES cl_head_formula cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
+cl_causes_forms:			 		literal_assign_expr T_CAUSES cl_head_formula cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
 	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6, $7, $8);
 	deallocateItem($1);
@@ -1845,7 +1867,7 @@ cl_noconcurrency_forms:		  			T_NOCONCURRENCY
 }
 							;
 
-cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
+cl_increment_forms: 		  			literal_assign_expr T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
 	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, true);
 	deallocateItem($1);
@@ -1863,7 +1885,7 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 		YYERROR;
 	}
 }
-							|  cl_body_formula T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
+							|  literal_assign_expr T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
 	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, false);
 	deallocateItem($1);
@@ -1883,7 +1905,7 @@ cl_increment_forms: 		  			cl_body_formula T_INCREMENTS cl_head_formula T_BY ext
 }
 							;
 
-cl_trivial_forms:					cl_body_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
+cl_basic_rule_forms:					cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
 	// This is a law of the form c=v.
 	// Which is really just a lazy shortcut for
@@ -1900,6 +1922,18 @@ cl_trivial_forms:					cl_body_formula cl_if_clause cl_assuming_clause cl_after_c
 	deallocateItem($8);
 	$$ = PARSERULE_NOT_USED;
 }
+							| cl_head_formula T_ARROW_LDASH cl_body_formula cl_where_clause
+{
+	// This is a law of the form c=v <- F.
+	// Which is really just a lazy shortcut for
+	// caused c=v if F.
+
+	mainTrans.translateCausalLaw($1, $3, NULL, NULL, NULL, NULL, NULL, $4);
+	deallocateItem($1);
+	deallocateItem($3);
+	deallocateItem($4);
+	$$ = PARSERULE_NOT_USED;
+}
 							;
 
 causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
@@ -1910,14 +1944,10 @@ causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_
 	deallocateItem($4);
 	deallocateItem($5);
 	deallocateItem($6);
-	deallocateItem($7);
-	deallocateItem($8);
-	deallocateItem($9);
-	$$ = PARSERULE_NOT_USED;
 }
 							;
 
-cl_head_formula:			literal_assign_choice_conj
+cl_head_formula:					literal_assign_choice_conj
 {
 	$$ = $1;
 }

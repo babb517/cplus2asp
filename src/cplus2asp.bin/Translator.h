@@ -66,6 +66,7 @@ public:
 		LANG_CPLUS,
 		LANG_BC,
 		LANG_BCPLUS,		///< Undocumented prototype language extending BC with arbitrary nested formulas.
+		LANG_MVPF		///< Multi-valued propositional logic formulas.
 	} Language;
 		
 

@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 						<< std::endl
 						<< "  -l <LANG>" << std::endl
 						<< "  --language=<LANG>  -- Sets the input language accepted by the translator to <LANG>." << std::endl
-						<< "                        <LANG>: c+, bc, bc+" << std::endl
+						<< "                        <LANG>: c+, bc, bc+, mvpf" << std::endl
 						<< std::endl
 						<< "  --help shows this usage information." << std::endl
 						<< "  -v" << std::endl

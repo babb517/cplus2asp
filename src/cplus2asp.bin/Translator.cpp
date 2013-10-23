@@ -866,8 +866,7 @@ void Translator::translateCausalLaw(
 	ParseElement* tmpAssuming = NULL;
 	SimpleBinaryOperator *tmp = NULL;
         
-        bool allowChoiceInHead = false; // Whether choice rules are allowed in the head of a rule.
-        
+        bool allowChoiceInHead = false; 	// Whether choice rules are allowed in the head of a rule.
         
 	// step -1: Check language specific constructs
 	switch (lang()) {
@@ -935,6 +934,28 @@ void Translator::translateCausalLaw(
 			malformed = true;
 		}
 		break;
+	case LANG_MVPF:
+		tmpAssuming = assumingBody;
+		allowChoiceInHead = true;
+
+		if (whenBody) {
+			error("The when clause is not supported in MVPF.", true);
+			malformed = true;
+
+		} 
+		if (followingBody) {
+			error("The following clause is not supported in MVPF.", true);
+			malformed = true;
+		}
+
+		if (afterBody) {
+			error("The after clause is not supported in MVPF.", true);
+			malformed = true;
+		}
+
+
+		break;
+
 	}
 
 
@@ -2241,6 +2262,7 @@ bool Translator::strToLanguage(char const* str, Language& outLang) {
 	if (!strcmp(str, "bc")) outLang = Language::LANG_BC;
 	else if (!strcmp(str, "bc+")) outLang = Language::LANG_BCPLUS;
 	else if (!strcmp(str, "c+")) outLang = Language::LANG_CPLUS;
+	else if (!strcmp(str, "mvpf")) outLang = Language::LANG_MVPF;
 	else return false;
 	return true;
 }
