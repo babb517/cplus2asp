@@ -140,16 +140,18 @@ public:
 	/**
 	 * Determines if the element contains a single atom, a unary expression w/ a single atom, or a conjunction thereof.
 	 * @param allowComparison Whether to allow comparison operators in the formula.
-         * @param allowChoice Whether to allow choice rules in the formula.
+     * @param allowChoice Whether to allow choice rules in the formula.
+	 * @param allowAtomicNegation whether to allow -p or "not p" where p is a boolean atom.
 	 * @return True if the element is a definite formula.
 	 */
-	virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false) const = 0;
+	virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const = 0;
 
-        /**
-         * Whether the formula is a single atom.
-         * @return True if the element is a single atom c=v (or just c if c is boolean).
-         */
-        virtual bool isSingleAtom() const = 0;
+	/**
+	 * Whether the formula is a single atom.
+	 * @return True if the element is a single atom c=v (or just c if c is boolean).
+	 * @param allowAtomicNegation whether to allow -p or "not p" where p is a boolean atom.
+	 */
+	virtual bool isSingleAtom(bool allowAtomicNegation = false) const = 0;
         
 	/**
 	 * Determines if the element contains no (real) constants. (i.e. only "true" and/or "false").
@@ -257,7 +259,7 @@ class SimpleUnaryOperator : public ParseElement
 {
 public:
 	/// Enum of the kinds of unary operators this class can be.
-	enum UnaryOperatorType { UOP_UNKNOWN, UOP_NOT, UOP_NEGATIVE, UOP_ABS, UOP_EXOGENOUS, UOP_INERTIAL, UOP_RIGID, UOP_CHOICE };
+	enum UnaryOperatorType { UOP_UNKNOWN, UOP_NOT, UOP_STRONG_NOT, UOP_NEGATIVE, UOP_ABS, UOP_EXOGENOUS, UOP_INERTIAL, UOP_RIGID, UOP_CHOICE };
 	
 private:
 	enum UnaryOperatorType mOpType;		///< Which kind of operator an instance represents.
@@ -278,8 +280,8 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const;
-        virtual bool isSingleAtom() const;
+	virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const;
+    virtual bool isSingleAtom(bool allowAtomicNegation = false) const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 
 																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
@@ -375,8 +377,8 @@ public:
 	// inherted stuffs
 	inline virtual std::ostream& translate(std::ostream& out, Context& context) const { return translate(out, context, opType()); }
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const;
-        virtual bool isSingleAtom() const;
+	virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const;
+    virtual bool isSingleAtom(bool allowAtomicNegation = false) const;
 	virtual bool isArithExpr() const;
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const; 
 	virtual IPart determineQueryIPart() const;
@@ -477,8 +479,8 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const			{ return false; }
-        inline virtual bool isSingleAtom() const                                { return false; }
+	inline virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const			{ return false; }
+    inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const                                { return false; }
 	inline virtual bool isArithExpr() const						{ return false; }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const 	
 																{ return postOp() && postOp()->hasLuaCalls(includeParams, includeEq); }
@@ -548,8 +550,9 @@ public:
 																{ return mWrapped->translate(out, context, opType(), mForceParens); }
 	inline virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const
 																{ return mWrapped->hasConstants(types, includeParams); }
-	inline virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const			{ return mWrapped->isDefinite(allowComparison, allowChoice); }
-	inline virtual bool isSingleAtom() const                                { return mWrapped->isSingleAtom(); }
+	inline virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const			
+			{ return mWrapped->isDefinite(allowComparison, allowChoice, allowAtomicNegation); }
+	inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const                                { return mWrapped->isSingleAtom(allowAtomicNegation); }
         inline virtual bool isArithExpr() const						{ return mWrapped->isArithExpr(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 																{ return mWrapped->hasLuaCalls(includeParams, includeEq); }
@@ -609,8 +612,8 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const = 0;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const = 0;
-	virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const = 0;
-        inline virtual bool isSingleAtom() const = 0;
+	virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const = 0;
+    inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const = 0;
 	inline virtual bool isArithExpr() const 								{ return isNumeric(); }
 	virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const = 0;
 	virtual IPart determineQueryIPart() const = 0;
@@ -716,8 +719,10 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const		{ return ref() && ((Constant const*)ref())->isBoolean(); }
-        inline virtual bool isSingleAtom() const                                                        { return ref() && ((Constant const*)ref())->isBoolean(); }
+	inline virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const		
+		{ return ref() && ((Constant const*)ref())->isBoolean(); }
+    inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const                                                        
+		{ return ref() && ((Constant const*)ref())->isBoolean(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 														{ return includeParams && hasLuaCallParameters(); }
 	inline virtual IPart determineQueryIPart() const 		{ return IPART_CUMULATIVE; }
@@ -797,9 +802,11 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const						{ return baseName() == "true" || baseName() == "false"; }
-        inline virtual bool isSingleAtom() const                                                                                { return false; }
-        virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
+	inline virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const		
+		{ return baseName() == "true" || baseName() == "false"; }
+    inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const           
+		{ return false; }
+    virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 														{ return (ref() && ((Object const*)ref())->isLua()) || (includeParams && hasLuaCallParameters()); }
 	inline virtual IPart determineQueryIPart() const 	{ return IPART_BASE; }
 	virtual ParseElement* copy() const;
@@ -813,7 +820,6 @@ public:
 	inline virtual ~ObjectLikeElement() { /* Intentionally Left Blank */ }
 };
 
-// TODO: Here
 
 /**
  * Child of BaseLikeElement that represents a base element with the behavior of a variable.
@@ -834,8 +840,10 @@ public:
 	// inherited stuffs
 	virtual std::ostream& translate(std::ostream& out, Context& context) const;
 	virtual bool hasConstants(unsigned int types, bool includeParams = true, bool includeEq = true) const;
-	inline virtual bool isDefinite(bool allowComparison, bool allowChoice = false) const			{ return ref() && isConstantVariable() && ref()->isBoolean(); }
-        inline virtual bool isSingleAtom() const                                                                { return ref() && isConstantVariable() && ref()->isBoolean(); }
+	inline virtual bool isDefinite(bool allowComparison = false, bool allowChoice = false, bool allowAtomicNegation = false) const			
+		{ return ref() && isConstantVariable() && ref()->isBoolean(); }
+    inline virtual bool isSingleAtom(bool allowAtomicNegation = false) const                                                                
+		{ return ref() && isConstantVariable() && ref()->isBoolean(); }
 	inline virtual bool hasLuaCalls(bool includeParams = true, bool includeEq = true) const	
 																{ return false; }
 	inline virtual IPart determineQueryIPart() const 			{ return IPART_BASE; }

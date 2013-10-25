@@ -64,6 +64,7 @@ bool Context::addFreeVariable(std::string const& var, Sort const* domain) {
 
 /// Copy another context
 Context const& Context::copy(Context const& other) {
+	mLang = other.mLang;
 	mPos = other.mPos;
 	mPart = other.mPart;
 	mNeg = other.mNeg;

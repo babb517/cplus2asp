@@ -35,7 +35,7 @@
 #include "lexerTokenStream.h"
 
 // Used to pass comments directly to output.
-extern Translator mainTrans;
+extern Translator* mainTrans;
 
 bool hack1 = true;//use the hack dealing with improper file assignment of tokens from included files
 
@@ -490,7 +490,7 @@ int ltsyyLexer::nextToken()
 		while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
 		{
 			std::string tempStr = (*(*cIter))->output();
-			mainTrans.output(tempStr, IPART_NONE, true);
+			mainTrans->output(tempStr, IPART_NONE, true);
 			++(*cIter);
 		}
 		
@@ -510,7 +510,7 @@ int ltsyyLexer::nextToken()
 			while((*cIter) != cList->end() && (*(*cIter))->isBeforeLoc(tempToken->tokenLocation))
 			{
 				std::string tempStr = (*(*cIter))->output();
-				mainTrans.output(tempStr, IPART_NONE, true);
+				mainTrans->output(tempStr, IPART_NONE, true);
 				++(*cIter);
 			}
 		}

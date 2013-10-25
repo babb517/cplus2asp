@@ -19,12 +19,13 @@
 impossible loc(B1) = B, loc(B2) = B where B1\=B2.
 
 % Definition of a tower
-default -in_tower(B).
+default ~in_tower(B).
 in_tower(B) if loc(B) = table.
+~bl if loc(B) = table.
 in_tower(B) if loc(B) = B1, in_tower(B1).
 
 % Blocks don't float in the air
-impossible -in_tower(B).
+impossible ~in_tower(B).
 
 % Moving a block
 move(B,L) causes loc(B)=L.

@@ -82,16 +82,68 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 	// Then, perform different translations based on what the operator is.
 	switch(opType())
 	{
-	case UOP_NOT: // Logical negation (including logical "-").
 
-		// Negation works differently for bare booleans, check for them.
+	case UOP_STRONG_NOT: // Logical Strong negation "~"
+
+		// Only applicable to bare booleans.
 		if(postOp()->getType() == PELEM_CONSTLIKE && !postOp()->hasConstants(MASK_AB)) {
 
 			// some validation, make sure it's boolean
 			if (!((ConstantLikeElement*)postOp())->isBoolean()) {
-				// Not a boolean constant, but still used in bare "-c" style, this doesn't make sense.
+				// Not a boolean constant, but still used in bare "~c" style, this doesn't make sense.
 				ltsyystartParseError();
-				ltsyyossErr << "Can't use \"-\" or \"not\" to negate non-Boolean constant \"";
+				ltsyyossErr << "Can't use \"~\" to negate non-Boolean constant \"";
+				postOp()->fullName(ltsyyossErr);
+				ltsyyossErr	<< "\".";
+				ltsyyreportError();
+				return out;
+			}
+
+			// output the constant with value false
+			localContext = context.mkValue(Context::FALSE_STR);
+			postOp()->translate(out, localContext);
+
+		} else if(postOp()->getType() == PELEM_VARLIKE && ((VariableLikeElement*)postOp())->isConstantVariable()) {
+
+			// This variable actually stands for a constant of some kind, treat this as "~constant".
+			// Throw up a warning, as using "~V" with V being a constant is not guaranteed to work.
+			VariableLikeElement* varPostOp = (VariableLikeElement*)postOp();
+
+			ltsyystartWarning();
+			ltsyyossErr << "Using \"~\" on variable \"";
+			varPostOp->fullName(ltsyyossErr);
+			ltsyyossErr	<< "\" representing constant type \"";
+			ltsyyossErr << ((Variable const*)varPostOp->ref())->domain()->fullName();
+			ltsyyossErr	<< "\" is not a good idea, and is almost guaranteed to not work as expected unless you know exactly what you're doing.";
+			ltsyyreportWarning();
+
+			localContext = context.mkValue(Context::FALSE_STR);
+			varPostOp->translate(out, localContext);
+
+
+		} else {
+			// Not a bare constant,
+			ltsyystartParseError();
+			ltsyyossErr << "Invalid use of \"~\" preceeding \"";
+			postOp()->fullName(ltsyyossErr);
+			ltsyyossErr << "\". \"~\" must immediately preceede a bare boolean constant.";
+			ltsyyreportError();
+			return out;
+
+		}
+
+		break;
+
+	case UOP_NOT: // Logical negation.
+
+		// Negation works differently for bare booleans within the scope of negation (or if this is C+), check for them.
+		if ((context.getLang() == LANG_CPLUS || context.getNegated()) && postOp()->getType() == PELEM_CONSTLIKE && !postOp()->hasConstants(MASK_AB)) {
+
+			// some validation, make sure it's boolean
+			if (!((ConstantLikeElement*)postOp())->isBoolean()) {
+				// Not a boolean constant, but still used in bare "not c" style, this doesn't make sense.
+				ltsyystartParseError();
+				ltsyyossErr << "Can't use \"not\" to negate non-Boolean constant \"";
 				postOp()->fullName(ltsyyossErr);
 				ltsyyossErr	<< "\" without specifying which value is being negated. Try something like \"";
 				postOp()->fullName(ltsyyossErr);
@@ -103,24 +155,6 @@ std::ostream& SimpleUnaryOperator::translate(std::ostream& out, Context& context
 			// output the constant with value false
 			localContext = context.mkValue(Context::FALSE_STR);
 			postOp()->translate(out, localContext);
-
-
-		} else if(postOp()->getType() == PELEM_VARLIKE && ((VariableLikeElement*)postOp())->isConstantVariable()) {
-
-			// This variable actually stands for a constant of some kind, treat this as "not constant".
-			// Throw up a warning, as using "-V" with V being a constant is not guaranteed to work.
-			VariableLikeElement* varPostOp = (VariableLikeElement*)postOp();
-
-			ltsyystartWarning();
-			ltsyyossErr << "Using negation on variable \"";
-			varPostOp->fullName(ltsyyossErr);
-			ltsyyossErr	<< "\" representing constant type \"";
-			ltsyyossErr << ((Variable const*)varPostOp->ref())->domain()->fullName();
-			ltsyyossErr	<< "\" is not a good idea, and is almost guaranteed to not work as expected unless you know exactly what you're doing.";
-			ltsyyreportWarning();
-
-			localContext = context.mkValue(Context::FALSE_STR);
-			varPostOp->translate(out, localContext);
 
 		} else {
 
@@ -218,10 +252,10 @@ bool SimpleUnaryOperator::hasConstants(unsigned int types, bool includeParams, b
 
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleUnaryOperator::isDefinite(bool allowComparison, bool allowChoice /* = false */) const
+bool SimpleUnaryOperator::isDefinite(bool allowComparison, bool allowChoice, bool allowAtomicNegation) const
 {
 	// Three cases:
-	// the expression is '-p' or 'not p', as this is shorthand for p=false.
+	// the expression is '~p' as this is shorthand for p=false.
 	// or this is a declarative law such as exogenous p. where p is a constant.
 	// Alternatively, in the event we are working with a declarative law it may be one of UOP_EXOGENOUS, UOP_INERTIAL, UOP_RIGID
         // Finally, If we are allowing choice rules, then we should check if this is a choice rule and if below us is a single assignment
@@ -231,10 +265,7 @@ bool SimpleUnaryOperator::isDefinite(bool allowComparison, bool allowChoice /* =
 	if (!postOp()) return false;
 
 	// case 1
-	if (opType() == UOP_NOT) {
-		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
-				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
-	}
+	if (isSingleAtom(allowAtomicNegation)) return true;
 
 	// case 2
 	if (opType() == UOP_INERTIAL || opType() == UOP_RIGID || opType() == UOP_EXOGENOUS) {
@@ -242,24 +273,23 @@ bool SimpleUnaryOperator::isDefinite(bool allowComparison, bool allowChoice /* =
 				|| (postOp()->getType() == ParseElement::PELEM_VARLIKE);
 	}
         
-        // case three
-        if (allowChoice && opType() == UOP_CHOICE) {
-            return (postOp()->isSingleAtom());
-            
-        }
+	// case three
+	if (allowChoice && opType() == UOP_CHOICE) {
+		return (postOp()->isSingleAtom(allowAtomicNegation));
+	}
         
 
 	return false;
 }
 
 // Checks if the expression is a single atom.
-bool SimpleUnaryOperator::isSingleAtom() const
+bool SimpleUnaryOperator::isSingleAtom(bool allowAtomicNegation) const
 {
-    // This is only the case if this is '-p' or 'not p' where p is boolean.
-    if (opType() == UOP_NOT) {
+	if (opType() == UOP_STRONG_NOT || (allowAtomicNegation && opType() == UOP_NOT)) {
 		return (postOp()->getType() == ParseElement::PELEM_CONSTLIKE || postOp()->getType() == ParseElement::PELEM_VARLIKE)
-				&& (((BaseLikeElement*)postOp())->isBoolean());
+				&& (((BaseLikeElement*)postOp())->ref()->isBoolean());
 	}
+	return false;
 }
 
 // Determines if the element is a valid arithmetic expression.
@@ -272,6 +302,7 @@ bool SimpleUnaryOperator::isArithExpr() const {
 			return postOp()->isArithExpr();
 		case UOP_UNKNOWN:
 		case UOP_NOT:
+		case UOP_STRONG_NOT:
 		case UOP_EXOGENOUS:
 		case UOP_INERTIAL:
 		case UOP_RIGID:
@@ -289,6 +320,9 @@ std::ostream& SimpleUnaryOperator::fullName(std::ostream& out) const
 		// Create a CCalc-compatible representation of the operator first.
 		switch(opType())
 		{
+		case UOP_STRONG_NOT:
+			out << "~";
+			break;
 		case UOP_NOT:
 			out << "not ";
 			break;
@@ -328,6 +362,8 @@ ParseElement* SimpleUnaryOperator::detachPostOp() {
 std::string SimpleUnaryOperator::translateOpType(UnaryOperatorType op) {
 	switch(op)
 	{
+	case UOP_STRONG_NOT:
+		return "~";
 	case UOP_NOT:
 		return "not ";
 	case UOP_NEGATIVE:
@@ -554,13 +590,13 @@ bool SimpleBinaryOperator::hasConstants(unsigned int types, bool includeParams, 
 	return ret;
 }
 
-bool SimpleBinaryOperator::isDefinite(bool allowComparison, bool allowChoice /* = false */) const {
+bool SimpleBinaryOperator::isDefinite(bool allowComparison, bool allowChoice, bool allowAtomicNegation) const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
 	// OR if it's a conjunction of single atoms.
-	if (!preOp() && postOp()) return postOp()->isDefinite(allowComparison);
-	else if (!postOp() && preOp()) return preOp()->isDefinite(allowComparison);
+	if (!preOp() && postOp()) return postOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation);
+	else if (!postOp() && preOp()) return preOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation);
 	else if (opType() == BOP_AND) {
-		return preOp()->isDefinite(allowComparison) && postOp()->isDefinite(allowComparison);
+		return preOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation) && postOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation);
 	} else if (opType() == BOP_EQ) {
 		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
 				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
@@ -577,10 +613,10 @@ bool SimpleBinaryOperator::isDefinite(bool allowComparison, bool allowChoice /* 
 }
 
 // Returns true if this expression corresponds to a single atom.
-bool SimpleBinaryOperator::isSingleAtom() const {
+bool SimpleBinaryOperator::isSingleAtom(bool allowAtomicNegation) const {
 	// The only time when this is true is if one of the children is NULL and the other is a single atom OR if it's of the form c=v
-	if (!preOp() && postOp()) return postOp()->isSingleAtom();
-	else if (!postOp() && preOp()) return preOp()->isSingleAtom();
+	if (!preOp() && postOp()) return postOp()->isSingleAtom(allowAtomicNegation);
+	else if (!postOp() && preOp()) return preOp()->isSingleAtom(allowAtomicNegation);
 	else if (opType() == BOP_EQ) {
 		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
 				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);

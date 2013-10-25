@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "types.h"
+#include "languages.h"
 
 #include "parser_types.h"
 #include "DataStructs/ElementCounter.h"
@@ -59,15 +60,6 @@ public:
 	/*****************************************************************************************/
 	/* Types */
 	/*****************************************************************************************/
-	/**
-	 * @brief The various input languages supported.
-	 */
-	typedef enum {
-		LANG_CPLUS,
-		LANG_BC,
-		LANG_BCPLUS,		///< Undocumented prototype language extending BC with arbitrary nested formulas.
-		LANG_MVPF		///< Multi-valued propositional logic formulas.
-	} Language;
 		
 
 private:
@@ -742,13 +734,6 @@ public:
 	 * @return True if successful, false otherwise. 
 	 */
 	static bool strToLanguage(char const* str, Language& outLang);
-
-	
-	/**
- 	 * @brief Sets the input language to the provided language.
-	 * @param lang The language to accept as input
-	 */
-	inline void lang(Language lang) { mLanguage = lang; }
 
 	/// Gets the currently active language
 	inline Language lang() const { return mLanguage; }

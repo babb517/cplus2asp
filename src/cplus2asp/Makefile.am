@@ -9,6 +9,7 @@ locdir = $(pkglibdir)
 loc_PROGRAMS = cplus2asp
 
 loc_DATA = \
+	mvpf_std.f2lp \
 	cplus2asp_additive.f2lp \
 	cplus2asp_std.f2lp \
 	cplus2asp_additive.of2lp \

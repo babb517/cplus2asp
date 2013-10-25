@@ -1,0 +1,76 @@
+% Standard description-independent declarations and laws to translate MVPF.
+
+% A derived binary relation between a constant and its domain objects,
+% connected via constant_sort and sort_object.
+
+%-------------------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+#base.
+
+query_label(query). % Selects which query to activate in a based on the value of the const "query".
+
+constant_object(V_constant,Object) <- 
+   constant_sort(V_constant,V_sort) & 
+   sort_object(V_sort,Object).
+
+%-------------------------------------------------------------
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%-------------------------------------------------------------
+
+% Standard, description-independent declarations of sorts and domains.
+
+sort(boolean).
+#domain boolean(V_boolean).
+sort_object(boolean,V_boolean).
+
+boolean(true).
+boolean(false).
+
+
+sort(computed).
+#domain computed(V_computed).
+sort_object(computed,V_computed).
+
+% Constants hierarchy
+
+% Meta-constants to group categories of constants.
+
+sort(constant).
+#domain constant(V_constant).
+sort_object(constant,V_constant).
+
+%----
+
+% Rigid constants
+sort(rigid).
+#domain rigid(V_rigid). 
+sort_object(rigid,V_rigid). 
+constant(V_rigid).
+
+% exogenous: Grants exogeneity to a constant.
+
+% Rigids
+{h(eql(V_rigid,Value))} <- 
+   exogenous(V_rigid) &
+   constant_object(V_rigid,Value).
+
+% Existence and uniqueness for every constant relative to its domain.
+false <- not 1{ h(eql(V_rigid,Object1)) : constant_object(V_rigid,Object1) }1.
+
+% Etc
+#hide constant_object/2.
+#hide constant_sort/2.
+#hide sort_object/2.
+#hide sort/1.
+#hide boolean/1.
+#hide constant/1.
+#hide query_label/1.
+#hide rigid/1.
+#hide computed/1.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+

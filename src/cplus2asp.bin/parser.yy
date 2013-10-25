@@ -59,6 +59,9 @@
 #include "parser_types.h"
 
 #include "ltsglobals.h"
+
+#include "languages.h"
+
 }
 
 %union {
@@ -100,7 +103,7 @@
  * @brief Contains parser for C+ programs, including definitions and helper functions.
  */
 
-extern Translator mainTrans; ///< The main Translator instance, declared by the parser to create a close working relationship.
+extern Translator* mainTrans;
 extern bool ltsyyendOfFile; ///< True if the parser has reached the end of the input stream.
 extern int ltsyynerrs; ///< Output string stream used to store and output error messages from the parser and its helper modules.
 
@@ -261,7 +264,6 @@ YYLTYPE ltsyyGetLoc();
 %}
 
 %{
-Translator mainTrans; 						// The main Translator instance, declared by the parser to create a close working relationship.
 bool ltsyyendOfFile = false; 				// True if the parser has reached the end of the input stream.
 std::ostringstream ltsyyossErr; 			// Output string stream used to store and output error messages from the parser and its helper modules.
 
@@ -366,6 +368,8 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent);
 %token <integer> T_PERIOD			// .
 %token <integer> T_PIPE				// |
 %token <integer> T_NOOP				// hack token
+
+%token <integer> T_TILDE			// ~
 
 // Psuedo Terminals
 %type <integer> COMPARISON AND NOT
@@ -478,16 +482,16 @@ program:					 	 /*  empty  */		{ $$ = PARSERULE_NOT_USED; }
 
 		// Ensure that we append the footer
 		// after the program has finished translating
-		mainTrans.outputFooter();
+		mainTrans->outputFooter();
 		
 }
 							;
 
-statement_sequence:			  		statement		{ $$ = PARSERULE_NOT_USED; }
+statement_sequence:			statement		{ $$ = PARSERULE_NOT_USED; }
 							| statement_sequence statement		{ $$ = PARSERULE_NOT_USED; }
 							;
 
-statement:					  	constant_statement		{ $$ = PARSERULE_NOT_USED; }
+statement:				 	constant_statement		{ $$ = PARSERULE_NOT_USED; }
 							| maxadditive_statement		{ $$ = PARSERULE_NOT_USED; }
 							| object_statement		{ $$ = PARSERULE_NOT_USED; }
 							| query_statement		{ $$ = PARSERULE_NOT_USED; }
@@ -536,32 +540,32 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 
 	if ($3) {
 
-		switch (mainTrans.lang()) {
-		case Translator::LANG_CPLUS:
+		switch (mainTrans->lang()) {
+		case LANG_CPLUS:
 			switch ($3->constType) {
 			case Constant::CONST_UNKNOWN:
-				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				mainTrans->error("Bad constant declaration. The constant type is not recognized.", true);
 				break;
 			default:
 				break;
 			}
 			break;
 
-		case Translator::LANG_BC:
+		case LANG_BC:
 			switch ($3->constType) {
 			case Constant::CONST_UNKNOWN:
-				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				mainTrans->error("Bad constant declaration. The constant type is not recognized.", true);
 				break;
 			case Constant::CONST_STATICAB:
 			case Constant::CONST_DYNAMICAB:
-				mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
 				break;
 			case Constant::CONST_ATTRIBUTE:
-				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
 				break;
 			case Constant::CONST_ADDITIVEACTION:
 			case Constant::CONST_ADDITIVEFLUENT:
-				mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
 				break;
 			case Constant::CONST_ACTION:
 				// bc uses only exogenous actions.
@@ -570,21 +574,21 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			case Constant::CONST_EXOGENOUSACTION:
 				break;
 			}
-		case Translator::LANG_BCPLUS:
+		case LANG_BCPLUS:
 			switch ($3->constType) {
 			case Constant::CONST_UNKNOWN:
-				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				mainTrans->error("Bad constant declaration. The constant type is not recognized.", true);
 				break;
 			case Constant::CONST_STATICAB:
 			case Constant::CONST_DYNAMICAB:
-				mainTrans.error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. Abnormality constants aren't supported in language BC.", true);
 				break;
 			case Constant::CONST_ATTRIBUTE:
-				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. The specified constant type isn't supported in language BC.", true);
 				break;
 			case Constant::CONST_ADDITIVEACTION:
 			case Constant::CONST_ADDITIVEFLUENT:
-				mainTrans.error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
+				mainTrans->error("Bad constant declaration. Additive constants aren't supported in language BC.", true);
 				break;
 			case Constant::CONST_ACTION:
 				break;
@@ -592,11 +596,11 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 				break;
 			}
 			break;
-		case Translator::LANG_MVPF:
+		case LANG_MVPF:
 			// MVPF only allows rigid constants.
 			switch ($3->constType) {
 			case Constant::CONST_UNKNOWN:
-				mainTrans.error("Bad constant declaration. The constant type is not recognized.", true);
+				mainTrans->error("Bad constant declaration. The constant type is not recognized.", true);
 				break;
 			case Constant::CONST_RIGID:
 				break;
@@ -607,7 +611,7 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			case Constant::CONST_ADDITIVEFLUENT:
 			case Constant::CONST_ACTION:
 			case Constant::CONST_EXOGENOUSACTION:
-				mainTrans.error("Bad constant declaration. The specified constant type isn't supported in MVPF.", true);
+				mainTrans->error("Bad constant declaration. The specified constant type isn't supported in MVPF.", true);
 				break;
 			}
 			break;
@@ -640,7 +644,7 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 			
 			for(lIter = $1->begin(); lIter != $1->end(); ++lIter)
 			{	// Try to add each constant to the symbol table before hooking it up and translating it.
-				int addSymResult = mainTrans.addSymbol(*lIter);
+				int addSymResult = mainTrans->addSymbol(*lIter);
 				if(addSymResult != SymbolTable::ADDSYM_OK)
 				{	// Something went wrong adding this constant, skip connecting & translating it.
 					if(addSymResult == SymbolTable::ADDSYM_DUP)
@@ -669,7 +673,7 @@ constant_spec:				 		 constant_schema_outer_list T_DBL_COLON constant_outer_bind
 						((Attribute*)(*lIter))->parent($3->parent);
 					}
 					// Translate each constant once its information is complete.
-					mainTrans.translateConstantDecl(*lIter);
+					mainTrans->translateConstantDecl(*lIter);
 				}
 			}
 		}
@@ -774,10 +778,10 @@ constant_schema:			  		T_IDENTIFIER
 constant_schema_nodecl:		  T_IDENTIFIER
 {
 	// TODO: Check if not found.
-	$$ = mainTrans.getConstant(*$1);
+	$$ = mainTrans->getConstant(*$1);
 
 	if (!$$)
-		mainTrans.error("\"" + *$1 + std::string("/0") + "\" is not a valid constant identifier.", true);
+		mainTrans->error("\"" + *$1 + std::string("/0") + "\" is not a valid constant identifier.", true);
 
 	deallocateItem($1);
 }
@@ -786,10 +790,10 @@ constant_schema_nodecl:		  T_IDENTIFIER
 	$$ = NULL;
 	if($3 != NULL)
 	{
-		$$ = mainTrans.getConstant(*$1, $3->size());
+		$$ = mainTrans->getConstant(*$1, $3->size());
 
 		if (!$$)
-			mainTrans.error("\"" + *$1 + utils::to_string($3->size()) + "\" is not a valid constant identifier.", true);
+			mainTrans->error("\"" + *$1 + utils::to_string($3->size()) + "\" is not a valid constant identifier.", true);
 
 		deallocateList($3);
 	}
@@ -921,20 +925,20 @@ constant_binder:			  		sort_identifier_with_ab
 	if($1 != NULL)
 	{
 		std::string numRangeSortName = Translator::numRangeToSortName($1->min, $1->max);
-		Sort* tempSort = mainTrans.getSort(numRangeSortName);
+		Sort* tempSort = mainTrans->getSort(numRangeSortName);
 		if(tempSort == NULL)
 		{
 			// Have a helper function handle making and translating the sort.
 			std::list<Sort*>* dummyList = new std::list<Sort*>; // No subsorts.
-			tempSort = mainTrans.addSort(&numRangeSortName, dummyList, true, false);
+			tempSort = mainTrans->addSort(&numRangeSortName, dummyList, true, false);
 			deallocateList(dummyList);
 			// Also add the number range as an object for this new sort.
-			int addResult = mainTrans.addObject($1);
+			int addResult = mainTrans->addObject($1);
 			if(addResult == SymbolTable::ADDSYM_OK)
 			{
 				tempSort->domainObjs.push_back($1);
 				// Output the translation of the object declaration.
-				mainTrans.translateObjectDecl($1, tempSort);
+				mainTrans->translateObjectDecl($1, tempSort);
 			}
 		}
 		if($$ != NULL && tempSort != NULL)
@@ -964,7 +968,7 @@ maxadditive_statement:		  T_COLON_DASH T_MAXADDITIVE T_DBL_COLON extended_intege
 		std::string maxAdditiveHint = "% [MaxAdditive:";
 		maxAdditiveHint += *($4);
 		maxAdditiveHint += "]";
-		mainTrans.output(maxAdditiveHint, IPART_NONE, true);
+		mainTrans->output(maxAdditiveHint, IPART_NONE, true);
 		$$ = PARSERULE_NOT_USED;
 		deallocateItem($4);
 	}
@@ -994,16 +998,16 @@ object_spec:				  object_outer_schema_list T_DBL_COLON sort_outer_identifier
 
 	if ($1 && $3) {
 
-		Sort* sort = mainTrans.getSort(*$3);
+		Sort* sort = mainTrans->getSort(*$3);
 		Element* elem;
 
 		if (!sort) {
-			mainTrans.error("Bad object declaration. \"" + *$3 + "\" is not a valid sort.", true);
+			mainTrans->error("Bad object declaration. \"" + *$3 + "\" is not a valid sort.", true);
 		} else if (!$1) {
 			// directly referenced sorts should be made visible.
 			sort->internal(false);
 
-			mainTrans.error("Bad object declaration.", true);
+			mainTrans->error("Bad object declaration.", true);
 		} else {
 			// directly referenced sorts should be made visible.
 			sort->internal(false);
@@ -1011,17 +1015,17 @@ object_spec:				  object_outer_schema_list T_DBL_COLON sort_outer_identifier
 			// add each of the objects. 
 			for (ObjectList::iterator it = $1->begin(); it != $1->end(); it++) {
 				// make sure it's valid and hasn't been declared to something conflicting
-				if (!*it) mainTrans.error("Bad object declaration.", true);
-				else if ((elem = mainTrans.getSymbol((*it)->baseName(), (*it)->arity())) && elem->getElemType() != Element::ELEM_OBJ ) {
-						mainTrans.error("Detected a conflicting definition of \"" + elem->baseName() 
+				if (!*it) mainTrans->error("Bad object declaration.", true);
+				else if ((elem = mainTrans->getSymbol((*it)->baseName(), (*it)->arity())) && elem->getElemType() != Element::ELEM_OBJ ) {
+						mainTrans->error("Detected a conflicting definition of \"" + elem->baseName() 
 							+ "/" + utils::to_string(elem->arity()) + "\".", true);
 				} else {
-					mainTrans.translateObjectDecl(*it, sort);
+					mainTrans->translateObjectDecl(*it, sort);
 					
 					if (!elem) {
 						elem = *it;
-						if (mainTrans.addSymbol(elem) != SymbolTable::ADDSYM_OK) {
-							mainTrans.error("An error occurred processing the definition of \"" + elem->baseName() 
+						if (mainTrans->addSymbol(elem) != SymbolTable::ADDSYM_OK) {
+							mainTrans->error("An error occurred processing the definition of \"" + elem->baseName() 
 								+ "/" + utils::to_string(elem->arity()) + "\".", true);
 							delete elem;
 							elem = NULL;
@@ -1129,7 +1133,7 @@ object_schema:				  T_IDENTIFIER
 show_statement:				  		T_COLON_DASH T_SHOW atomic_formula_list T_PERIOD
 {
 	if ($3) {
-		mainTrans.translateShowStmt(*$3);
+		mainTrans->translateShowStmt(*$3);
 	} else {
 		YYERROR;
 	}
@@ -1246,7 +1250,7 @@ sort_spec_tuple:			  		  sort_spec
 sort_spec:					  	sort_identifier_no_range
 {
 	// Have a helper function handle making and translating the sort.
-	$$ = mainTrans.addSort(*$1, false, NULL, true, false);
+	$$ = mainTrans->addSort(*$1, false, NULL, true, false);
 	deallocateItem($1);
 	if($$ == NULL)
 	{
@@ -1256,7 +1260,7 @@ sort_spec:					  	sort_identifier_no_range
 							| sort_identifier_no_range T_DBL_GTHAN sort_spec_outer_tuple
 {
 	// Have a helper function handle making and translating the sort.
-	$$ = mainTrans.addSort(*$1, false, $3, true, false);
+	$$ = mainTrans->addSort(*$1, false, $3, true, false);
 	deallocateItem($1);
 	deallocateList($3);
 	if($$ == NULL)
@@ -1308,11 +1312,11 @@ sort_identifier:
 	{
 		$$ = new std::string();
 		*$$ = Translator::numRangeToSortName($1->min(), $1->max());
-		Sort* tempSort = mainTrans.getSort(*$$);
+		Sort* tempSort = mainTrans->getSort(*$$);
 		if(tempSort == NULL)
 		{
 			// Have a helper function handle making and translating the sort.
-			tempSort = mainTrans.addSort(*$$, true, NULL, true, false);
+			tempSort = mainTrans->addSort(*$$, true, NULL, true, false);
 			// Also add the number range as an object for this new sort.
 
 			int min, max;
@@ -1321,15 +1325,15 @@ sort_identifier:
 				for (int i = min; i <= max; i++) {
 
 					std::string str = utils::to_string(i);
-					Element* obj = mainTrans.getSymbol(str);
+					Element* obj = mainTrans->getSymbol(str);
 					if (obj) {
 						if (obj->getElemType() != Element::ELEM_OBJ) {
-							mainTrans.error("detected a conflicting definition of \"" + str + "\"", true);
+							mainTrans->error("detected a conflicting definition of \"" + str + "\"", true);
 							obj = NULL;
 						}
 					} else {
 						obj = new Object(str, Object::OBJ_NAME, false);
-						if (mainTrans.addSymbol(obj) != SymbolTable::ADDSYM_OK) {
+						if (mainTrans->addSymbol(obj) != SymbolTable::ADDSYM_OK) {
 							delete obj;
 							obj = NULL;
 						} 
@@ -1337,20 +1341,20 @@ sort_identifier:
 
 					if (obj) {
 						tempSort->addObject((Object*)obj);
-						mainTrans.translateObjectDecl((Object*)obj, tempSort);
+						mainTrans->translateObjectDecl((Object*)obj, tempSort);
 					}
 				}
 			} else {
-				tempSort = mainTrans.addSort(*$$, true, NULL, true, false);
-				Element* obj = mainTrans.getSymbol($1->baseName());
+				tempSort = mainTrans->addSort(*$$, true, NULL, true, false);
+				Element* obj = mainTrans->getSymbol($1->baseName());
 				if (obj) {
 					if (obj->getElemType() != Element::ELEM_OBJ) {
-						mainTrans.error("detected a conflicting definition of \"" + $1->baseName() + "\"", true);
+						mainTrans->error("detected a conflicting definition of \"" + $1->baseName() + "\"", true);
 						obj = NULL;
 					}
 				} else {
 					obj = new Object($1->baseName(), Object::OBJ_NAME, false);
-					if (mainTrans.addSymbol(obj) != SymbolTable::ADDSYM_OK) {
+					if (mainTrans->addSymbol(obj) != SymbolTable::ADDSYM_OK) {
 						delete obj;
 						obj = NULL;
 					} 
@@ -1358,7 +1362,7 @@ sort_identifier:
 
 				if (obj) {
 					tempSort->addObject((Object*)obj);
-					mainTrans.translateObjectDecl((Object*)obj, tempSort);
+					mainTrans->translateObjectDecl((Object*)obj, tempSort);
 				}
 			}
 		}
@@ -1484,17 +1488,17 @@ variable_spec:				  variable_outer_list T_DBL_COLON variable_binding
 		{
 			(*vIter)->domain($3);
 
-			if ((elem = mainTrans.getSymbol((*vIter)->baseName(), 0)) && (elem->getElemType() != Element::ELEM_VAR 
+			if ((elem = mainTrans->getSymbol((*vIter)->baseName(), 0)) && (elem->getElemType() != Element::ELEM_VAR 
 				|| ((Variable*)elem)->domain() != $3 )) {
-				mainTrans.error("Detected a conflicted definition for the \"" + (*vIter)->baseName() + std::string("/0") + "\" identifier.", true);
+				mainTrans->error("Detected a conflicted definition for the \"" + (*vIter)->baseName() + std::string("/0") + "\" identifier.", true);
 			} else if (elem) {
-				mainTrans.warn("Detected a redeclaration of \"" + (*vIter)->baseName() + std::string("/0") + "\".", true);
+				mainTrans->warn("Detected a redeclaration of \"" + (*vIter)->baseName() + std::string("/0") + "\".", true);
 			}
-			else if (mainTrans.addSymbol(*vIter) != SymbolTable::ADDSYM_OK) {
-				mainTrans.error("An error occurred declaring variable \"" + (*vIter)->baseName() + "\".", true);
+			else if (mainTrans->addSymbol(*vIter) != SymbolTable::ADDSYM_OK) {
+				mainTrans->error("An error occurred declaring variable \"" + (*vIter)->baseName() + "\".", true);
 				delete *vIter;
 			} else 
-				mainTrans.translateVariableDecl(*vIter);
+				mainTrans->translateVariableDecl(*vIter);
 		}
 	}
 	if($1 != NULL)
@@ -1549,7 +1553,7 @@ variable_list:				  T_IDENTIFIER
 variable_binding:			  		sort_outer_identifier
 {
 	// Find the sort in question, create it if it doesn't exist and is a "something*" sort (whose "something" exists already), or report an error.
-	$$ = mainTrans.getSort(*$1);
+	$$ = mainTrans->getSort(*$1);
 	if($$ == NULL)
 	{
 		$$ = checkDynamicSortDecl(*$1); // Reports appropriate errors, we just need to YYERROR if that happens.
@@ -1568,20 +1572,20 @@ variable_binding:			  		sort_outer_identifier
 	if($1 != NULL)
 	{
 		std::string numRangeSortName = Translator::numRangeToSortName($1->min, $1->max);
-		$$ = mainTrans.getSort(numRangeSortName);
+		$$ = mainTrans->getSort(numRangeSortName);
 		if($$ == NULL)
 		{
 			// Have a helper function handle making and translating the sort.
 			std::list<Sort*>* dummyList = new std::list<Sort*>; // No subsorts.
-			$$ = mainTrans.addSort(&numRangeSortName, dummyList, true, false);
+			$$ = mainTrans->addSort(&numRangeSortName, dummyList, true, false);
 			deallocateList(dummyList);
 			// Also add the number range as an object for this new sort.
-			int addResult = mainTrans.addObject($1);
+			int addResult = mainTrans->addObject($1);
 			if(addResult == SymbolTable::ADDSYM_OK)
 			{
 				$$->domainObjs.push_back($1);
 				// Output the translation of the object declaration.
-				mainTrans.translateObjectDecl($1, $$);
+				mainTrans->translateObjectDecl($1, $$);
 			}
 		}
 	}
@@ -1654,7 +1658,7 @@ causal_law_shortcut_forms:	  			cl_always_forms			{ $$ = PARSERULE_NOT_USED; }
 
 cl_always_forms:					T_ALWAYS cl_body_formula cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateAlwaysLaw($2, $3, $4, $5);
+	bool transResult = mainTrans->translateAlwaysLaw($2, $3, $4, $5);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1669,7 +1673,7 @@ cl_always_forms:					T_ALWAYS cl_body_formula cl_unless_clause cl_when_clause cl
 
 cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateConstraintLaw($2, $3, $4, $5, $6, $7, true);
+	bool transResult = mainTrans->translateConstraintLaw($2, $3, $4, $5, $6, $7, true);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1684,7 +1688,7 @@ cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_
 }
 							| T_IMPOSSIBLE cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateConstraintLaw($2, $3, $4, $5, $6, $7, false);
+	bool transResult = mainTrans->translateConstraintLaw($2, $3, $4, $5, $6, $7, false);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1699,7 +1703,7 @@ cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_
 }
 							| T_NEVER cl_body_formula cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateConstraintLaw($2, $3, $4, $5, $6, $7, false);
+	bool transResult = mainTrans->translateConstraintLaw($2, $3, $4, $5, $6, $7, false);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1717,7 +1721,7 @@ cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_
 cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
 
-	bool transResult = mainTrans.translateDefaultLaw($2, $3, $4, $5, $6, $7, $8, $9);
+	bool transResult = mainTrans->translateDefaultLaw($2, $3, $4, $5, $6, $7, $8, $9);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1736,7 +1740,7 @@ cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause 
 
 cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_unless_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_EXOGENOUS);
+	bool transResult = mainTrans->translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_EXOGENOUS);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1750,7 +1754,7 @@ cl_exogenous_forms:			  		T_EXOGENOUS constant_expr cl_unless_clause cl_where_cl
 
 cl_inertial_forms:			  		T_INERTIAL constant_expr cl_unless_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_INERTIAL);
+	bool transResult = mainTrans->translateDeclarativeLaw($2, NULL, NULL, NULL, $3, NULL, NULL, $4, SimpleUnaryOperator::UOP_INERTIAL);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1764,7 +1768,7 @@ cl_inertial_forms:			  		T_INERTIAL constant_expr cl_unless_clause cl_where_clau
 
 cl_nonexecutable_forms:		  			T_NONEXECUTABLE cl_body_formula cl_if_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateNonexecutableLaw($2, $3, $4, $5, $6);
+	bool transResult = mainTrans->translateNonexecutableLaw($2, $3, $4, $5, $6);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1788,7 +1792,7 @@ cl_rigid_forms:				  		T_RIGID constant_expr cl_where_clause
 	ltsyyossErr << "Rules of the form \"rigid p [where F]\" are not fully supported and may produce unintended behavior. Please declare the constant as rigid instead.";
 	ltsyyreportWarning();
 
-	bool transResult = mainTrans.translateDeclarativeLaw($2, NULL, NULL, NULL, NULL, NULL, NULL, $3, SimpleUnaryOperator::UOP_RIGID);
+	bool transResult = mainTrans->translateDeclarativeLaw($2, NULL, NULL, NULL, NULL, NULL, NULL, $3, SimpleUnaryOperator::UOP_RIGID);
 	deallocateItem($2);
 	deallocateItem($3);
 	$$ = PARSERULE_NOT_USED;
@@ -1801,7 +1805,7 @@ cl_rigid_forms:				  		T_RIGID constant_expr cl_where_clause
 
 cl_possibly_caused_forms:	  			T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
-	bool transResult = mainTrans.translatePossiblyCausedLaw($2, $3, $4, $5, $6, $7, $8, $9);
+	bool transResult = mainTrans->translatePossiblyCausedLaw($2, $3, $4, $5, $6, $7, $8, $9);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1820,7 +1824,7 @@ cl_possibly_caused_forms:	  			T_POSSIBLY_CAUSED cl_head_formula cl_if_clause cl
 
 cl_may_cause_forms:			  		literal_assign_expr T_MAY_CAUSE cl_head_formula cl_if_clause cl_assuming_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateMayCauseLaw($1, $3, $4, $5, $6, $7);
+	bool transResult = mainTrans->translateMayCauseLaw($1, $3, $4, $5, $6, $7);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1837,7 +1841,7 @@ cl_may_cause_forms:			  		literal_assign_expr T_MAY_CAUSE cl_head_formula cl_if_
 
 cl_causes_forms:			 		literal_assign_expr T_CAUSES cl_head_formula cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateCausesLaw($1, $3, $4, $5, $6, $7, $8);
+	bool transResult = mainTrans->translateCausesLaw($1, $3, $4, $5, $6, $7, $8);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1856,20 +1860,20 @@ cl_causes_forms:			 		literal_assign_expr T_CAUSES cl_head_formula cl_if_clause 
 cl_noconcurrency_forms:		  			T_NOCONCURRENCY
 {
 	// This one's easy, it's just a pass-through.
-	mainTrans.output("noconcurrency.", IPART_BASE, true);
+	mainTrans->output("noconcurrency.", IPART_BASE, true);
 	$$ = PARSERULE_NOT_USED;
 }
 							| T_STRONG_NOCONCURRENCY
 {
 	// This one is also very easy.
-	mainTrans.output("strong_noconcurrency.", IPART_BASE, true);
+	mainTrans->output("strong_noconcurrency.", IPART_BASE, true);
 	$$ = PARSERULE_NOT_USED;
 }
 							;
 
 cl_increment_forms: 		  			literal_assign_expr T_INCREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, true);
+	bool transResult = mainTrans->translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, true);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);
@@ -1887,7 +1891,7 @@ cl_increment_forms: 		  			literal_assign_expr T_INCREMENTS cl_head_formula T_BY
 }
 							|  literal_assign_expr T_DECREMENTS cl_head_formula T_BY extended_math_expression cl_if_clause cl_assuming_clause cl_unless_clause cl_when_clause cl_where_clause
 {
-	bool transResult = mainTrans.translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, false);
+	bool transResult = mainTrans->translateIncrementLaw($1, $3, $5, $6, $7, $8, $9, $10, false);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($5);
@@ -1911,7 +1915,7 @@ cl_basic_rule_forms:					cl_head_formula cl_if_clause cl_assuming_clause cl_afte
 	// Which is really just a lazy shortcut for
 	// caused c=v.
 
-	mainTrans.translateCausalLaw($1, $2, $3, $4, $5, $6, $7, $8);
+	mainTrans->translateCausalLaw($1, $2, $3, $4, $5, $6, $7, $8);
 	deallocateItem($1);
 	deallocateItem($2);
 	deallocateItem($3);
@@ -1928,7 +1932,7 @@ cl_basic_rule_forms:					cl_head_formula cl_if_clause cl_assuming_clause cl_afte
 	// Which is really just a lazy shortcut for
 	// caused c=v if F.
 
-	mainTrans.translateCausalLaw($1, $3, NULL, NULL, NULL, NULL, NULL, $4);
+	mainTrans->translateCausalLaw($1, $3, NULL, NULL, NULL, NULL, NULL, $4);
 	deallocateItem($1);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1938,7 +1942,7 @@ cl_basic_rule_forms:					cl_head_formula cl_if_clause cl_assuming_clause cl_afte
 
 causal_law_basic_forms:		  			T_CAUSED cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause
 {
-	mainTrans.translateCausalLaw($2, $3, $4, $5, $6, $7, $8, $9);
+	mainTrans->translateCausalLaw($2, $3, $4, $5, $6, $7, $8, $9);
 	deallocateItem($2);
 	deallocateItem($3);
 	deallocateItem($4);
@@ -1953,11 +1957,11 @@ cl_head_formula:					literal_assign_choice_conj
 }
 							| T_TRUE
 {
-	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateObject("true"));
+	$$ = new ObjectLikeElement("true", mainTrans->getOrCreateObject("true"));
 }
 							| T_FALSE
 {
-	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateObject("false"));
+	$$ = new ObjectLikeElement("false", mainTrans->getOrCreateObject("false"));
 }
 							;
 
@@ -2033,6 +2037,10 @@ cl_body_term_inner:			  extended_value_expression
 	{
 		YYERROR;
 	}
+}
+							| T_TILDE constant_expr
+{
+	$$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_STRONG_NOT, $2);
 }
 							| extended_value_expression T_EQ extended_value_expression
 {
@@ -2134,7 +2142,7 @@ cl_body_formula_bool_inner:	  cl_body_term_bool
 }
 							;
 
-cl_body_term_bool:		 			cl_body_term_bool_inner
+cl_body_term_bool:		 	cl_body_term_bool_inner
 {
 	$$ = $1;
 }
@@ -2148,13 +2156,17 @@ cl_body_term_bool:		 			cl_body_term_bool_inner
 }
 							;
 
-cl_body_term_bool_inner:	  			constant_expr
+cl_body_term_bool_inner:	 constant_expr
 {
 	$$ = $1;
 	if($$ == NULL)
 	{
 		YYERROR;
 	}
+}
+							| T_TILDE constant_expr
+{
+	$$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_STRONG_NOT, $2);
 }
 							| expr_big_expression_bool
 {
@@ -2197,6 +2209,10 @@ literal_assign_expr:		  			constant_expr
 							| NOT constant_expr %prec T_UMINUS
 {
 	$$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_NOT, $2);
+}
+							| T_TILDE constant_expr %prec T_UMINUS
+{
+	$$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_STRONG_NOT, $2);
 }
 							| constant_expr T_EQ extended_value_expression
 {
@@ -2331,12 +2347,12 @@ expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
 	$$ = new BigQuantifiers::Quantifier( BigQuantifiers::QUANT_CONJ, NULL);
 
 	// That identifier better be a variable...
-	Variable* varRef = mainTrans.getVariable(*$2);
+	Variable* varRef = mainTrans->getVariable(*$2);
 	if(varRef == NULL)
 	{
 		// It's not. We should tell them.
 		// First. Let's figure out exactly what kind of error it is...
-		if (mainTrans.getSymbol(*$2,0)) {
+		if (mainTrans->getSymbol(*$2,0)) {
 			// They've given us something that clearly isn't a variable.
 			ltsyystartParseError(ltsyylloc);
 			ltsyyossErr << "Unexpected token \"" << *$2 << "\" in quantifier. Expected a variable.";
@@ -2350,7 +2366,7 @@ expr_big_conj:				  T_BIG_CONJ T_IDENTIFIER
 		
 		// For the sake of system stability, we'll return a new variable.
 		varRef = new Variable(*$2, true);
-		if (mainTrans.addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
+		if (mainTrans->addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
 			$$->second = new VariableLikeElement(*$2, varRef);
 		} else {
 			$$->second = NULL;
@@ -2370,12 +2386,12 @@ expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 	$$ = new std::pair<enum BigQuantifiers::QuantifierType, ParseElement*>();
 	$$->first = BigQuantifiers::QUANT_DISJ;
 	// Guess that the identifier is a variable, otherwise just default to object.
-	Variable* varRef = mainTrans.getVariable(*$2);
+	Variable* varRef = mainTrans->getVariable(*$2);
 	if(varRef == NULL)
 	{
 		// It's not. We should tell them.
 		// First. Let's figure out exactly what kind of error it is...
-		if (mainTrans.getSymbol(*$2,0)) {
+		if (mainTrans->getSymbol(*$2,0)) {
 			// They've given us something that clearly isn't a variable.
 			ltsyystartParseError(ltsyylloc);
 			ltsyyossErr << "Unexpected token \"" << *$2 << "\" in quantifier. Expected a variable.";
@@ -2389,7 +2405,7 @@ expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 		
 		// For the sake of system stability, we'll return a new variable.
 		varRef = new Variable(*$2, true);
-		if (mainTrans.addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
+		if (mainTrans->addSymbol(varRef) == SymbolTable::ADDSYM_OK) { 
 			$$->second = new VariableLikeElement(*$2, varRef);
 		} else {
 			$$->second = NULL;
@@ -2409,13 +2425,13 @@ expr_big_disj:				  T_BIG_DISJ T_IDENTIFIER
 query_statement:			  		T_COLON_DASH T_QUERY query_expression_tuple T_PERIOD
 {
 	$$ = PARSERULE_NOT_USED;
-	int addQueryResult = mainTrans.addQuery(mainTrans.tempQuery);
+	int addQueryResult = mainTrans->addQuery(mainTrans->tempQuery);
 	if(addQueryResult != SymbolTable::ADDSYM_OK)
 	{
 		if(addQueryResult == SymbolTable::ADDSYM_DUP)
 		{	// Query with same label already exists.
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "A query with label \"" << mainTrans.tempQuery->label << "\" already exists, query labels must be unique.";
+			ltsyyossErr << "A query with label \"" << mainTrans->tempQuery->label << "\" already exists, query labels must be unique.";
 			ltsyyreportError();
 		}
 		else
@@ -2429,8 +2445,8 @@ query_statement:			  		T_COLON_DASH T_QUERY query_expression_tuple T_PERIOD
 	}
 	else
 	{	// It added okay, translate it and make a new tempQuery without destroying the one that just got added.
-		mainTrans.translateQuery(mainTrans.tempQuery);
-		mainTrans.allocateNewTempQuery();
+		mainTrans->translateQuery(mainTrans->tempQuery);
+		mainTrans->allocateNewTempQuery();
 	}
 }
 							;
@@ -2448,15 +2464,15 @@ query_expression_tuple:		  			query_expression
 query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 {
 	$$ = PARSERULE_NOT_USED;
-	if (mainTrans.tempQuery && $3) {
-		if(mainTrans.tempQuery->label == "")
+	if (mainTrans->tempQuery && $3) {
+		if(mainTrans->tempQuery->label == "")
 		{
-			mainTrans.tempQuery->label = *$3;
+			mainTrans->tempQuery->label = *$3;
 		}
 		else
 		{
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyossErr << "label already defined as \"" << mainTrans->tempQuery->maxstep << "\" in this query, can only define it once per query.";
 			ltsyyreportError();
 			YYERROR;
 		}
@@ -2467,15 +2483,15 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 {
 
 	$$ = PARSERULE_NOT_USED;
-	if (mainTrans.tempQuery) {
-		if(mainTrans.tempQuery->label == "")
+	if (mainTrans->tempQuery) {
+		if(mainTrans->tempQuery->label == "")
 		{
-			mainTrans.tempQuery->label = utils::to_string($3);
+			mainTrans->tempQuery->label = utils::to_string($3);
 		}
 		else
 		{
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "label already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyossErr << "label already defined as \"" << mainTrans->tempQuery->maxstep << "\" in this query, can only define it once per query.";
 			ltsyyreportError();
 			YYERROR;
 		}
@@ -2484,15 +2500,15 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 							| T_MAXSTEP T_DBL_COLON num_range
 {
 	$$ = PARSERULE_NOT_USED;
-	if (mainTrans.tempQuery && $3) {
-		if(mainTrans.tempQuery->maxstep == "")
+	if (mainTrans->tempQuery && $3) {
+		if(mainTrans->tempQuery->maxstep == "")
 		{
-			mainTrans.tempQuery->maxstep = $3->baseName();
+			mainTrans->tempQuery->maxstep = $3->baseName();
 		}
 		else
 		{
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "maxstep already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyossErr << "maxstep already defined as \"" << mainTrans->tempQuery->maxstep << "\" in this query, can only define it once per query.";
 			ltsyyreportError();
 			YYERROR;
 		}
@@ -2502,15 +2518,15 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 }
 							| T_MAXSTEP T_DBL_COLON extended_integer
 {
-	if (mainTrans.tempQuery && $3) {
-		if(mainTrans.tempQuery->maxstep == "")
+	if (mainTrans->tempQuery && $3) {
+		if(mainTrans->tempQuery->maxstep == "")
 		{
-			mainTrans.tempQuery->maxstep = *$3;
+			mainTrans->tempQuery->maxstep = *$3;
 		}
 		else
 		{
 			ltsyystartParseError(ltsyylloc);
-			ltsyyossErr << "maxstep already defined as \"" << mainTrans.tempQuery->maxstep << "\" in this query, can only define it once per query.";
+			ltsyyossErr << "maxstep already defined as \"" << mainTrans->tempQuery->maxstep << "\" in this query, can only define it once per query.";
 			ltsyyreportError();
 			YYERROR;
 		}
@@ -2524,7 +2540,7 @@ query_expression:			  		T_LABEL T_DBL_COLON T_IDENTIFIER
 	if($1 != NULL)
 	{
 		// Add this new condition to the temp query.
-		mainTrans.tempQuery->queryConditions.push_back($1);
+		mainTrans->tempQuery->queryConditions.push_back($1);
 	}
 	else
 	{
@@ -2627,6 +2643,10 @@ query_body_term_inner:		  			extended_value_expression
 		YYERROR;
 	}
 }
+							| T_TILDE constant_expr
+{
+	$$ = new SimpleUnaryOperator(SimpleUnaryOperator::UOP_STRONG_NOT, $2);
+}
 							| extended_value_expression T_EQ extended_value_expression
 {
 	$$ = new SimpleBinaryOperator($1, SimpleBinaryOperator::BOP_EQ, $3);
@@ -2693,16 +2713,16 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
+		elem = mainTrans->getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
-			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			mainTrans->error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
 		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem);
-		mainTrans.handleLUACall((ObjectLikeElement*)$$);
+		mainTrans->handleLUACall((ObjectLikeElement*)$$);
 
 
-	} else if ((elem = mainTrans.getSymbol(*$2))) {
+	} else if ((elem = mainTrans->getSymbol(*$2))) {
 
 		switch(elem->getElemType()) {
 		case Element::ELEM_CONST:
@@ -2735,13 +2755,13 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
+		elem = mainTrans->getOrCreateObject(*$1 + *$2, Object::OBJ_LUA);
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
-			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			mainTrans->error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
 		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem);
-		mainTrans.handleLUACall((ObjectLikeElement*)$$);
+		mainTrans->handleLUACall((ObjectLikeElement*)$$);
 
 	} else {
 		// not a LUA call.
@@ -2758,17 +2778,17 @@ constant_expr:				  		lua_indicator T_IDENTIFIER
 
 	if ($1) {
 
-		elem = mainTrans.getOrCreateObject(*$1 + *$2, Object::OBJ_LUA, false, $4->size());
+		elem = mainTrans->getOrCreateObject(*$1 + *$2, Object::OBJ_LUA, false, $4->size());
 		if (!elem || elem->getElemType() != Element::ELEM_OBJ || !((Object*)elem)->isLua()) {
-			mainTrans.error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
+			mainTrans->error("\"" + elem->baseName() + "/" + utils::to_string(elem->arity()) + "\" is used as a LUA call but has been declared.", true);
 			elem = NULL;
 		}
 
 		$$ = new ObjectLikeElement(*$1 + *$2, (Object*)elem, $4);
-		mainTrans.handleLUACall((ObjectLikeElement*)$$);
+		mainTrans->handleLUACall((ObjectLikeElement*)$$);
 
 
-	} else if ((elem = mainTrans.getSymbol(*$2, $4->size()))) {
+	} else if ((elem = mainTrans->getSymbol(*$2, $4->size()))) {
 
 		switch(elem->getElemType()) {
 		case Element::ELEM_CONST:
@@ -2829,7 +2849,7 @@ parameter_general:			 		extended_value_expression
 
 sort_identifier_list:		  			sort_identifier
 {
-	Sort* tempSort = mainTrans.getSort(*$1);
+	Sort* tempSort = mainTrans->getSort(*$1);
 	$$ = NULL;
 	if(tempSort != NULL)
 	{
@@ -2854,7 +2874,7 @@ sort_identifier_list:		  			sort_identifier
 	if($1 != NULL)
 	{
 		$$ = $1;
-		Sort* tempSort = mainTrans.getSort(*$3);
+		Sort* tempSort = mainTrans->getSort(*$3);
 		if(tempSort != NULL)
 		{
 			$$->push_back(tempSort);
@@ -2875,17 +2895,17 @@ sort_identifier_list:		  			sort_identifier
 }
 							;
 
-extended_value_expression:	 			T_TRUE
+extended_value_expression:	T_TRUE
 {
-	$$ = new ObjectLikeElement("true", mainTrans.getOrCreateObject("true"));
+	$$ = new ObjectLikeElement("true", mainTrans->getOrCreateObject("true"));
 }
 							| T_FALSE
 {
-	$$ = new ObjectLikeElement("false", mainTrans.getOrCreateObject("false"));
+	$$ = new ObjectLikeElement("false", mainTrans->getOrCreateObject("false"));
 }
 							| T_NONE
 {
-	$$ = new ObjectLikeElement("none", mainTrans.getOrCreateObject("none"));
+	$$ = new ObjectLikeElement("none", mainTrans->getOrCreateObject("none"));
 }
 							| extended_math_expression
 {
@@ -2946,7 +2966,7 @@ extended_math_expr_inner:	  			extended_math_term
 
 extended_math_term:			  		extended_integer
 {
-	$$ = new ObjectLikeElement(*$1, mainTrans.getOrCreateObject(*$1));
+	$$ = new ObjectLikeElement(*$1, mainTrans->getOrCreateObject(*$1));
 	deallocateItem($1);
 }
 							| constant_expr
@@ -3063,7 +3083,7 @@ AND:						  	T_AMP
 }
 							;
 
-NOT:						  T_DASH %prec T_UMINUS
+NOT:						 T_DASH %prec T_UMINUS
 {
 	$$ = T_UMINUS;
 }
@@ -3101,13 +3121,13 @@ COMPARISON:					  	T_DBL_EQ
 // Tries to find an existing normal sort or declare a starred ("something*") sort.
 Sort* checkDynamicSortDecl(std::string const& sortIdent)
 {
-	Sort* retVal = mainTrans.getSort(sortIdent);
+	Sort* retVal = mainTrans->getSort(sortIdent);
 	// Allow dynamic instantiation of starred sorts.
 	if(retVal == NULL && sortIdent.length() > 0 && sortIdent[sortIdent.length()-1] == '*')
 	{
 		// Verify that the non-starred version exists before instantiating the starred version.
 		std::string nonStarIdent = sortIdent.substr(0, sortIdent.length()-1);
-		Sort *nonStarSort = mainTrans.getSort(nonStarIdent);
+		Sort *nonStarSort = mainTrans->getSort(nonStarIdent);
 		if(nonStarSort == NULL)
 		{	
 			ltsyystartParseError(ltsyylloc);
@@ -3117,7 +3137,7 @@ Sort* checkDynamicSortDecl(std::string const& sortIdent)
 		else
 		{
 			// No need to add unstarred version to subsorts, that's done automatically.
-			retVal = mainTrans.addSort(sortIdent, false, NULL, true, false);
+			retVal = mainTrans->addSort(sortIdent, false, NULL, true, false);
 			if(retVal == NULL)
 			{
 				ltsyystartParseError(ltsyylloc);
@@ -3221,7 +3241,7 @@ void ltsyycaution()
 		ltsyystartCaution(ltsyylloc);
 		ltsyyossErr << "Using \"" << ltsyytext << "\" here may not be a good idea.";
 	}
-	mainTrans.caution(ltsyyossErr.str(), true);
+	mainTrans->caution(ltsyyossErr.str(), true);
 	LTSYYRESETOSS;
 }
 
@@ -3261,7 +3281,7 @@ void ltsyywarning()
 		ltsyystartWarning(ltsyylloc);
 		ltsyyossErr << "Using \"" << ltsyytext << "\" here will probably break something.";
 	}
-	mainTrans.warn(ltsyyossErr.str(), true);
+	mainTrans->warn(ltsyyossErr.str(), true);
 	LTSYYRESETOSS;
 }
 
@@ -3328,17 +3348,17 @@ void ltsyyerror(char const* msg)
 		ltsyystartSyntaxError(ltsyylloc);
 		ltsyyossErr << "Unexpected token \"" << ltsyytext << "\".";
 	}
-	mainTrans.error(ltsyyossErr.str(), true);
+	mainTrans->error(ltsyyossErr.str(), true);
 	LTSYYRESETOSS;
 
 	// If the translator's temporary query appears to have been partially populated, destroy it and create another in its place.
-	if(mainTrans.tempQuery != NULL && (mainTrans.tempQuery->label != "" || mainTrans.tempQuery->maxstep != "" || !(mainTrans.tempQuery->queryConditions.empty())))
+	if(mainTrans->tempQuery != NULL && (mainTrans->tempQuery->label != "" || mainTrans->tempQuery->maxstep != "" || !(mainTrans->tempQuery->queryConditions.empty())))
 	{
-		mainTrans.allocateNewTempQuery(true);
+		mainTrans->allocateNewTempQuery(true);
 	}
-	if(mainTrans.tempQuery == NULL)
+	if(mainTrans->tempQuery == NULL)
 	{
-		mainTrans.allocateNewTempQuery();
+		mainTrans->allocateNewTempQuery();
 	}
 }
 

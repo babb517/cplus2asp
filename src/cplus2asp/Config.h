@@ -82,6 +82,7 @@
 #define DEF_REACTIVE_BRIDGE_OPTS			""									///< Default reactive client
 
 // files
+#define MVPF_STD_FILE 	 					"mvpf_std.f2lp"						///< The "standard" MVPF to ASP translation support file.
 #define CCALC2_ASP_STD_FILE  				"cplus2asp_std.f2lp"				///< The "standard" CCalc to ASP translation support file.
 #define CCALC2_ASP_ADDITIVE_FILE			"cplus2asp_additive.f2lp" 			///< The CCalc to ASP translation support file for additive fluents/actions.
 #define CCALC2_ASP_STD_DYNAMIC_FILE  		"cplus2asp_std.of2lp"				///< The "standard" CCalc to ASP translation support file (dynamic translation).

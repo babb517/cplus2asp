@@ -295,69 +295,69 @@ Translator::Translator(Language lang)
 	this->createInternalObject("false", NULL, newSort);
 
 	// Create step/astep domains, the action time sort.
-	newSort = this->createInternalSort("astep", NULL);
-	this->createInternalNumRange("0..maxstep-1", newSort);
-	tmpList.push_back(newSort);
-	newSort = this->createInternalSort("step", &tmpList);
-	tmpList.clear();
-	this->createInternalObject("maxstep", NULL, newSort);
+	if (lang != LANG_MVPF) {
+		newSort = this->createInternalSort("astep", NULL);
+		this->createInternalNumRange("0..maxstep-1", newSort);
+		tmpList.push_back(newSort);
+		newSort = this->createInternalSort("step", &tmpList);
+		tmpList.clear();
+		this->createInternalObject("maxstep", NULL, newSort);
 
-	// The additiveConstant sort is a supersort for both additiveFluent and additiveAction.
-	additiveConstantSort = this->createInternalSort("additiveConstant", NULL);
+		// The additiveConstant sort is a supersort for both additiveFluent and additiveAction.
+		additiveConstantSort = this->createInternalSort("additiveConstant", NULL);
 
+		// Action sorts.
+		tmpList.push_back(this->createInternalSort("abAction", NULL));
+		tmpList.push_back(this->createInternalSort("attribute", NULL));
+		tmpList.push_back(this->createInternalSort("exogenousAction", NULL));
+		newSort = this->createInternalSort("additiveAction", NULL);
+		additiveConstantSort->addSubsort(newSort);
+		tmpList.push_back(newSort);
+		actionSort = this->createInternalSort("action", &tmpList);
+		tmpList.clear();
 
-	// Action sorts.
-	tmpList.push_back(this->createInternalSort("abAction", NULL));
-	tmpList.push_back(this->createInternalSort("attribute", NULL));
-	tmpList.push_back(this->createInternalSort("exogenousAction", NULL));
-	newSort = this->createInternalSort("additiveAction", NULL);
-	additiveConstantSort->addSubsort(newSort);
-	tmpList.push_back(newSort);
-	actionSort = this->createInternalSort("action", &tmpList);
-	tmpList.clear();
+		// Fluent sorts.
+		tmpList.push_back(this->createInternalSort("inertialFluent", NULL));
+		newSort = this->createInternalSort("additiveFluent", NULL);
+		additiveConstantSort->addSubsort(newSort);
+		tmpList.push_back(newSort);
+		newSort = this->createInternalSort("simpleFluent", &tmpList); 			// inertialFluent and additiveFluent are both simpleFluents
+		tmpList.clear();
+		tmpList.push_back(newSort);
+		tmpList.push_back(this->createInternalSort("sdFluent", NULL));
+		tmpList.push_back(this->createInternalSort("rigid", NULL));				// Rigids aren't technically "fluents" after translation, but in CCalc they still are.
+		this->createInternalSort("fluent", &tmpList);
+		tmpList.clear();
 
-	// Fluent sorts.
-	tmpList.push_back(this->createInternalSort("inertialFluent", NULL));
-	newSort = this->createInternalSort("additiveFluent", NULL);
-	additiveConstantSort->addSubsort(newSort);
-	tmpList.push_back(newSort);
-	newSort = this->createInternalSort("simpleFluent", &tmpList); 			// inertialFluent and additiveFluent are both simpleFluents
-	tmpList.clear();
-	tmpList.push_back(newSort);
-	tmpList.push_back(this->createInternalSort("sdFluent", NULL));
-	tmpList.push_back(this->createInternalSort("rigid", NULL));				// Rigids aren't technically "fluents" after translation, but in CCalc they still are.
-	this->createInternalSort("fluent", &tmpList);
-	tmpList.clear();
-
-	// Additive range sorts
-	newSort = this->createInternalSort("nnAdditiveInteger", NULL);				// positive integer sort.
-	this->createInternalNumRange("0..maxAdditive", newSort);
-	newSort = this->createInternalSort("additiveInteger", NULL);				// positive + negative integer sort.
-	this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
-
-	// Apparently afValue is a synonym for this sort.
-	newSort = this->createInternalSort("afValue", NULL);
-	this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
+		// Additive range sorts
+		newSort = this->createInternalSort("nnAdditiveInteger", NULL);				// positive integer sort.
+		this->createInternalNumRange("0..maxAdditive", newSort);
+		newSort = this->createInternalSort("additiveInteger", NULL);				// positive + negative integer sort.
+		this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
 	
-	// Add the contribution constant for additive constants.
-	tmpList.push_back(actionSort);
-	tmpList.push_back(additiveConstantSort);
-	Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, true, (ConstSortList*)&tmpList);
-	tmpList.clear();
-	addSymbol(contribution);
+		// Apparently afValue is a synonym for this sort.
+		newSort = this->createInternalSort("afValue", NULL);
+		this->createInternalNumRange("-maxAdditive..maxAdditive", newSort);
+	
+		// Add the contribution constant for additive constants.
+		tmpList.push_back(actionSort);
+		tmpList.push_back(additiveConstantSort);
+		Constant* contribution = new Constant("contribution", newSort, Constant::CONST_ACTION, true, (ConstSortList*)&tmpList);
+		tmpList.clear();
+		addSymbol(contribution);
+	}
 
 	// Computed sort for LUA functions
 	this->createInternalSort("computed", NULL);
-	
+
 	// we want to use a dynamic translation.
-	setStaticTranslation(false);
+	setStaticTranslation(lang != LANG_MVPF);
 
 	blnFoundAbnormalities = false;
 	blnFoundAdditive = false;
 
 	// Initialize the incremental part
 	mCurrentPart = IPART_NONE;
-
 
 }
 
@@ -625,7 +625,7 @@ void Translator::handleLUACall(ObjectLikeElement const* lua_elem) {
 	StmtList stmts;
 	Sort *sortObj = getSort("computed");
 	ClauseList extraClauses, freeVars;
-	Context c(Context::POS_MAXIMIZED_INTERNAL, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
+	Context c(lang(), Context::POS_MAXIMIZED_INTERNAL, IPart::IPART_BASE, Context::BASE_STR, &extraClauses, &freeVars, false, true, &stmts);
 	std::stringstream stmtBuilder;					// Used to build each individual statement required for this declaration.
 
 	stmtBuilder << sortObj->fullTransName() << "(";
@@ -805,7 +805,7 @@ void Translator::translateQuery(Query const* transQuery)
 
 			// Translate the query.
 			std::ostringstream stmtBuilder;
-			Context localContext = Context(
+			Context localContext = Context(lang(),
 					Context::POS_QUERY,
 					part,
 					Context::EMPTY_STR,
@@ -866,12 +866,14 @@ void Translator::translateCausalLaw(
 	ParseElement* tmpAssuming = NULL;
 	SimpleBinaryOperator *tmp = NULL;
         
-        bool allowChoiceInHead = false; 	// Whether choice rules are allowed in the head of a rule.
-        
+    bool allowChoiceInHead = false; 	// Whether choice rules are allowed in the head of a rule.
+	bool allowAtomicNegationInHead = false;	// whether atomic negation (-p) is allowed in the head of a rule.    
+    
 	// step -1: Check language specific constructs
 	switch (lang()) {
 	case LANG_CPLUS:
                 allowChoiceInHead = false;
+				allowAtomicNegationInHead = true;
 		if (!ifBody) tmpAssuming = assumingBody;	
 		else if (!assumingBody) { 
 			tmpAssuming = ifBody;
@@ -885,7 +887,8 @@ void Translator::translateCausalLaw(
 		break;
 	case LANG_BC:
 		tmpAssuming = assumingBody;
-                allowChoiceInHead = false;
+        allowChoiceInHead = false;
+		allowAtomicNegationInHead = false;
 
 		if (whenBody) {
 			error("The when clause is not supported in language BC.", true);
@@ -922,7 +925,8 @@ void Translator::translateCausalLaw(
 
 	case LANG_BCPLUS:
 		tmpAssuming = assumingBody;
-                allowChoiceInHead = true;
+        allowChoiceInHead = true;
+		allowAtomicNegationInHead = false;
                 
 		if (whenBody) {
 			error("The when clause is not supported in language BC+.", true);
@@ -936,6 +940,7 @@ void Translator::translateCausalLaw(
 		break;
 	case LANG_MVPF:
 		tmpAssuming = assumingBody;
+		allowAtomicNegationInHead = false;
 		allowChoiceInHead = true;
 
 		if (whenBody) {
@@ -993,7 +998,7 @@ void Translator::translateCausalLaw(
 
 
 	// step 1: ensure the head is non-null and in the correct form
-	if (!head || !head->isDefinite(false, allowChoiceInHead)) {
+	if (!head || !head->isDefinite(false, allowChoiceInHead, allowAtomicNegationInHead)) {
 		error("Definite causal laws must have exactly one constant in the head.\n");
 		malformed = true;
 		return;
@@ -1090,15 +1095,30 @@ void Translator::translateCausalLaw(
 		if (head->hasConstants(ParseElement::MASK_NON_RIGID)
 				|| (ifBody && ifBody->hasConstants(ParseElement::MASK_NON_RIGID))
 				|| (tmpAssuming && tmpAssuming->hasConstants(ParseElement::MASK_NON_RIGID))
-				|| (afterBody && afterBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (afterBody)
 				|| (unlessBody && unlessBody->hasConstants(ParseElement::MASK_NON_RIGID))
 				|| (whenBody && whenBody->hasConstants(ParseElement::MASK_NON_RIGID))
-				|| (followingBody && followingBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				|| (followingBody)
 			)
 		{
 			error("A causal law w/ rigid fluents in the head and non-rigid fluents in the body is (currently) unsupported.\n");
 			malformed = true;
 		}
+	}
+
+	// Step 4ab: Rigid constraints
+	else if (!head->hasConstants(ParseElement::MASK_NON_RIGID)
+				&& (!ifBody || !ifBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				&& (!tmpAssuming || !tmpAssuming->hasConstants(ParseElement::MASK_NON_RIGID))
+				&& (!afterBody)
+				&& (!unlessBody || !unlessBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				&& (!whenBody || !whenBody->hasConstants(ParseElement::MASK_NON_RIGID))
+				&& (!followingBody)) {
+
+		type = RULE_RIGID;
+#ifdef VERBOSE_DEBUG
+		std::cout << "# RIGID LAW\n";
+#endif
 	}
 
 	// Step 4b: Determine whether the law is a static law, an action dynamic law, or a fluent dynamic law...
@@ -1296,7 +1316,7 @@ std::ostream& Translator::makeCausalTranslation(
 	// The head
 	/// @todo If head and ifBody are: not NULL, both const-like or both UOP_NOT(const-like), make a choice rule out of head and translate that.
 
-	localContext = Context(Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true, &extraStmts);
+	localContext = Context(lang(), Context::POS_HEAD, ipart, baseTimeStamp, &localClauses, NULL, false, true, &extraStmts);
 	bindAndTranslate(output, head, localContext, true, true);
 
 	// The body, if there is one.
@@ -1329,7 +1349,7 @@ std::ostream& Translator::makeCausalTranslation(
 			else bodyContent = true;
 
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+			localContext = Context(lang(), Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			ifBody->translate(output, localContext);
 		}
 
@@ -1343,12 +1363,12 @@ std::ostream& Translator::makeCausalTranslation(
 			// If we're translating a law that needs a "not not (...)" body wrapper to break cycles, add it.
 			if(assumingNotNot) {
 				output << "not not (";
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false, &extraStmts);
+				localContext = Context(lang(), Context::POS_BODY, ipart, baseTimeStamp, NULL, NULL, true, false, &extraStmts);
 				bindAndTranslate(output, assumingBody, localContext, false, true);
 				output << ")";
 			}
 			else {
-				localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+				localContext = Context(lang(), Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 				assumingBody->translate(output, localContext);
 			}
 		}
@@ -1368,7 +1388,7 @@ std::ostream& Translator::makeCausalTranslation(
 							? dynamicTimeStamp + "-1"
 							: staticTimeStamp; 
 
-			localContext = Context(Context::POS_BODY, ipart, tmp,
+			localContext = Context(lang(), Context::POS_BODY, ipart, tmp,
 					NULL, NULL, true, false, &extraStmts);
 			bindAndTranslate(output, unlessBody, localContext, false, true);
 			output << ")";
@@ -1389,7 +1409,7 @@ std::ostream& Translator::makeCausalTranslation(
 //				output << ")";
 //			}
 //			else {
-				localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+				localContext = Context(lang(), Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 				afterBody->translate(output, localContext);
 //			}
 
@@ -1401,7 +1421,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+			localContext = Context(lang(), Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			whenBody->translate(output, localContext);
 		}
 
@@ -1412,7 +1432,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+			localContext = Context(lang(), Context::POS_BODY, ipart, actionTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			followingBody->translate(output, localContext);
 		}
 
@@ -1422,7 +1442,7 @@ std::ostream& Translator::makeCausalTranslation(
 			// add a connective if necessary
 			if(bodyContent)	output << " & ";
 			else bodyContent = true;
-			localContext = Context(Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
+			localContext = Context(lang(), Context::POS_BODY, ipart, baseTimeStamp, &localClauses, NULL, false, false, &extraStmts);
 			whereBody->translate(output, localContext);
 		}
 		
@@ -1483,8 +1503,8 @@ void Translator::makeShowStmt(ParseElement* elem, StmtList& stmts, Variable cons
 	std::stringstream tmp;
 
 	if (!action) {
-		if (eql) localContext = Context(Context::POS_BODY, IPART_BASE, Context::BASE_STR, eql->fullTransName(), NULL, NULL, false, false, &stmts);
-		else localContext = Context(Context::POS_BODY, IPART_BASE, Context::BASE_STR, NULL, NULL, false, false, &stmts);
+		if (eql) localContext = Context(lang(), Context::POS_BODY, IPART_BASE, Context::BASE_STR, eql->fullTransName(), NULL, NULL, false, false, &stmts);
+		else localContext = Context(lang(), Context::POS_BODY, IPART_BASE, Context::BASE_STR, NULL, NULL, false, false, &stmts);
 		tmp << "#show ";
 		elem->translate(tmp, localContext);
 		tmp << ".";
@@ -1498,10 +1518,10 @@ void Translator::makeShowStmt(ParseElement* elem, StmtList& stmts, Variable cons
 	std::string tmpstr = tmp.str();
 
 
-	if (eql) localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
+	if (eql) localContext = Context(lang(), Context::POS_BODY, IPART_CUMULATIVE, 
 		tmpstr, 
 		eql->fullTransName(), NULL, NULL, false, false, &stmts);
-	else localContext = Context(Context::POS_BODY, IPART_CUMULATIVE, 
+	else localContext = Context(lang(), Context::POS_BODY, IPART_CUMULATIVE, 
 		tmpstr, 
 		"", NULL, NULL, false, false, &stmts);
 	
@@ -2040,12 +2060,12 @@ Object* Translator::createInternalObject(std::string const& newObjName, SortList
 	Element* retVal = getSymbol(newObjName, (params) ? params->size() : 0);
 
 	if (retVal && retVal->getElemType() != Element::ELEM_OBJ)
-		mainTrans.error("Detected conflicting definition of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
+		error("Detected conflicting definition of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
 		
 	if (!retVal) {
 		retVal = new Object(newObjName, Object::OBJ_NAME, true, params);
 		if (addSymbol(retVal) != SymbolTable::ADDSYM_OK) {
-			mainTrans.error("An error occurred while processing declaration of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
+			error("An error occurred while processing declaration of \"" + retVal->baseName() + "/" + utils::to_string(retVal->arity()) + "\".", true);
 			delete retVal;
 			retVal = NULL;
 		}
@@ -2111,7 +2131,10 @@ void Translator::setStaticTranslation(bool staticTrans) {
 	blnStaticTrans = staticTrans;
 
 	// Make sure we update the timestamps.
-	if (staticTrans) {
+	if (lang() == LANG_MVPF) {
+		staticTimeStamp = "0";
+		dynamicTimeStamp = "0";
+	} else if (staticTrans) {
 		staticTimeStamp = getSort("step")->varTransName();
 		dynamicTimeStamp = getSort("astep")->varTransName();
 	} else {

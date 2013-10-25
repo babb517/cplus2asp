@@ -28,6 +28,8 @@
 #include <list>
 
 #include "types.h"
+#include "languages.h"
+
 
 /**
  * @file Context.h
@@ -49,6 +51,7 @@ public:
 	static std::string const BASE_STR;		///< Concrete default string to instantiate base timestamps.
 private:
 	Position mPos;				///< The location which the expression occurs within the program.
+	Language mLang;				///< The language being translated.
 	IPart mPart;				///< The incremental module we are currently working in.
 	bool mNeg; 					///< Whether this expression occurs in the scope of one or more negations.
 	bool mPositive;				///< Whether this expression occurs in the scope of an _even_ number of negations.
@@ -63,14 +66,16 @@ public:
 
 	/**
 	 * Default Constructor
+	 * @param lang - The language being translated.
 	 */
-	inline Context()
-		: mPos(POS_BODY), mPart(IPART_BASE), mNeg(false), mPositive(false), mVal(&TRUE_STR), mTime(&EMPTY_STR),
+	inline Context(Language lang = LANG_CPLUS)
+		: mPos(POS_BODY), mLang(lang), mPart(IPART_BASE), mNeg(false), mPositive(false), mVal(&TRUE_STR), mTime(&EMPTY_STR),
 		  mFreeVars(NULL), mExtraClauses(NULL), mPreStmts(NULL)
 		{ /* Intentionally Left Blank */ }
 
 	/**
 	 * Basic constructor used for the context for an expression.
+	 * @param lang - The language being translated.
 	 * @param pos - The position that the formula is located in.
 	 * @param ipart - The incremental module the statement is associated with.
 	 * @param timestamp - The timestamp that this context is set within.
@@ -81,6 +86,7 @@ public:
 	 * @param preStmts - A pointer to a list that prerequisite statements should be added to.
 	 */
 	inline Context(
+			Language lang,
 			Position pos,
 			IPart ipart,
 			std::string const& timestamp,
@@ -89,12 +95,13 @@ public:
 			bool negated = false,
 			bool positive = true,
 			StmtList* preStmts = NULL)
-		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&TRUE_STR), mTime(&timestamp),
+		: mPos(pos), mLang(lang), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&TRUE_STR), mTime(&timestamp),
 		mFreeVars(freeVars), mExtraClauses(extraClauses), mPreStmts(preStmts)
 		{ /* Intentionally Left Blank */}
 
 	/**
 	 * Basic constructor used for the context for an expression.
+	 * @param lang - The language being translated.
 	 * @param pos - The position that the formula is located in.
 	 * @param ipart - The incremental module the statement is associated with.
 	 * @param timestamp - The timestamp that this context is set within.
@@ -106,6 +113,7 @@ public:
 	 * @param preStmts - A pointer to a list that prerequisite statements should be added to.
 	 */
 	inline Context(
+			Language lang,
 			Position pos,
 			IPart ipart,
 			std::string const& timestamp,
@@ -115,19 +123,21 @@ public:
 			bool negated = false,
 			bool positive = true,
 			StmtList* preStmts = NULL)
-		: mPos(pos), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&val), mTime(&timestamp),
+		: mPos(pos), mLang(lang), mPart(ipart), mNeg(negated), mPositive(positive), mVal(&val), mTime(&timestamp),
 		mFreeVars(freeVars), mExtraClauses(extraClauses), mPreStmts(preStmts)
 		{ /* Intentionally Left Blank */}
 
 	/// Basic destructor. Does nothing.
 	inline virtual ~Context() { /* Intentionally Left Blank */ }
 
-
 	/// Copy Constructor
 	inline Context(Context const& other) { copy(other); }
 
 	/// Determines whether the formula occurs in the head of a rule.
 	inline Position getPos() const { return mPos; }
+
+	/// Gets the language being translated.
+	inline Language getLang() const { return mLang; }
 
 	/// Determines whether the formula occurs within the scope of negation.
 	inline bool getNegated() const { return mNeg; }
@@ -163,8 +173,6 @@ public:
 	 */
 	inline bool addPreStmt(Statement const& stmt)			{ if (mPreStmts) mPreStmts->push_back(stmt); return (bool)mPreStmts; }
 
-
-
 	/**
 	 * Efficiency method used transfer variables from a list to the binding variable list without copying.
 	 * @param freeVars The list of variables to transfer from. Will be emptied.
@@ -187,35 +195,39 @@ public:
 		return (bool)mExtraClauses;
 	}
 
-
+	/// Convenience method for constructing a new context corresponding
+	/// to a different language.
+	inline Context mkLanguage(Language lang) const {
+		return Context(lang, mPos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); 
+	}
 
 	/// Convenience method for constructing a new context corresponding
 	/// to a formula occurring within the scope of an additional negation.
-	inline Context mkNegated() const { return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, true, !mPositive, mPreStmts); }
+	inline Context mkNegated() const { return Context(mLang, mPos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, true, !mPositive, mPreStmts); }
 
 	/// Convenience method for constructing a new context corresponding
 	/// to an atom taking a specific value.
 	/// @param value The value the atom should take.
-	inline Context mkValue(std::string const& value) const { return Context(mPos, mPart, *mTime, value, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
+	inline Context mkValue(std::string const& value) const { return Context(mLang, mPos, mPart, *mTime, value, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
 
 	/// Convenience method for constructing a new context corresponding
 	/// to a formula at a new position.
 	/// @param pos The new position the formula is at.
-	inline Context mkPos(Position pos) const { return Context(pos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
+	inline Context mkPos(Position pos) const { return Context(mLang, pos, mPart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
 
 	/// Convenience method for constructing a new context with a separate timestamp.
 	/// @param timestamp The new timestamp for the formula context.
-	inline Context mkTime(std::string const& timestamp) const { return Context(mPos, mPart, timestamp, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
+	inline Context mkTime(std::string const& timestamp) const { return Context(mLang, mPos, mPart, timestamp, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
 
-	inline Context mkIncPart(IPart ipart) const { return Context(mPos, ipart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
+	inline Context mkIncPart(IPart ipart) const { return Context(mLang, mPos, ipart, *mTime, TRUE_STR, mExtraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
 
 	/// Convenience method for constructing a new context that captures free variables.
 	/// @param freeVars The list to capture the free variables in.
-	inline Context mkBindVars(ClauseList* freeVars)	const {  return Context(mPos, mPart, *mTime, TRUE_STR, mExtraClauses, freeVars , mNeg, mPositive, mPreStmts); }
+	inline Context mkBindVars(ClauseList* freeVars)	const {  return Context(mLang, mPos, mPart, *mTime, TRUE_STR, mExtraClauses, freeVars , mNeg, mPositive, mPreStmts); }
 
 	/// Convenience method for constructing a new context that captures extra clauses
 	/// @param extraClauses The list to capture the extra clauses in.
-	inline Context mkBindClauses(ClauseList* extraClauses) const {  return Context(mPos, mPart, *mTime, TRUE_STR, extraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
+	inline Context mkBindClauses(ClauseList* extraClauses) const {  return Context(mLang, mPos, mPart, *mTime, TRUE_STR, extraClauses, mFreeVars, mNeg, mPositive, mPreStmts); }
 
 
 	/// Copy Operator

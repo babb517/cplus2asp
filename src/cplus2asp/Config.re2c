@@ -132,7 +132,7 @@ Config::Config(std::string const& name) {
 	// Default queries which should always be made available...
 	mQueries[CONST_QUERY_TRANSITIONS] = Query("System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
 	mQueries[CONST_QUERY_STATES] = Query("System states", CONST_QUERY_STATES, 0, 0);
-	mQueries[CONST_QUERY_NONE] = Query("Satisfiability check (no query)", CONST_QUERY_NONE, UNDEFINED, UNDEFINED);
+	mQueries[CONST_QUERY_NONE] = Query("Satisfiability check (no query)", CONST_QUERY_NONE, 0, 0);
 }
 
 // Install directory
@@ -151,7 +151,9 @@ std::string const& Config::installDir() const {
 std::string Config::stdFile() const { 
 	fs::path path(installDir());
 
-	if (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE)
+	if (lang() == LANG_MVPF) {
+		return (path / MVPF_STD_FILE).native();
+	} else if (mode() == MODE_INCREMENTAL || mode() == MODE_REACTIVE)
 		return (path / CCALC2_ASP_STD_DYNAMIC_FILE).native();
 	else
 		return (path / CCALC2_ASP_STD_FILE).native();
@@ -233,6 +235,21 @@ bool Config::lang(Language newLang) {
 	mCustomLang++;
 	if (mLang == newLang) return false;
 	mLang = newLang;
+	if (!mCustomRunningMode) {
+		mode(MODE_STATIC_AUTO);
+		mCustomRunningMode = 0;
+	}
+
+	if (newLang == LANG_MVPF) {
+		mQueries.erase(CONST_QUERY_TRANSITIONS);
+		mQueries.erase(CONST_QUERY_STATES);
+		strOpt(STR_QUERY, CONST_QUERY_NONE);
+	} else {
+		mQueries[CONST_QUERY_TRANSITIONS] = Query("System transitions", CONST_QUERY_TRANSITIONS, 1, 1);
+		mQueries[CONST_QUERY_STATES] = Query("System states", CONST_QUERY_STATES, 0, 0);
+	}
+
+
 	return (bool)(mCustomLang - 1);
  }
 

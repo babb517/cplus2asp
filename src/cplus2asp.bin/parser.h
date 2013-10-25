@@ -65,10 +65,13 @@
 
 #include "ltsglobals.h"
 
+#include "languages.h"
+
+
 
 
 /* Line 2068 of yacc.c  */
-#line 72 "parser.h"
+#line 75 "parser.h"
 
 /* Tokens.  */
 #ifndef YYTOKENTYPE
@@ -145,38 +148,39 @@
      T_PERIOD = 323,
      T_PIPE = 324,
      T_NOOP = 325,
-     T_SEMICOLON = 326,
-     T_DBL_COLON = 327,
-     T_ARROW_LDASH = 328,
-     T_ARROW_REQ = 329,
-     T_ARROW_LEQ = 330,
-     T_ARROW_RDASH = 331,
-     T_COLON = 332,
-     T_COMMA = 333,
-     T_EQUIV = 334,
-     T_IMPL = 335,
-     T_DBL_PLUS = 336,
-     T_DBL_AMP = 337,
-     T_AMP = 338,
-     T_EQ = 339,
-     T_GTHAN_EQ = 340,
-     T_EQ_LTHAN = 341,
-     T_GTHAN = 342,
-     T_LTHAN = 343,
-     T_NOT_EQ = 344,
-     T_DBL_EQ = 345,
-     T_NOT = 346,
-     T_DBL_PERIOD = 347,
-     T_PLUS = 348,
-     T_DASH = 349,
-     T_DBL_GTHAN = 350,
-     T_MOD = 351,
-     T_INT_DIV = 352,
-     T_STAR = 353,
-     T_BIG_CONJ = 354,
-     T_BIG_DISJ = 355,
-     T_POUND = 356,
-     T_UMINUS = 357
+     T_TILDE = 326,
+     T_SEMICOLON = 327,
+     T_DBL_COLON = 328,
+     T_ARROW_LDASH = 329,
+     T_ARROW_REQ = 330,
+     T_ARROW_LEQ = 331,
+     T_ARROW_RDASH = 332,
+     T_COLON = 333,
+     T_COMMA = 334,
+     T_EQUIV = 335,
+     T_IMPL = 336,
+     T_DBL_PLUS = 337,
+     T_DBL_AMP = 338,
+     T_AMP = 339,
+     T_EQ = 340,
+     T_GTHAN_EQ = 341,
+     T_EQ_LTHAN = 342,
+     T_GTHAN = 343,
+     T_LTHAN = 344,
+     T_NOT_EQ = 345,
+     T_DBL_EQ = 346,
+     T_NOT = 347,
+     T_DBL_PERIOD = 348,
+     T_PLUS = 349,
+     T_DASH = 350,
+     T_DBL_GTHAN = 351,
+     T_MOD = 352,
+     T_INT_DIV = 353,
+     T_STAR = 354,
+     T_BIG_CONJ = 355,
+     T_BIG_DISJ = 356,
+     T_POUND = 357,
+     T_UMINUS = 358
    };
 #endif
 /* Tokens.  */
@@ -249,38 +253,39 @@
 #define T_PERIOD 323
 #define T_PIPE 324
 #define T_NOOP 325
-#define T_SEMICOLON 326
-#define T_DBL_COLON 327
-#define T_ARROW_LDASH 328
-#define T_ARROW_REQ 329
-#define T_ARROW_LEQ 330
-#define T_ARROW_RDASH 331
-#define T_COLON 332
-#define T_COMMA 333
-#define T_EQUIV 334
-#define T_IMPL 335
-#define T_DBL_PLUS 336
-#define T_DBL_AMP 337
-#define T_AMP 338
-#define T_EQ 339
-#define T_GTHAN_EQ 340
-#define T_EQ_LTHAN 341
-#define T_GTHAN 342
-#define T_LTHAN 343
-#define T_NOT_EQ 344
-#define T_DBL_EQ 345
-#define T_NOT 346
-#define T_DBL_PERIOD 347
-#define T_PLUS 348
-#define T_DASH 349
-#define T_DBL_GTHAN 350
-#define T_MOD 351
-#define T_INT_DIV 352
-#define T_STAR 353
-#define T_BIG_CONJ 354
-#define T_BIG_DISJ 355
-#define T_POUND 356
-#define T_UMINUS 357
+#define T_TILDE 326
+#define T_SEMICOLON 327
+#define T_DBL_COLON 328
+#define T_ARROW_LDASH 329
+#define T_ARROW_REQ 330
+#define T_ARROW_LEQ 331
+#define T_ARROW_RDASH 332
+#define T_COLON 333
+#define T_COMMA 334
+#define T_EQUIV 335
+#define T_IMPL 336
+#define T_DBL_PLUS 337
+#define T_DBL_AMP 338
+#define T_AMP 339
+#define T_EQ 340
+#define T_GTHAN_EQ 341
+#define T_EQ_LTHAN 342
+#define T_GTHAN 343
+#define T_LTHAN 344
+#define T_NOT_EQ 345
+#define T_DBL_EQ 346
+#define T_NOT 347
+#define T_DBL_PERIOD 348
+#define T_PLUS 349
+#define T_DASH 350
+#define T_DBL_GTHAN 351
+#define T_MOD 352
+#define T_INT_DIV 353
+#define T_STAR 354
+#define T_BIG_CONJ 355
+#define T_BIG_DISJ 356
+#define T_POUND 357
+#define T_UMINUS 358
 
 
 
@@ -290,7 +295,7 @@ typedef union YYSTYPE
 {
 
 /* Line 2068 of yacc.c  */
-#line 64 "parser.yy"
+#line 67 "parser.yy"
 
 	/* Types returned by the lexer. */
 	int integer;	 						///< Basic integer.
@@ -326,7 +331,7 @@ typedef union YYSTYPE
 
 
 /* Line 2068 of yacc.c  */
-#line 330 "parser.h"
+#line 335 "parser.h"
 } YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
@@ -353,14 +358,14 @@ extern YYLTYPE ltsyylloc;
 /* "%code provides" blocks.  */
 
 /* Line 2068 of yacc.c  */
-#line 97 "parser.yy"
+#line 100 "parser.yy"
 
 /**
  * @file parser.h
  * @brief Contains parser for C+ programs, including definitions and helper functions.
  */
 
-extern Translator mainTrans; ///< The main Translator instance, declared by the parser to create a close working relationship.
+extern Translator* mainTrans;
 extern bool ltsyyendOfFile; ///< True if the parser has reached the end of the input stream.
 extern int ltsyynerrs; ///< Output string stream used to store and output error messages from the parser and its helper modules.
 
@@ -517,4 +522,4 @@ YYLTYPE ltsyyGetLoc();
 
 
 /* Line 2068 of yacc.c  */
-#line 521 "parser.h"
+#line 526 "parser.h"

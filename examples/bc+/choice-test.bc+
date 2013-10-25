@@ -16,13 +16,12 @@
 
 % caused {mv}.
 caused {mv=V}.
-%caused {-(mv=V)}.
+%caused {~(mv=V)}.
 %caused {not (mv=V)}.
-%caused {-mv}.
+%caused {~mv}.
 %caused {not mv}.
 caused {b(V)}.
-caused {-b(V)}.
-caused {not b(V)}.
+caused {~b(V)}.
 %caused false if {mv=V}.
 caused {mv2(V)=V}.
 

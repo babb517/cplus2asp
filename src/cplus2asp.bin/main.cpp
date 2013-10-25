@@ -72,6 +72,8 @@
 #include "ltsglobals.h"
 #include "flexer.h"
 
+#include "languages.h"
+
 #define VERSION_MAJOR 3
 #define VERSION_MINOR 1
 #define VERSION_REV 0
@@ -87,7 +89,7 @@
   #define PATH_MAX 4096
 #endif
 
-extern Translator mainTrans; ///< The core translating module for the program, declared in the parser.
+Translator* mainTrans = NULL; ///< The core translating module for the program, declared in the parser.
 
 /**
  * A wrapper for exit() that can output an optional custom message before leaving.
@@ -105,6 +107,8 @@ void nice_exit(int exitCode, const char* message)
 	{
 		std::cout << message << std::endl;
 	}
+	if (mainTrans) delete mainTrans;
+
 	exit(exitCode);
 }
 
@@ -156,6 +160,7 @@ int main(int argc, char *argv[])
 	// Process command-line arguments.
 	bool blnBadArgs = false; // Set to true if we get an unexpected or malformed command line argument.
 	bool blnShowHelp = false; // Set to true if the user passes "--help" to the program as an argument.
+	Language language = LANG_CPLUS;
 	if(argc > 1)
 	{
 		for(int i = 1; i < argc; i++)
@@ -223,9 +228,9 @@ int main(int argc, char *argv[])
 				if(i + 1 < argc)
 				{
 					i++;
-					Translator::Language l;
+					Language l;
 					if (Translator::strToLanguage(argv[i], l))
-						mainTrans.lang(l);
+						language = l;
 					else
 						blnBadArgs = true;
 				}
@@ -237,9 +242,9 @@ int main(int argc, char *argv[])
 			}
 			else if (!strncmp(argv[i], "--language=", strlen("--language="))) 
 			{
-				Translator::Language l;
+				Language l;
 				if (Translator::strToLanguage(argv[i] + strlen("--language="), l))
-					mainTrans.lang(l);
+					language = l;
 				else
 					blnBadArgs = true;
 
@@ -317,6 +322,7 @@ int main(int argc, char *argv[])
 	}
 	
 	// Initialize the translator.
+	mainTrans = new Translator(language);
 	if(outFile != "")
 	{
 		ofsFileOut.open(outFile.c_str());
@@ -336,16 +342,16 @@ int main(int argc, char *argv[])
 	{
 		ostOut.rdbuf(std::cout.rdbuf());
 	}
-	mainTrans.setOutput(ostOut);
+	mainTrans->setOutput(ostOut);
 	if(errorToOutput)
 	{
-		mainTrans.setErrorOutput(ostOut);
+		mainTrans->setErrorOutput(ostOut);
 	}
 	else
 	{
-		mainTrans.setErrorOutput(std::cerr);
+		mainTrans->setErrorOutput(std::cerr);
 	}
-	mainTrans.setStaticTranslation(staticTrans);
+	mainTrans->setStaticTranslation(staticTrans);
 
 	ltsyyLexer::initLexer(); // Initialize the lexer emulator.
 	
@@ -381,7 +387,7 @@ int main(int argc, char *argv[])
 			if(!ltsAddResult)
 			{
 				ossStatus << "% Error loading file \"" << inFiles[i] << "\".";
-				mainTrans.error(ossStatus.str(), true);
+				mainTrans->error(ossStatus.str(), true);
 				ossStatus.str("");
 				returnStatus = 1; // Return that we failed to load everything.
 			}
@@ -389,7 +395,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			ossStatus << "% Error: Could not open file \"" << inFiles[i] << "\".";
-			mainTrans.error(ossStatus.str(), true);
+			mainTrans->error(ossStatus.str(), true);
 			ossStatus.str("");
 			returnStatus = 1; // Return that we failed to load everything.
 		}
@@ -407,7 +413,7 @@ int main(int argc, char *argv[])
 		if(returnStatus != 0)
 		{
 			ossStatus << "% Failed to parse file \"" << includeHandler.includeFileName << "\", " << includeHandler.includeNumErrors << (includeHandler.includeNumErrors == 1 ? " error" : " errors") << " encountered before failure.";
-			mainTrans.error(ossStatus.str(), true);
+			mainTrans->error(ossStatus.str(), true);
 			ossStatus.str("");
 		}
 		else
@@ -421,7 +427,7 @@ int main(int argc, char *argv[])
 			if(returnStatus != 0)
 			{
 				ossStatus << "% Failed to parse file \"" << macroParser.macroFileName << "\", " << macroParser.macroNumErrors << (macroParser.macroNumErrors == 1 ? " error" : " errors") << " encountered before failure.";
-				mainTrans.error(ossStatus.str(), true);
+				mainTrans->error(ossStatus.str(), true);
 				ossStatus.str("");
 			}
 			else
@@ -429,17 +435,17 @@ int main(int argc, char *argv[])
 				// The macro parser finished successfully, call the real parser (even if the macro parser had errors).
 				ltsyyLexer::restartLexer();
 				ltsyynerrs = 0;
-				mainTrans.translatorNumErrors = 0;
-				mainTrans.translatorNumWarnings = 0;
+				mainTrans->translatorNumErrors = 0;
+				mainTrans->translatorNumWarnings = 0;
 
 				returnStatus = ltsyyparse();
-				int totalNumErrors = ltsyynerrs + macroParser.macroNumErrors + mainTrans.translatorNumErrors; // Add together the number of errors everything has encountered.
-				int totalNumWarnings = mainTrans.translatorNumWarnings;
+				int totalNumErrors = ltsyynerrs + macroParser.macroNumErrors + mainTrans->translatorNumErrors; // Add together the number of errors everything has encountered.
+				int totalNumWarnings = mainTrans->translatorNumWarnings;
 
 				if(returnStatus != 0)
 				{
 					ossStatus << "% Failed to parse file \"" << ltsyyFileName << "\", " << totalNumErrors << (totalNumErrors == 1 ? " error" : " errors") << " encountered before failure.";
-					mainTrans.error(ossStatus.str(), true);
+					mainTrans->error(ossStatus.str(), true);
 					ossStatus.str("");
 				}
 				else
@@ -448,7 +454,7 @@ int main(int argc, char *argv[])
 					if(totalNumWarnings > 0)
 					{
 						ossStatus << "Encountered " << totalNumWarnings << (totalNumWarnings == 1 ? " warning" : " warnings") << " parsing input.";
-						mainTrans.pragma(ossStatus.str(), true, false);
+						mainTrans->pragma(ossStatus.str(), true, false);
 						ossStatus.str("");
 					}
 
@@ -456,13 +462,13 @@ int main(int argc, char *argv[])
 					if(totalNumErrors > 0)
 					{
 						ossStatus << "Encountered " << totalNumErrors << (totalNumErrors == 1 ? " error" : " errors") << " parsing input.";
-						mainTrans.pragma(ossStatus.str(), true, false);
+						mainTrans->pragma(ossStatus.str(), true, false);
 						ossStatus.str("");
 					}
 
 					returnStatus = (totalNumErrors > 0) ? STATUS_BAD : STATUS_OK;
-					if (mainTrans.hasFoundAbnormalities() && expressiveReturn) returnStatus |= STATUS_FOUND_ABS_MASK;
-					if (mainTrans.hasFoundAdditiveConstants() && expressiveReturn) returnStatus |= STATUS_FOUND_ADD_MASK;
+					if (mainTrans->hasFoundAbnormalities() && expressiveReturn) returnStatus |= STATUS_FOUND_ABS_MASK;
+					if (mainTrans->hasFoundAdditiveConstants() && expressiveReturn) returnStatus |= STATUS_FOUND_ADD_MASK;
 
 					if (symbolTableFile != "") {
 						// Dump the symbol table to the file...
@@ -471,11 +477,11 @@ int main(int argc, char *argv[])
 						if (ofsSymTabOut.fail()) {
 							// opening the file failed. Throw a warning
 							ossStatus << "Unable to output the symbol table. Failed to open the output file '" << symbolTableFile << "'.";
-							mainTrans.error(ossStatus.str(), true);
+							mainTrans->error(ossStatus.str(), true);
 							ossStatus.str("");
 
 						} else {
-							mainTrans.outputSymbolTable(ofsSymTabOut);
+							mainTrans->outputSymbolTable(ofsSymTabOut);
 							ofsSymTabOut.close();
 						}
 					}
@@ -493,6 +499,6 @@ int main(int argc, char *argv[])
 	{
 		ofsFileOut.close();
 	}
-	
+	if (mainTrans) delete mainTrans;	
 	return returnStatus;
 }

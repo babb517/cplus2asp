@@ -491,6 +491,8 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 "::"				{ TOK_INT(T_DBL_COLON); return T_DBL_COLON; }
 ":"					{ TOK_INT(T_COLON); return T_COLON; }
 
+"~"					{ TOK_INT(T_TILDE); return T_TILDE; }
+
 "->>"				{ TOK_INT(T_IMPL); return T_IMPL; }
 "->"				{ TOK_INT(T_ARROW_RDASH); return T_ARROW_RDASH; }
 "-"					{ TOK_INT(T_DASH); return T_DASH; }
@@ -499,7 +501,7 @@ UND_IDENT			_+[a-zA-Z0-9][a-zA-Z0-9_]*
 "<-"				{ TOK_INT(T_ARROW_LDASH); return T_ARROW_LDASH; }
 "<="				{ TOK_INT(T_ARROW_LEQ); return T_ARROW_LEQ; }
 "<>"				{ TOK_INT(T_NOT_EQ); return T_NOT_EQ; }
-"<"				{ TOK_INT(T_LTHAN); return T_LTHAN; }
+"<"					{ TOK_INT(T_LTHAN); return T_LTHAN; }
 "@<"				{ TOK_INT(T_LTHAN); return T_LTHAN; }			// less than in sorted order.
 
 ">="				{ TOK_INT(T_GTHAN_EQ); return T_GTHAN_EQ; }

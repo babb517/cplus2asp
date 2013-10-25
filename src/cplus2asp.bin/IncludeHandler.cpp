@@ -42,7 +42,7 @@
 #include "parser.h"
 #include "flexer.h"
 
-extern Translator mainTrans; ///< The main translator module, declared in the main parser.
+extern Translator* mainTrans; ///< The main translator module, declared in the main parser.
 
 IncludeHandler::IncludeHandler()
 {
@@ -337,7 +337,7 @@ void IncludeHandler::includeReportError()
 		this->includeStartSyntaxError();
 		includeossErr << "Unexpected token \"" << (*curTokIter)->stringValue << "\".";
 	}
-	mainTrans.error(includeossErr.str(), true);
+	mainTrans->error(includeossErr.str(), true);
 	includeossErr.str("");
 	includeossErr.clear();
 }

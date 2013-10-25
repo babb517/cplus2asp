@@ -37,7 +37,7 @@
 #include "Translator.h"
 #include "parser.h"
 
-extern Translator mainTrans; ///< The main translator module, declared in the main parser.
+extern Translator* mainTrans; ///< The main translator module, declared in the main parser.
 
 // Constructor of MacroPoundNumMatch.
 MacroPoundNumMatch::MacroPoundNumMatch()
@@ -342,7 +342,7 @@ std::list<Macro*> MacroParser::parser_def_macro_tuple()
 					}
 					ossMaxAdd << "]";
 					std::string maxAddOut = ossMaxAdd.str();
-					mainTrans.output(maxAddOut, IPART_NONE, true);
+					mainTrans->output(maxAddOut, IPART_NONE, true);
 					ossMaxAdd.str("");
 					delete tempMacro;
 				}
@@ -1018,7 +1018,7 @@ void MacroParser::macroReportWarning()
 		this->macroStartWarning();
 		macroossErr << "Using \"" << (*curTokIter)->stringValue << "\" here will probably break something.";
 	}
-	mainTrans.error(macroossErr.str(), true);
+	mainTrans->error(macroossErr.str(), true);
 	macroossErr.str("");
 	macroossErr.clear();
 }
@@ -1054,7 +1054,7 @@ void MacroParser::macroReportError()
 		this->macroStartSyntaxError();
 		macroossErr << "Unexpected token \"" << (*curTokIter)->stringValue << "\".";
 	}
-	mainTrans.error(macroossErr.str(), true);
+	mainTrans->error(macroossErr.str(), true);
 	macroossErr.str("");
 	macroossErr.clear();
 }

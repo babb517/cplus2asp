@@ -51,12 +51,12 @@ caused onBox after climbOn.
 caused false after climbOn & onBox.
 caused false after climbOn & loc(monkey)\=loc(box).
 
-caused -onBox after climbOff.
-caused false after climbOff & -onBox.
+caused ~onBox after climbOff.
+caused false after climbOff & ~onBox.
 
 caused hasBananas after graspBananas.
 caused false after graspBananas & hasBananas.
-caused false after graspBananas & -onBox.
+caused false after graspBananas & ~onBox.
 caused false after graspBananas & loc(monkey)\=loc(bananas).
 
 caused false after walk(L) & pushBox(L).
