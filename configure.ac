@@ -89,8 +89,8 @@ BOOST_REQUIRE([1.44])
 BOOST_ASIO([$rt_type])							# Required by acplusbridge
 BOOST_BIND([$rt_type])							# Required by acplusbridge
 
-BOOST_STRING_ALGO([$rt_type])						# Required by cplus2asp
-BOOST_FILESYSTEM([$rt_type])						# Required by cplus2asp
+BOOST_STRING_ALGO([$rt_type])					# Required by cplus2asp
+BOOST_FILESYSTEM([$rt_type])					# Required by cplus2asp
 BOOST_FUNCTION([$rt_type])						# Required by acplusbridge
 BOOST_IOSTREAMS([$rt_type])						# Required by cplus2asp						
 BOOST_THREADS([$rt_type])						# Required by acplusbridge

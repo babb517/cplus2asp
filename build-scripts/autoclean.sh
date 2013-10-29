@@ -1,3 +1,4 @@
+#!/bin/bash
 # Recursive cleaning
 echo "Cleaning as2transition..."
 cd externals/as2transition

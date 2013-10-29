@@ -66,13 +66,41 @@ Config::Config(std::string const& name) {
 	if (name != "") {
 	
 		try {
-			mPath = fs::canonical(bp::search_path(name)).parent_path().native();
+			// NOTE: Requires boost::filesystem 1.44+
+			fs::path tmp = bp::search_path(name);
+
+			if (fs::is_empty(tmp)) {
+				// No executable found.
+				tmp = fs::current_path() / name;
+				if (!fs::exists(tmp)) {
+					utils::warning("Could not find '%s' in your path. Assuming it's in the working directory.", name.c_str());
+					mPath = fs::current_path().native();
+				}
+			} else {
+
+				while (fs::is_symlink(tmp)) {
+					tmp = fs::read_symlink(tmp);
+				}
+				if (!fs::is_directory(tmp))
+					tmp = tmp.parent_path();
+				mPath = tmp.native();
+
+			}
+
+			// NOTE: Requred boost::filesystem 1.48+
+			// mPath = fs::canonical(bp::search_path(name)).parent_path().native();
 		} catch (fs::filesystem_error &e) {
 			utils::debug("Caught exception: '%s'", true, e.what());
-			mPath = "";
+			utils::warning("Could not find '%s' in your path. Assuming it's in the working directory.", name.c_str());
+			mPath = fs::current_path().native();
+		} catch (std::runtime_error &e) {
+			utils::debug("Caught exception: '%s'", true, e.what());
+			utils::warning("Could not find '%s' in your path. Assuming it's in the working directory.", name.c_str());
+			mPath = fs::current_path().native();
 		}
 	} else {
-		mPath = "";
+			utils::warning("Could not find '%s' in your path. Assuming it's in the working directory.", name.c_str());
+			mPath = fs::current_path().native();
 	}
 
 	mErrFile = (temppath /  fs::unique_path()).native();

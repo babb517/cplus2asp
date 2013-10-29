@@ -598,17 +598,16 @@ bool SimpleBinaryOperator::isDefinite(bool allowComparison, bool allowChoice, bo
 	else if (opType() == BOP_AND) {
 		return preOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation) && postOp()->isDefinite(allowComparison, allowChoice, allowAtomicNegation);
 	} else if (opType() == BOP_EQ) {
-		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
+		return ((preOp()->getType() == ParseElement::PELEM_CONSTLIKE) || !preOp()->hasConstants(MASK_NON_TRIVIAL, false, true))
 				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
 	} else if (allowComparison 
 			&& ( opType() == BOP_DBL_EQ || opType() == BOP_NEQ || opType() == BOP_LTHAN 
 				|| opType() == BOP_GTHAN || opType() == BOP_LTHAN_EQ || opType() == BOP_GTHAN_EQ)) {
 
 		// Comparison-like operator. Make sure that we aren't comparing two constants.
-		return (preOp()->getType() == ParseElement::PELEM_CONSTLIKE)
-				&& !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true)
-			|| (!preOp()->hasConstants(MASK_NON_TRIVIAL, false, true) 
-				&& postOp()->getType() == ParseElement::PELEM_CONSTLIKE);
+		return !postOp()->hasConstants(MASK_NON_TRIVIAL, false, true) 
+			|| !preOp()->hasConstants(MASK_NON_TRIVIAL, false, true);
+
 	} else return false;
 }
 
