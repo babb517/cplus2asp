@@ -1716,6 +1716,21 @@ cl_constraint_forms:					T_CONSTRAINT cl_body_formula cl_after_clause cl_unless_
 		YYERROR;
 	}
 }
+							| T_ARROW_LDASH cl_body_formula cl_where_clause
+{
+	// This is a law of the form false <- F.
+	// Which is really just a lazy shortcut for
+	// caused c=v if F.
+
+	bool transResult = mainTrans->translateConstraintLaw($2, NULL, NULL, NULL, NULL, $3, false);
+	deallocateItem($2);
+	deallocateItem($3);
+	$$ = PARSERULE_NOT_USED;
+	if(!transResult)
+	{
+		YYERROR;
+	}
+}
 					;
 
 cl_default_forms:					T_DEFAULT cl_head_formula cl_if_clause cl_assuming_clause cl_after_clause cl_unless_clause cl_when_clause cl_following_clause cl_where_clause

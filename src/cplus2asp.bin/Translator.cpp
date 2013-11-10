@@ -741,8 +741,8 @@ void Translator::translateQuery(Query const* transQuery)
 
 	// TODO: These aren't behaving correctly...
 
-	if(transQuery && transQuery->label != ""
-			&& (!blnStaticTrans || transQuery->maxstep != ""))
+	if(transQuery && transQuery->label != "")
+//			&& (!blnStaticTrans || transQuery->maxstep != ""))
 	{
 		std::ostringstream ossOutputBuffer; // Holds translated output so things can be easily added on before or after the normal output.
 

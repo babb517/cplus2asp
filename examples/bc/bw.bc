@@ -35,3 +35,4 @@ nonexecutable move(B,L) if loc(B1) = B.
 	label :: stack;
 	0: loc(B)=table;
 	maxstep: loc(b4)=b3, loc(b3)=b2, loc(b2)=b1.
+
