@@ -80,14 +80,12 @@ h(eql(V_additiveFluent,Value_1 + Value_2),t) <-
    h(eql(V_additiveFluent,Value_1),t-1) &
    Value_2 = #sum[occ(eql(contribution(Action,V_additiveFluent),AdditiveInteger),t-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
    constant_sort(V_additiveFluent,V_sort) & 
-   sort_object(V_sort,Value_1 + Value_2) & 
    sort_object(V_sort,Value_1).
 
 % The value of an additive action at any given time equals all contributions made during that time step.
 occ(eql(V_additiveAction,Value),t-1) <- 
    Value = #sum[occ(eql(contribution(Action,V_additiveAction),AdditiveInteger),t-1):action(Action):additiveInteger(AdditiveInteger)=AdditiveInteger] &
-   constant_sort(V_additiveAction,V_sort) & 
-   sort_object(V_sort,Value).
+   constant_sort(V_additiveAction,V_sort). 
 
 % Additional type checking.
 
@@ -95,20 +93,20 @@ occ(eql(V_additiveAction,Value),t-1) <-
 #base. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
 
-% :- h(eql(V_additiveFluent, V_object),0),
-%	constant_sort(V_additiveFluent, V_sort),
-%	not sort_object(V_sort, V_object).
+ :- h(eql(V_additiveFluent, V_object),0),
+	constant_sort(V_additiveFluent, V_sort),
+	not sort_object(V_sort, V_object).
 
 %-------------------------------------------------------------
 #cumulative t. %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
-% :- h(eql(V_additiveFluent, V_object),t),
-%	constant_sort(V_additiveFluent, V_sort),
-%	not sort_object(V_sort, V_object).
+ :- h(eql(V_additiveFluent, V_object),t),
+	constant_sort(V_additiveFluent, V_sort),
+	not sort_object(V_sort, V_object).
 	
-% :- occ(eql(V_additiveAction, V_object),t-1),
-%	constant_sort(V_additiveAction, V_sort),
-%	not sort_object(V_sort, V_object).
+ :- occ(eql(V_additiveAction, V_object),t-1),
+	constant_sort(V_additiveAction, V_sort),
+	not sort_object(V_sort, V_object).
 %-------------------------------------------------------------
 #base.  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %-------------------------------------------------------------
