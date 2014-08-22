@@ -46,4 +46,6 @@ libtool
 *.gcda
 app.info
 coverage_report
-
+tmp*
+*.tmp
+*.out

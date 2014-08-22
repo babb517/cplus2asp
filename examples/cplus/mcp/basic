@@ -10,7 +10,7 @@
 :- constants
   capacity(vessel)        :: 1..maxCapacity.
 
-exogenous capacity(V) unless ab5(V).
+exogenous capacity(V). % unless ab5(V).
 
 % missionaries should not be outnumbered in any location
 constraint -((num(ca,L) > num(mi,L)) & (num(mi,L) > 0)) unless ab6(L). 

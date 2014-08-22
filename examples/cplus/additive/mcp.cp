@@ -20,7 +20,7 @@
   departing(group,location)  :: additiveAction(0..3);
   cross(vessel)              :: exogenousAction;
   to(vessel)                 :: attribute(location) of cross(vessel);
-  howmany(vessel,group)      :: attribute(0..3) of cross(vessel);
+  howmany(vessel,group)      :: exogenousAction(0..3);
   capacity(vessel)           :: 1..2.
 
 :- macros
@@ -28,6 +28,8 @@
 
 capacity(boat1)=1.
 capacity(boat2)=2.
+
+always -cross(V) ->> howmany(V,G)=0.
 
 constraint num(mi,L)\=0 ->> num(mi,L)>=num(ca,L).
 always staying(mi,L)\=0 ->> staying(mi,L)>=num(ca,L).

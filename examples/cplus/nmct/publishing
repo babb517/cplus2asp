@@ -39,10 +39,10 @@ maxstep :: 0.
 
 :- query 
 maxstep :: 3;
-0: -hasJournalPublications, -hasLongPublications;
-0: kind=conference, length=10;
-1: kind=conference, length=40;
-2: kind=journal, length=71.
+0: -hasJournalPublications & -hasLongPublications;
+0: kind=conference & length=10;
+1: kind=conference & length=40;
+2: kind=journal & length=71.
 
 
 

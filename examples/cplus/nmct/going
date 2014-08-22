@@ -34,6 +34,6 @@ maxstep: loc(jack)=loc(car).
 :- query
 label :: 2;
 maxstep :: 1;
-0: loc(jack)=home, loc(car)=home;
-0: -go(home), go(work).
+0: loc(jack)=home & loc(car)=home;
+0: -go(home) & go(work).
 

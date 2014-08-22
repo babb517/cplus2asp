@@ -15,13 +15,19 @@ AC_SUBST([PROJECT_ROOT],`pwd`)
 
 AC_CONFIG_FILES([Makefile
 	src/cplus2asp.bin/Makefile
-	src/acplusbridge/Makefile
+	src/bcbridge/Makefile
 	src/cplus2asp/Makefile])
 
 AC_CHECK_FILE(
 	[externals/as2transition/configure.ac],
 	[AS2TRANS="true"],
 	[AS2TRANS="false"]
+)
+
+AC_CHECK_FILE(
+	[externals/bcplusparser/configure.ac],
+	[BCPPARSER="true"],
+	[BCPPARSER="false"]
 )
 
 if test x"$AS2TRANS" == x"true"
@@ -33,17 +39,31 @@ fi
 
 AM_CONDITIONAL(HAVE_AS2TRANSITION,"$AS2TRANS")
 
+
+AC_CHECK_FILE(
+	[externals/bcplusparser/configure.ac],
+	[BCPPARSER="true"],
+	[BCPPARSER="false"]
+)
+
+if test x"$BCPPARSER" == x"true"
+then
+	AC_CONFIG_SUBDIRS([externals/bcplusparser])
+else
+	AC_MSG_WARN([bcplusparser was not found in the project directory. Please download bcplusparser from https://github.com/babb517/bcplusparser and place the files in the externals/bcplusparser directory.])
+fi
+
+AM_CONDITIONAL(HAVE_BCPLUSPARSER,"$BCPPARSER")
+
+
 # Allows LEX, YACC, and RE2C to rebuild their files.
-AM_MAINTAINER_MODE([disable])
+AM_MAINTAINER_MODE([enable])
 
 # Checks for programs.
 C_PROG_LIBTOOL 
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_LN_S
-AM_PROG_LEX
-AM_CONDITIONAL([HAVE_FLEX],[test "x$LEX" == x"flex"])
-AC_PROG_YACC
 AC_PATH_PROG([RE2C],[re2c],[false])
 AC_SUBST(RE2C)
 AM_CONDITIONAL([HAVE_RE2C],[test "x$RE2C" != x"false"])

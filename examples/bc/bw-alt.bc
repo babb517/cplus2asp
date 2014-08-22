@@ -14,7 +14,7 @@
 :- constants
 	on(block) 				:: inertialFluent(loc);
 	pos(loc) 				:: sdFluent(table*);
-	move(gripper,block,loc) :: exogenousAction.
+	move(gripper,block,loc) :: action.
 
 :- variables
 	I 						:: 1..N;
@@ -23,19 +23,19 @@
 	L, L1, L2 				:: loc;
 	G						:: gripper.
 
-caused false if on(B1)=L & on(B2)=L where B1\=B2.
+false if on(B1)=L & on(B2)=L where B1\=B2.
 
 default pos(B)=none.
-caused pos(T)=T.
-caused pos(B)=T if on(B)=L & pos(L)=T.
-caused false if pos(B)=none.
+pos(T)=T.
+pos(B)=T if on(B)=L & pos(L)=T.
+false if pos(B)=none.
 
 move(G,B,L) causes on(B)=L.
-caused false after move(G,B,L) & move(G,B1,L1) 
+false after move(G,B,L) & move(G,B1,L1) 
 	where B\=B1.
 
 
 :- query
 	label :: stack;
 	0: on(blk(I))=tbl(I);
-	maxstep: [\/L /\B1| pos(B1)=L].
+	maxstep: pos(B)=tbl(1).

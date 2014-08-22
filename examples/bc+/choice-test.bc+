@@ -14,14 +14,14 @@
 :- variables
 	V :: var.
 
-% caused {mv}.
-caused {mv=V}.
-%caused {~(mv=V)}.
-%caused {not (mv=V)}.
-%caused {~mv}.
-%caused {not mv}.
-caused {b(V)}.
-caused {~b(V)}.
-%caused false if {mv=V}.
-caused {mv2(V)=V}.
+% {mv}.
+{mv=V}.
+%{~(mv=V)}.
+%{not (mv=V)}.
+%{~mv}.
+%{not mv}.
+{b(V)}.
+{~b(V)}.
+%false if {mv=V}.
+{mv2(V)=V}.
 

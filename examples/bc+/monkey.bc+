@@ -24,53 +24,53 @@
   graspBananas           :: action.
 
 
-caused {loc(Th)=L} after loc(Th)=L.
-caused {hasBananas=B} after hasBananas=B.
-caused {onBox=B} after onBox=B.
+{loc(Th)=L} after loc(Th)=L.
+{hasBananas=B} after hasBananas=B.
+{onBox=B} after onBox=B.
 
-caused {walk(L)=B}.
-caused {pushBox(L)=B}.
-caused {climbOn=B}.
-caused {climbOff=B}.
-caused {graspBananas=B}.
+{walk(L)=B}.
+{pushBox(L)=B}.
+{climbOn=B}.
+{climbOff=B}.
+{graspBananas=B}.
 
-caused loc(bananas)=L if hasBananas & loc(monkey)=L.
-caused loc(monkey)=L if onBox & loc(box)=L.
+loc(bananas)=L if hasBananas & loc(monkey)=L.
+loc(monkey)=L if onBox & loc(box)=L.
 
-caused loc(monkey)=L after walk(L).
-caused false after walk(L) & loc(monkey)=L.
-caused false after walk(L) & onBox.
+loc(monkey)=L after walk(L).
+false after walk(L) & loc(monkey)=L.
+false after walk(L) & onBox.
 
-caused loc(box)=L after pushBox(L).
-caused loc(monkey)=L after pushBox(L).
-caused false after pushBox(L) & loc(monkey)=L.
-caused false after pushBox(L) & onBox.
-caused false after pushBox(L) & loc(monkey)\=loc(box).
+loc(box)=L after pushBox(L).
+loc(monkey)=L after pushBox(L).
+false after pushBox(L) & loc(monkey)=L.
+false after pushBox(L) & onBox.
+false after pushBox(L) & loc(monkey)\=loc(box).
 
-caused onBox after climbOn.
-caused false after climbOn & onBox.
-caused false after climbOn & loc(monkey)\=loc(box).
+onBox after climbOn.
+false after climbOn & onBox.
+false after climbOn & loc(monkey)\=loc(box).
 
-caused ~onBox after climbOff.
-caused false after climbOff & ~onBox.
+~onBox after climbOff.
+false after climbOff & ~onBox.
 
-caused hasBananas after graspBananas.
-caused false after graspBananas & hasBananas.
-caused false after graspBananas & ~onBox.
-caused false after graspBananas & loc(monkey)\=loc(bananas).
+hasBananas after graspBananas.
+false after graspBananas & hasBananas.
+false after graspBananas & ~onBox.
+false after graspBananas & loc(monkey)\=loc(bananas).
 
-caused false after walk(L) & pushBox(L).
-caused false after walk(L) & climbOn.
-caused false after pushBox(L) & climbOn.
-caused false after climbOff & graspBananas.
+false after walk(L) & pushBox(L).
+false after walk(L) & climbOn.
+false after pushBox(L) & climbOn.
+false after climbOff & graspBananas.
 
 
 % Prediction
 :- query
 maxstep :: 2;
-0: loc(monkey)=l1,
-   loc(bananas)=l2,
-   loc(box)=l3,
+0: loc(monkey)=l1 &
+   loc(bananas)=l2 &
+   loc(box)=l3 &
    walk(l3);
 1: pushBox(l2);
 2: loc(monkey)\= loc(bananas) ++ loc(bananas)\=loc(box).
@@ -87,8 +87,8 @@ maxstep :: 2;
 :- query
 label :: 2;
 maxstep :: 4;
-0: loc(monkey)=l1,
-   loc(bananas)=l2,
+0: loc(monkey)=l1 &
+   loc(bananas)=l2 &
    loc(box)=l3;
 maxstep: hasBananas.
 

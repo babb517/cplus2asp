@@ -43,8 +43,6 @@
 
 #define DEF_RUNNING_MODE					MODE_INCREMENTAL					///< The default running mode.
 #define DEF_LANG							LANG_CPLUS							///< The default input language.
-#define DEF_INCL_STD						true								///< Whether to include standard files by default.
-#define DEF_INCL_ADDITIVE					false								///< Whether to include additive files by default.
 #define DEF_DISCARD_F2LP					true								///< Whether to discard intermediate F2LP files by default.
 #define DEF_SUPPRESS_INTERACTION			false								///< Whether to suppress user interaction by default.
 #define DEF_NONE_HACK						false								///< Whether we should simulate none being an integral type by default.
@@ -55,13 +53,16 @@
 
 #define DEF_STATS							false								///< Default for whether we should show solver stats.
 
+#define DEF_NO_DOMAIN_ENFORCE				false								///< Default for whether we should suppress domain enforcing rules from being generated
+#define DEF_NO_ADD_DOMAIN_ENFORCE			false								///< Default for whether we should suppress domain enforcing rules from being generated for additive constants
+
 // Default commands
-#define DEF_TRANS_CMD						"cplus2asp.bin"						///< Default translator command.
+#define DEF_TRANS_CMD						"cplus2asp3.bin"					///< Default translator command.
 #define DEF_PREPROC_CMD						"f2lp"								///< Default preprocessor command.
 #define DEF_GRD_CMD							""									///< Default grounder command.
 #define DEF_SO_CMD							"iclingo"							///< Default solver command.
 #define DEF_POSTPROC_CMD					"as2transition"						///< Default postprocessor command.
-#define DEF_REACTIVE_BRIDGE_CMD				"acplusbridge"						///< Default reactive client command. TODO
+#define DEF_REACTIVE_BRIDGE_CMD				"bcbridge"							///< Default reactive client command. TODO
 
 #define DEF_GRD_REACTIVE_CMD				""									///< The default grounder to use in reactive mode.
 #define DEF_SO_REACTIVE_CMD					"oclingo"							///< The default solver to use in reactive mode.
@@ -80,13 +81,6 @@
 #define DEF_GRSO_OPTS						""									///< Default grounder/solver options.
 #define DEF_POSTPROC_OPTS					""									///< Default postprocessor options.
 #define DEF_REACTIVE_BRIDGE_OPTS			""									///< Default reactive client
-
-// files
-#define MVPF_STD_FILE 	 					"mvpf_std.f2lp"						///< The "standard" MVPF to ASP translation support file.
-#define CCALC2_ASP_STD_FILE  				"cplus2asp_std.f2lp"				///< The "standard" CCalc to ASP translation support file.
-#define CCALC2_ASP_ADDITIVE_FILE			"cplus2asp_additive.f2lp" 			///< The CCalc to ASP translation support file for additive fluents/actions.
-#define CCALC2_ASP_STD_DYNAMIC_FILE  		"cplus2asp_std.of2lp"				///< The "standard" CCalc to ASP translation support file (dynamic translation).
-#define CCALC2_ASP_ADDITIVE_DYNAMIC_FILE	"cplus2asp_additive.of2lp" 			///< The CCalc to ASP translation support file for additive fluents/actions (dynamic translation).
 
 // f2lp files
 #define F2LP_INPUT_FILE						".f2lp_input.fof"
@@ -163,12 +157,12 @@ public:
 		_OPT_BEGIN_ = 0x00,				///< Dummy constant to mark the beginning of the configuration list.
 
 		// boolean
-		OPT_INCL_STD = _OPT_BEGIN_,		///< Whether we should include the standard files.
-		OPT_INCL_ADDITIVE,				///< Whether we should include the standard additive files.
-		OPT_DISCARD_F2LP,				///< Whether we should discard all F2LP intermediate files when we're done.
+		OPT_DISCARD_F2LP = _OPT_BEGIN_,	///< Whether we should discard all F2LP intermediate files when we're done.
 		OPT_SUPPRESS_INTERACTION,		///< Whether we should operate in silent mode.
 		OPT_SHIFT,						///< Whether we should assert the '--shift' flag, which tells gringo to shift disjunction into the body of the rules.
 		OPT_STATS,						///< Whether we should show solving stats.
+		OPT_NO_DOMAIN_ENFORCE,			///< Whether we should suppress domain enforcing rules from being generated
+		OPT_NO_ADD_DOMAIN_ENFORCE,		///< Whether we should suppress domain enforcing rules from being generated for additive constants
 
 		// integer
 		OPT_MINSTEP,					///< The currently configured minimum step, or UNDEFINED.
@@ -297,7 +291,6 @@ public:
 	/***************************************************************/
 private:
 
-	std::string mPath;								///< The path to this executable.
 	std::string mErrFile;							///< A temporary error file to use for each tool being run.
 
 	Mode mRunningMode;								///< The currently configured running mode.
@@ -340,15 +333,6 @@ public:
 	/***************************************************************/
 	/* Psuedo Accessors */
 	/***************************************************************/
-
-	/// Install directory
-	std::string const& installDir() const;
-
-	/// standard file
-	std::string stdFile() const;
-
-	/// Additive file
-	std::string additiveFile() const;
 
 	/***************************************************************/
 	/* Basic accessors / mutators */

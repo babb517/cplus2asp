@@ -19,15 +19,17 @@
   pos(axis)                      :: simpleFluent(integer);
   vel(axis)                      :: additiveFluent(integer);
   fire(jet)                      :: exogenousAction;
-  force(jet,axis)                :: attribute(integer) of fire(jet).
+  force(jet,axis)                :: exogenousAction(integer).
 
+
+always -fire(J) ->> force(J,Ax)=0.
 
 fire(J) increments vel(Ax) by V // mass if force(J,Ax) = V.
 
 
 caused pos(Ax) = P+((V+V1)//2) if vel(Ax) = V1
-   after vel(Ax) = V & pos(Ax) = P where (V+V1) mod 2 = 0,
-                                         P+((V+V1)//2) >= -maxAdditive,
+   after vel(Ax) = V & pos(Ax) = P where (V+V1) mod 2 = 0 &
+                                         P+((V+V1)//2) >= -maxAdditive &
                                          P+((V+V1)//2) =< maxAdditive.
 
 nonexecutable fire(J) if force(J,Ax) mod mass \= 0.

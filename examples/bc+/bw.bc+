@@ -9,19 +9,19 @@
 :- constants
 	loc(block) 		:: inertialFluent(loc);
 	in_tower(block)	:: sdFluent;
-	move(block, loc):: action.
+	move(block, loc):: exogenousAction.
 
 :- variables
 	B, B1, B2 	:: block;
 	L, L1 		:: loc.
 
 % location
-impossible loc(B1) = B, loc(B2) = B where B1\=B2.
+impossible loc(B1) = B & loc(B2) = B where B1\=B2.
 
 % Definition of a tower
-caused {in_tower(B)=false}.
+{in_tower(B)=false}.
 in_tower(B) if loc(B) = table.
-in_tower(B) if loc(B) = B1, in_tower(B1).
+in_tower(B) if loc(B) = B1 & in_tower(B1).
 
 % Blocks don't float in the air
 impossible -in_tower(B).
@@ -37,4 +37,4 @@ always in_tower(B) == in_tower(B).
 :- query
 	label :: stack;
 	0: loc(B)=table;
-	maxstep: loc(b4)=b3, loc(b3)=b2, loc(b2)=b1.
+	maxstep: loc(b4)=b3 & loc(b3)=b2 & loc(b2)=b1.

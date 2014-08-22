@@ -1,4 +1,4 @@
-# cplus2asp test script file.
+# cplus2asp3 test script file.
 
 ######################################################################################################################
 # NMCT Domains
@@ -10,8 +10,8 @@ echo "% ------------------------------------------------ Monkeys & Bananas -----
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp nmct/monkey query=0 0 " 
-cplus2asp nmct/monkey query=0 0 
+echo "$ cplus2asp3 nmct/monkey query=0 0 " 
+cplus2asp3 nmct/monkey query=0 0 
 
 # Output:
 
@@ -32,8 +32,8 @@ cplus2asp nmct/monkey query=0 0
 # ------------------------- Query 1 -------------------------
 echo "% ------------------------- Query 1 -------------------------" 
 
-echo "$ cplus2asp nmct/monkey query=1 0 " 
-cplus2asp nmct/monkey query=1 0 
+echo "$ cplus2asp3 nmct/monkey query=1 0 " 
+cplus2asp3 nmct/monkey query=1 0 
 
 # Output:
 
@@ -54,8 +54,8 @@ cplus2asp nmct/monkey query=1 0
 # ------------------------- Query 2 -------------------------
 echo "% ------------------------- Query 2 -------------------------" 
 
-echo "$ cplus2asp nmct/monkey query=2 0 " 
-cplus2asp nmct/monkey query=2 0 
+echo "$ cplus2asp3 nmct/monkey query=2 0 " 
+cplus2asp3 nmct/monkey query=2 0 
 
 # Output:
 
@@ -97,8 +97,8 @@ echo "% ----------------------------------------------------- Shooting ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp nmct/shooting query=0 0 " 
-cplus2asp nmct/shooting query=0 0 
+echo "$ cplus2asp3 nmct/shooting query=0 0 " 
+cplus2asp3 nmct/shooting query=0 0 
 
 # Output:
 
@@ -177,8 +177,8 @@ echo "% ------------------------------------------------------ Going -----------
 # --------------------------- Query 0 ---------------------------
 echo "% --------------------------- Query 0 ---------------------------" 
 
-echo "$ cplus2asp nmct/going query=0 0" 
-cplus2asp nmct/going query=0 0
+echo "$ cplus2asp3 nmct/going query=0 0" 
+cplus2asp3 nmct/going query=0 0
 
 # % Pragma: Running Query 'Query 0'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -220,8 +220,8 @@ cplus2asp nmct/going query=0 0
 # --------------------------- Query 1 ---------------------------
 echo "% --------------------------- Query 1 ---------------------------" 
 
-echo "$ cplus2asp nmct/going query=1 0" 
-cplus2asp nmct/going query=1 0
+echo "$ cplus2asp3 nmct/going query=1 0" 
+cplus2asp3 nmct/going query=1 0
 
 # % Pragma: Running Query 'Query 1'.
 # % Pragma: Minimum Step = '0', Maximum Step = '0'.
@@ -256,8 +256,8 @@ cplus2asp nmct/going query=1 0
 # --------------------------- Query 2 ---------------------------
 echo "% --------------------------- Query 2 ---------------------------" 
 
-echo "$ cplus2asp nmct/going query=2 0" 
-cplus2asp nmct/going query=2 0
+echo "$ cplus2asp3 nmct/going query=2 0" 
+cplus2asp3 nmct/going query=2 0
 
 # % Pragma: Running Query 'Query 2'.
 # % Pragma: Minimum Step = '1', Maximum Step = '1'.
@@ -296,8 +296,8 @@ echo "% ----------------------------------------------------- Lifting ----------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp nmct/lifting query=0 0 " 
-cplus2asp nmct/lifting query=0 0 
+echo "$ cplus2asp3 nmct/lifting query=0 0 " 
+cplus2asp3 nmct/lifting query=0 0 
 
 
 # Output:
@@ -341,8 +341,8 @@ echo "% ----------------------------------------------------- Pendulum ---------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp nmct/pendulum query=0 0 " 
-cplus2asp nmct/pendulum query=0 0 
+echo "$ cplus2asp3 nmct/pendulum query=0 0 " 
+cplus2asp3 nmct/pendulum query=0 0 
 
 # Output:
 
@@ -402,8 +402,8 @@ echo "% ---------------------------------------------------- Publishing --------
 # ------------------------- Query 0 -------------------------
 echo "% ------------------------- Query 0 -------------------------" 
 
-echo "$ cplus2asp nmct/publishing query=0 " 
-cplus2asp nmct/publishing query=0 
+echo "$ cplus2asp3 nmct/publishing query=0 " 
+cplus2asp3 nmct/publishing query=0 
 
 # Output:
 

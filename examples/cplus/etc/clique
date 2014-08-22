@@ -33,7 +33,8 @@ constraint edge(member(I),member(J)) ++ edge(member(J),member(I)) ++ I=J.
 % symmetry breaking
 constraint member(I)=X & member(J)=Y & I < J ->> X<Y.
 
-:- show member(I).
+:- hide all.
+:- show member(I)=X.
 
 /*
 | ?- loadf 'clique'.

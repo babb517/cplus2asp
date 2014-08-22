@@ -33,8 +33,8 @@ constraint 0: owner(S)=i;
 :- query
 maxstep :: 2;
 0: owner(S)=i;
-0: fightFor(left,apple), -fightFor(right,apple), -fightFor(left,banana), -fightFor(right,banana), -fightFor(left,carrot), -fightFor(right,carrot);
-1: -fightFor(left,apple), -fightFor(right,apple), -fightFor(left,banana), fightFor(right,banana), -fightFor(left,carrot), -fightFor(right,carrot).
+0: fightFor(left,apple) & -fightFor(right,apple) & -fightFor(left,banana) & -fightFor(right,banana) & -fightFor(left,carrot) & -fightFor(right,carrot);
+1: -fightFor(left,apple) & -fightFor(right,apple) & -fightFor(left,banana) & fightFor(right,banana) & -fightFor(left,carrot) & -fightFor(right,carrot).
 
 
 /*

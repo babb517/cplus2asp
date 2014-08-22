@@ -1,5 +1,4 @@
 % File: 'monkey'. 
-
 :- sorts
   thing;
   location.
@@ -9,7 +8,8 @@
   l1,l2,l3               :: location.
 
 :- variables
-  L                      :: location.
+  L                      :: location;
+  B						 :: boolean.
 
 :- constants
   loc(thing)             :: inertialFluent(location);
@@ -52,13 +52,20 @@ nonexecutable walk(L) & climbOn.
 nonexecutable pushBox(L) & climbOn.
 nonexecutable climbOff & graspBananas.
 
+:- hide all.
+:- show walk(L).
+:- show pushBox(L).
+:- show climbOn.
+:- show climbOff.
+:- show graspBananas.
+:- show loc(monkey)=L.
 
 % Prediction
 :- query
 maxstep :: 2;
-0: loc(monkey)=l1, 
-   loc(bananas)=l2,
-   loc(box)=l3,
+0: loc(monkey)=l1 &
+   loc(bananas)=l2 &
+   loc(box)=l3 &
    walk(l3);
 1: pushBox(l2);
 2: loc(monkey)\= loc(bananas) ++ loc(bananas)\=loc(box).
@@ -73,18 +80,9 @@ maxstep :: 2;
 
 % Planning
 :- query
-label :: 2;
-maxstep :: 1..100;
-0: loc(monkey)=l1,
-   loc(bananas)=l2,
-   loc(box)=l3;
-maxstep: hasBananas.
-
-% Planning
-:- query
 label :: 3;
 maxstep :: 4;
-0: loc(monkey)=l1,
-   loc(bananas)=l2,
+0: loc(monkey)=l1 &
+   loc(bananas)=l2 &
    loc(box)=l3;
 maxstep: hasBananas.

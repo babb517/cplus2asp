@@ -13,7 +13,7 @@
 :- objects
   a,b,c,d,e,f,g,h,i,j,k,l,m,n,o  :: block.
 
-:- show cost; move(B); destination(L).
+:- hide loc(B)=L.
 
 :- query
 maxstep :: length_small..length;

@@ -52,7 +52,7 @@ move(B) increments cost by 1.
   a,b,c,d,e,f,g,h,i,j,k,l,m,n,o  :: block;
   p,q,r,s,t                      :: block.
 
-:- show cost; move(B); destination(L).
+:- show cost=N; move(B); destination(B)=L.
 
 :- query
 maxstep :: 0..100;

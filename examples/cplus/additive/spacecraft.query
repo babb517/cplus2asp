@@ -12,9 +12,12 @@
 maxstep :: 1;
  0: (pos(x) = -1  &  pos(y) =  0  &  pos(z) =  1);
  0: (vel(x) =  0  &  vel(y) =  1  &  vel(z) =  1);
+% 0: (force(jet1,x)=0 & force(jet1,y)=2 & force(jet1,z)=-1);
+% 0: (force(jet2,x)=2 & force(jet2,y)=2 & force(jet2,z)=-1);
  1: (pos(x) =  0  &  pos(y) =  3  &  pos(z) =  1).
 
-:- show pos(Ax); vel(Ax); fire(J); force(J,Ax).
+%:- hide all.
+%:- show pos(Ax)=P; vel(Ax)=V; fire(J); force(J,Ax)=F.
 
 
 /* 

@@ -75,15 +75,17 @@ caused remaining(J)=0
 % a job is unassigned when it's complete
 caused assignment(J)=none if remaining(J)=0.
 
-:- show remaining(J).
+:- hide all.
+:- show delegate(J)=M.
+:- show remaining(J)=N.
 
 %Query:
 :- query
 	label::0;
-	0: size(j1)=1, size(j2)=2, size(j3)=3, size(j4)=4;
-	0: depends(j3,j2), depends(j4,j2);
-	0: (((J \= j3) & (J \= j4)) ++ J1 \= j2 ) ->> -depends(J,J1);
+	0: size(j1)=1 & size(j2)=2 & size(j3)=3 & size(j4)=4;
+	0: depends(j3, j2) & depends(j4, j2);
+	0: (((J \= j3) & (J \= j4)) ++ J1 \= j2 ) ->> -depends(J, J1);
 	0: remaining(J)=size(J);
-	0: throughput(m1)=2, throughput(m2)=4;
+	0: throughput(m1)=2 & throughput(m2)=4;
 	0: assignment(J)=none;
     maxstep: remaining(J)=0.

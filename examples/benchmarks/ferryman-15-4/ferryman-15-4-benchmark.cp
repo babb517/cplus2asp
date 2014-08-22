@@ -61,7 +61,7 @@ caused false if here(wolf)=N & here(sheep)=N1 where N1 < NUM & N < N1.
 
 :- query
 	label::0;
-	maxstep:: 1..100;
+	maxstep:: 0..28;
 	0: here(wolf)=NUM & here(sheep)=NUM;
 	0: boat_here;
 	maxstep: here(wolf)=0 & here(sheep)=0.

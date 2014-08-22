@@ -15,7 +15,8 @@
   car1                      :: car.
 
 
-caused segNode(seg_ab,a,b).
+%caused segNode(seg_ab,a,b).
+caused startNode(seg_ab)=a & endNode(seg_ab)=b.
 caused segNode(seg_bc1,b,c).
 caused segNode(seg_bc2,b,c).
 

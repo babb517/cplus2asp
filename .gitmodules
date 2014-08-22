@@ -1,3 +1,6 @@
 [submodule "externals/as2transition"]
 	path = externals/as2transition
 	url = git://github.com/babb517/as2transition
+[submodule "externals/bcplusparser"]
+	path = externals/bcplusparser
+	url = git://github.com/babb517/bcplusparser

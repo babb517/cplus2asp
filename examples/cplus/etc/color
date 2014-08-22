@@ -13,7 +13,7 @@
   col(node)             :: color.
 
 :- variables
-  X,Y                   :: node;
+  X,Y		:: node;
   C			:: color.
 
 % colors are arbitrary
@@ -24,9 +24,7 @@ exogenous col(X).
 constraint -(edge(X,Y) & col(X)=col(Y)).
 
 
-% NOT SUPPORTED:
-% :- show col(X)=var(color,1).
-
+:- hide all.
 :- show col(X)=C.
 
 

@@ -20,11 +20,13 @@
   pos(axis)                      :: simpleFluent(integer);
   vel(axis)                      :: additiveFluent(integer);
   fire(jet)                      :: exogenousAction;
-  force(jet,axis)                :: attribute(integer) of fire(jet).
+  force(jet,axis)                :: exogenousAction(integer).
 
 :- macros 
   mass -> 1;
   maxForce -> 2.
+
+always -fire(J) ->> force(J,Ax)=0.
 
 fire(J) increments vel(Ax) by V // mass if force(J,Ax) = V.
 

@@ -11,25 +11,18 @@ caused ab1(M,david).
 caused ab2(M) if onBox(goliath).
 caused ab2(M) if climbOn(goliath).
 
-:- query 
-label :: 100;
-maxstep :: 1;
-%0: onBox(goliath);
-0: pushBox(alice,L1).
-
-
 
 % Can alice and david be on top of the box at the same time? - yes
 :- query 
 maxstep :: 0;
-0: onBox(alice),
+0: onBox(alice) &
    onBox(david).
 
 % Can alice and goliath be on top of the box at the same time? - no
 :- query 
 label :: 1;
 maxstep :: 1;
-0: onBox(alice),
+0: onBox(alice) &
    onBox(goliath).
 
 % Can alice move box while goliath is on top of the box? - no, but action is possible 
@@ -45,37 +38,32 @@ maxstep :: 1;
 :- query
 label :: 3;
 maxstep :: 1;
-0: climbOn(david);
-%(0: loc(box))\= (1: loc(box)).
-0: loc(box)=l1;
-1: loc(box)=l2.
+%0: climbOn(david);
+[\/L\/L1| (0:loc(box)=L) & (1:loc(box)=L1) & L \= L1].
+%0:loc(box)=l1;
+%1:loc(box)=l2.
 
 % Can the box be moved when goliath is climing the box? - no
 :- query
 label :: 4;
 maxstep :: 1;
 0: climbOn(goliath);
-%(0: loc(box))\= (1: loc(box)).
-0: loc(box)=l1;
-1: loc(box)=l2.
+[\/L\/L1| (0:loc(box)=L) & (1:loc(box)=L1) & L \= L1].
 
 % Can the box be moved when david is climing off the box? - yes
 :- query
 label :: 5;
 maxstep :: 1;
 0: climbOff(david);
-%(0: loc(box))\= (1: loc(box)).
-0: loc(box)=l1;
-1: loc(box)=l2.
+[\/L\/L1| (0:loc(box)=L) & (1:loc(box)=L1) & L \= L1].
 
 % Can the box be moved when goliath is climing off the box? - no
 :- query
 label :: 6;
 maxstep :: 1;
 0: climbOff(goliath);
-%(0: loc(box))\= (1: loc(box)).
-0: loc(box)=l1;
-1: loc(box)=l2.
+[\/L\/L1| (0:loc(box)=L) & (1:loc(box)=L1) & L \= L1].
+(0:loc(box)=L) & (1:loc(box)=L1) & L \= L1.
 
 % Can david walk and climon together while the box is moved if the concurrency
 % is not disallowed explicitly? - yes
