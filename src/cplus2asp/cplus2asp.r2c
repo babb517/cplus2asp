@@ -533,6 +533,7 @@ int main(int argc, char** argv)
 		}
 
 		if (config.run(Config::TC_SOLVER)) {
+/*
 			if (config.intConfigOpt(Config::OPT_EXT_PORT) == Config::UNDEFINED
 					&& config.mode() == Config::MODE_REACTIVE) {
 
@@ -554,6 +555,7 @@ int main(int argc, char** argv)
 					 utils::nice_exit(utils::EXT_CODE_UNDEFINED_CONSTANTS, NULL);
 				}
 			}
+*/
 		}
 
 	}
@@ -731,7 +733,7 @@ int main(int argc, char** argv)
 				ran[Config::TC_SOLVER] = true;
 				bool ok = true;
 
-				if (!config.run(Config::TC_POSTPROC)) {
+				if (!config.run(Config::TC_POSTPROC) && config.mode() != Config::MODE_REACTIVE) {
 					if (!echoFile(std::cout, config.output(Config::TC_SOLVER))) {
 						utils::error("Unable to read from the solver output file '%s'", true, -1, config.output(Config::TC_SOLVER).c_str());
 					}
@@ -2309,133 +2311,102 @@ int runTool(Config const& config, Config::Toolchain tool, std::string const& nam
 
 
 
-	if (!config.run(tool)) {
-		utils::debug("Skipping %s execution.", true, name.c_str());
-	} else if (!config.cumulativeInputCount(tool)) {
-		utils::pragma("No input files for the %s have been specified. Skipping it.", true, name.c_str());
-	} else {
-		// Run the translator...
+if (!config.run(tool)) {
+utils::debug("Skipping %s execution.", true, name.c_str());
+} else if (!config.cumulativeInputCount(tool) && tool != Config::TC_REACTIVE_BRIDGE) {
+utils::pragma("No input files for the %s have been specified. Skipping it.", true, name.c_str());
+} else {
+// Run the translator...
 //		std::string tmpCmd = config.compileCommandLine(tool, subconfig);
-		std::list<std::string> arglist;
-		config.compileArgs(tool, arglist, subconfig);
-		utils::debug("Running the '%s' (program: '%s') with command: '%s'",true,name.c_str(), config.command(tool).c_str(), config.compileCommandLine(tool, subconfig).c_str());
+std::list<std::string> arglist;
+config.compileArgs(tool, arglist, subconfig);
+utils::debug("Running the '%s' (program: '%s') with command: '%s'",true,name.c_str(), config.command(tool).c_str(), config.compileCommandLine(tool, subconfig).c_str());
 
 
+	bp::context ctx;
+	ctx.environment = bp::self::get_environment();
+	if (tool == Config::TC_REACTIVE_BRIDGE) {
+		ctx.stdin_behavior  = bp::inherit_stream();
+		ctx.stdout_behavior = bp::inherit_stream();
+		ctx.stderr_behavior = bp::inherit_stream();
+	} else if (config.mode() != Config::MODE_REACTIVE || tool != Config::TC_SOLVER) {
+		ctx.stdin_behavior  = bp::close_stream();
+		ctx.stdout_behavior = bp::capture_stream();
+		ctx.stderr_behavior = bp::capture_stream();
+	} else {
+		ctx.stdin_behavior  = bp::inherit_stream();
+		ctx.stdout_behavior = bp::silence_stream();
+		ctx.stderr_behavior = bp::inherit_stream();
 
+	}
 
-	
+	bp::child c = bp::launch(bp::find_executable_in_path(config.command(tool)), arglist, ctx);
+
+	if (tool == Config::TC_REACTIVE_BRIDGE) {
+		bp::status s = c.wait();
+		if (s.exited()) ret = s.exit_status();
+		else ret = TC_STAT_EXEC_ERR;
+	} else if (config.mode() != Config::MODE_REACTIVE || tool != Config::TC_SOLVER) {
 		
-
-		if (tool == Config::TC_REACTIVE_BRIDGE) {
-
-/*
-			bp::child c = bp::execute(
-				bp::initializers::run_exe(bp::search_path(config.command(tool))),
-				bp::initializers::set_args(arglist)
-			);
-*/
-
-			bp::context ctx;
-			ctx.stdout_behavior = bp::inherit_stream();
-			ctx.stderr_behavior = bp::inherit_stream();
-			ctx.environment = bp::self::get_environment();
-
-			bp::child c = bp::launch(bp::find_executable_in_path(config.command(tool)), arglist, ctx); 
-
-		} else {
-	
-
-/*
-			bp::child c = bp::execute(
-				bp::initializers::run_exe(bp::search_path(config.command(tool))),
-				bp::initializers::set_args(arglist),
-				bp::initializers::bind_stdout(fsink),
-				bp::initializers::bind_stderr(errsink)
-//				bp::initializers::start_in_dir(boost::filesystem::current_path().string())
-			);	
-
-*/
+		std::ofstream outstream(config.output(tool));
+		std::ofstream errstream(config.errFile());
 
 
 
-			bp::context ctx;
-			ctx.stdout_behavior = bp::capture_stream();
-			ctx.stderr_behavior = bp::capture_stream();
-			ctx.environment = bp::self::get_environment();
-
-			bp::child c = bp::launch(bp::find_executable_in_path(config.command(tool)), arglist, ctx);
-		
-			if (config.mode() != Config::MODE_REACTIVE || tool != Config::TC_SOLVER) {
-				
-				std::ofstream outstream(config.output(tool));
-				std::ofstream errstream(config.errFile());
+		if (!outstream.good()) {
+			if (config.customOut(tool))
+				utils::error("Unable to open '%s' for writing.", true, 0, config.output(tool).c_str());
+			else
+				utils::error("Unable to open temporary file '%s' for writing.", true, 0, config.output(tool).c_str());
+			return TC_STAT_IO_ERR;
+		}
 
 
-
-				if (!outstream.good()) {
-					if (config.customOut(tool))
-						utils::error("Unable to open '%s' for writing.", true, 0, config.output(tool).c_str());
-					else
-						utils::error("Unable to open temporary file '%s' for writing.", true, 0, config.output(tool).c_str());
-					return TC_STAT_IO_ERR;
-				}
+		if (!errstream.good()) {
+			utils::error("Unable to open temporary file '%s' for writing.", true, 0, config.errFile().c_str());
+			return TC_STAT_IO_ERR;
+		}
 
 
-				if (!errstream.good()) {
-					utils::error("Unable to open temporary file '%s' for writing.", true, 0, config.errFile().c_str());
-					return TC_STAT_IO_ERR;
-				}
+		// write out data
+		copy(std::istreambuf_iterator<char>(c.get_stdout()), std::istreambuf_iterator<char>(),
+			std::ostreambuf_iterator<char>(outstream));
+		copy(std::istreambuf_iterator<char>(c.get_stderr()), std::istreambuf_iterator<char>(),
+			std::ostreambuf_iterator<char>(errstream));
 
-
-				utils::debug("1", true);
-				
-				// write out data
-				copy(std::istreambuf_iterator<char>(c.get_stdout()), std::istreambuf_iterator<char>(),
-					std::ostreambuf_iterator<char>(outstream));
-				copy(std::istreambuf_iterator<char>(c.get_stderr()), std::istreambuf_iterator<char>(),
-					std::ostreambuf_iterator<char>(errstream));
-
-				bp::status s = c.wait();
-				if (s.exited()) ret = s.exit_status();
-				else ret = TC_STAT_EXEC_ERR;
-
-
-				utils::debug("2", true);
-
-
-				
-				utils::debug("3", true);
+		bp::status s = c.wait();
+		if (s.exited()) ret = s.exit_status();
+		else ret = TC_STAT_EXEC_ERR;
 
 
 /*					try {
-						int tmp = bp::wait_for_exit(c);
-						ret = BOOST_PROCESS_EXITSTATUS(tmp);
-					} catch (boost::system::system_error& e) {
-						utils::debug("Caught exception '%s'.", true, e.what());
-						ret = TC_STAT_EXEC_ERR;
-					} */
+				int tmp = bp::wait_for_exit(c);
+				ret = BOOST_PROCESS_EXITSTATUS(tmp);
+			} catch (boost::system::system_error& e) {
+				utils::debug("Caught exception '%s'.", true, e.what());
+				ret = TC_STAT_EXEC_ERR;
+			} */
 
-				outstream.close();
-				errstream.close();
-
-
-			} else ret = TC_STAT_BG;
-		}
+		outstream.close();
+		errstream.close();
 
 
-		// TODO: Do I need to close the sink?
+	} else ret = TC_STAT_BG;
+}
+
+
+// TODO: Do I need to close the sink?
 
 
 
-		utils::debug("Command exited with status '%d'.", true, ret);
+utils::debug("Command exited with status '%d'.", true, ret);
 
-		if (!processErrors(config, tool, config.errFile())) {
-			utils::warning("Could not read from the error stream file.", true);
-		}
+if (!processErrors(config, tool, config.errFile())) {
+	utils::warning("Could not read from the error stream file.", true);
+}
 
 //		int stat = system(tmpCmd.c_str());
 //		ret = WEXITSTATUS(stat);
-	}
 
 	return ret;
 }

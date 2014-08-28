@@ -33,12 +33,17 @@
 #include <boost/thread.hpp>
 #include <boost/function.hpp>
 
+#include "babb/utils/memory.h"
+
+namespace cplus2asp {
+namespace bcbridge {
+
 /**
  * @brief A client wrapper in order to facilitate interaction with oClingo.
  * Based on the boost ASIO example provided here: 
  *          http://www.boost.org/doc/libs/1_39_0/doc/html/boost_asio/example/chat/chat_client.cpp
  */
-class NetworkClient
+class NetworkClient : public babb::utils::Referenced
 {
 public:
 
@@ -109,12 +114,18 @@ public:
 		mReadBufSz = readBufferSize;
 		mReadBuf = new char[readBufferSize];
 
-		boost::asio::ip::tcp::endpoint endpoint = *mEndpointIterator;
+//		boost::asio::ip::tcp::endpoint endpoint = *mEndpointIterator;
 
 		// Bind to port.
-		mSocket.async_connect(endpoint,
+		//mSocket.async_connect(endpoint,
+		//	boost::bind(&NetworkClient::handler_connect, this,
+	//		boost::asio::placeholders::error, ++mEndpointIterator));
+		
+		async_connect(mSocket,  mEndpointIterator, 
+			boost::bind(&NetworkClient::infinite_connect, this, 
+				boost::asio::placeholders::error, boost::asio::placeholders::iterator),
 			boost::bind(&NetworkClient::handler_connect, this,
-			boost::asio::placeholders::error, ++mEndpointIterator));
+				boost::asio::placeholders::error, boost::asio::placeholders::iterator));
 
 
 		  mIOThread = new boost::thread(boost::bind(&boost::asio::io_service::run, &mIOService));
@@ -128,6 +139,9 @@ public:
 	/* Public Methods */
 	/************************************************************************/
 	
+
+
+
 	/// Asynchronously writes a message to the socket.
 	/// @param msg The message to write.
 	/// @param Whether to append the EOM byte to the message.
@@ -163,6 +177,9 @@ private:
 	/************************************************************************/
 	/* IO Handler Methods */
 	/************************************************************************/
+	boost::asio::ip::tcp::resolver::iterator infinite_connect(
+		boost::system::error_code const& error,
+		boost::asio::ip::tcp::resolver::iterator it);
 
 	/**
 	 * @brief Handles an asynchronous request to connect to a server.
@@ -189,3 +206,5 @@ private:
 };
 
 
+
+}}

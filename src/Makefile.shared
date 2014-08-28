@@ -1,5 +1,7 @@
 # Shared configuration for all makefiles to include.
 
+AUTOMAKE_OPTIONS = subdir-objects
+
 #libtool
 ACLOCAL_AMFLAGS = -I build-scripts 
 

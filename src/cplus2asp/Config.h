@@ -191,7 +191,7 @@ public:
 
 
 		// Toolchain options
-		_STR_TC_OPT_BEGIN_ = STR_REACTIVE_BRIDGE,				///< psuedo string option marking the toolchain options beginning
+		_STR_TC_OPT_BEGIN_ = STR_REACTIVE_BRIDGE + 1,			///< psuedo string option marking the toolchain options beginning
 		STR_OPT_TRANSLATOR = _STR_TC_OPT_BEGIN_ + TC_TRANSLATOR,
 		STR_OPT_PREPROC = _STR_TC_OPT_BEGIN_ + TC_PREPROC,
 		STR_OPT_GROUNDER = _STR_TC_OPT_BEGIN_ + TC_GROUNDER,
@@ -202,7 +202,7 @@ public:
 		
 	
 		// Toolchain output files
-		_STR_TC_OUT_BEGIN_ = STR_OPT_REACTIVE_BRIDGE,				///< psuedo string option marking the toolchain output files beginning
+		_STR_TC_OUT_BEGIN_ = STR_OPT_REACTIVE_BRIDGE+1,				///< psuedo string option marking the toolchain output files beginning
 		STR_OUT_TRANSLATOR = _STR_TC_OUT_BEGIN_ + TC_TRANSLATOR,
 		STR_OUT_PREPROC = _STR_TC_OUT_BEGIN_ + TC_PREPROC,
 		STR_OUT_GROUNDER = _STR_TC_OUT_BEGIN_ + TC_GROUNDER,

@@ -58,7 +58,8 @@ public:
 	struct Output {
 		enum type {
 			STATIC,
-			INCREMENTAL
+			INCREMENTAL,
+			INCREMENTAL_NO_DECL	///< Incremental without #base and #cumulative declarations
 		};
 
 	};
@@ -147,8 +148,11 @@ public:
 
 	/// Get/set the output file (and associated stream), if any
 	inline ReferencedPath const* outputFile() const				{ return _output_file; }
-	inline bool outputFile(ReferencedPath const* file);
+	bool outputFile(ReferencedPath const* file);
 	inline std::ostream& out() const							{ return *(const_cast<std::ostream*>(_ostream)); }
+
+	/// Set the output stream to the provided stream (overrides the output file selection)
+	bool outputStream(std::ostream& out);
 
 
 	/// Get/set the input language

@@ -33,6 +33,9 @@
 
 #include "NetworkClient.h"
 
+namespace cplus2asp {
+namespace bcbridge {
+
 // size of read buffer
 size_t const NetworkClient::READ_BUFFER_DEFAULT = 4096;
 
@@ -61,6 +64,12 @@ void NetworkClient::write(std::string const& msg, bool eom) {
 }
 
 
+boost::asio::ip::tcp::resolver::iterator NetworkClient::infinite_connect(
+		const boost::system::error_code& ec,
+		boost::asio::ip::tcp::resolver::iterator it) {
+	return mEndpointIterator;
+}
+
 // Handles a request to connect to a server.
 void NetworkClient::handler_connect(const boost::system::error_code& error,
 	boost::asio::ip::tcp::resolver::iterator endpoint_iterator) {
@@ -79,11 +88,20 @@ void NetworkClient::handler_connect(const boost::system::error_code& error,
 		// Something bad happened.
 		// Attempt to restart the socket.
 		mSocket.close();
+/*
 		boost::asio::ip::tcp::endpoint endpoint = *mEndpointIterator;
 		mSocket.async_connect(endpoint,
 			boost::bind(&NetworkClient::handler_connect, this,
 				boost::asio::placeholders::error, ++mEndpointIterator));
 		std::cerr << "Error Connecting.\n";
+*/
+		async_connect(mSocket,  mEndpointIterator, 
+			boost::bind(&NetworkClient::infinite_connect, this, 
+				boost::asio::placeholders::error, boost::asio::placeholders::iterator),
+			boost::bind(&NetworkClient::handler_connect, this,
+				boost::asio::placeholders::error, boost::asio::placeholders::iterator));
+			
+
 	}
 }
 
@@ -130,4 +148,4 @@ void NetworkClient::do_close() {
 	mOpen = false;
 }
 
-
+}}

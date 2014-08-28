@@ -34,12 +34,14 @@
 
 
 #include "Driver.h"
+#include "babb/utils/memory.h"
 #include "as2transition/TransitionFormatter.h"
 
 #define VERSION_MAJOR 0
 #define VERSION_MINOR 1
 #define VERSION_REV 0
 
+using namespace cplus2asp::bcbridge;
 
 /**
  * @brief Displays the help dialog/
@@ -55,17 +57,14 @@ void printVersion(std::ostream& out) {
 
 int main(int argc, char const* argv[])
 {
+
 	Driver driver;
 
 	// -------------------------------------------------- Option Parsing.
 
 	for (int i = 1; i < argc; i++) {
 		if (!driver.formatter().parseOption(argv[i], true)) {
-			if (!strcmp(argv[i], "--no-history")) {
-				// don't add history-enforcing constraints
-				driver.enforceHistory(false);
-
-			} else  if (!strncmp(argv[i], "--port=", strlen("--port="))) {
+			if (!strncmp(argv[i], "--port=", strlen("--port="))) {
 				if (strlen(argv[i]) <= strlen("--port=") ||!driver.port(argv[i] + strlen("--port="))) { 
 					std::cerr << "Error: '" << argv[i] << "' is not a valid port specification.\n";
 					showHelp(std::cout, argv[0]);
@@ -109,12 +108,33 @@ int main(int argc, char const* argv[])
 					showHelp(std::cout, argv[0]);
 					return 1;
 				}
+			} else if (!strcmp(argv[i],"-s")) {
+				if (++i < argc) {
+					if (!driver.symtab(argv[i])) {
+						std::cerr << "Error: '" << argv[i] << "' is not a valid symbol table file.\n";
+						showHelp(std::cout, argv[0]);
+						return 1;
+				
+					}
+				} else {
+					std::cerr << "Error: Expected a file name following '" << argv[i-1] << "'.\n";
+					showHelp(std::cout, argv[0]);
+					return 1;
+				}
+			} else if (!strncmp(argv[i],"--symbol-table=", strlen("--symbol-table="))) {
+				if (strlen(argv[i]) <= strlen("--symbol-table=") || !driver.symtab(argv[i] + strlen("--symbol-table="))) {
+						std::cerr << "Error: '" << argv[i] << "' is not a valid symbol table file.\n";
+						showHelp(std::cout, argv[0]);
+						return 1;
+				}
 			} else if (!strcmp(argv[i], "--help") || !strcmp(argv[i],"-?") || !strcmp(argv[i],"?")) {
 				showHelp(std::cout, argv[0]);
 				return 0;
 			} else {
-				std::cerr << "Error: Unknown option: '" << argv[i] << "'.\n";
-				return 1;
+				if (!driver.formatter().parseOption(argv[i], false)) {
+					std::cerr << "Error: Unknown option: '" << argv[i] << "'.\n";
+					return 1;
+				}
 			}
 		}
 	}
@@ -126,13 +146,11 @@ int main(int argc, char const* argv[])
 
 // Displays the help dialog/
 void showHelp(std::ostream& out, char const* name) {
+
 	out << name << " version "; printVersion(out); out													<< std::endl
 	<< "USAGE: " << name << " [OPTIONS]"																<< std::endl
 																										<< std::endl
 	<< "Available Options: "																			<< std::endl
-	<< "  --no-history OR "																				<< std::endl
-	<< "        Prevents the automatic addition of history-enforcing constraints to oClingo, allowing "	<< std::endl
-	<< "        past steps to be replanned. "															<< std::endl
 	<< "  --port=PORT OR -p PORT "																		<< std::endl
 	<< "        Specifies the port to connect to oClingo with. [Default: " << Driver::DEF_OCLINGO_PORT << " ]."	<< std::endl
 	<< "  --host=HOST OR -h HOST "																		<< std::endl
@@ -142,6 +160,8 @@ void showHelp(std::ostream& out, char const* name) {
 #ifndef BOOST_TIMER
 	<< "        NOTICE: Requires recompilation with the Boost.Timer library."							<< std::endl
 #endif
+	<< "  --symbol-table=SYMTAB OR -s SYMTAB "															<< std::endl
+	<< "        Specifies a symbol table to load pre-defined BC+ symbols from."							<< std::endl
 	<< "  --version OR -v "																				<< std::endl
 	<< "        Displays the version of the program."													<< std::endl
 	<< "  --help OR -? OR ?"																			<< std::endl

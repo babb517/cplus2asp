@@ -20,15 +20,13 @@
   pos(axis)                      :: simpleFluent(integer);
   vel(axis)                      :: additiveFluent(integer);
   fire(jet)                      :: exogenousAction;
-  force(jet,axis)                :: exogenousAction(integer).
+  force(jet,axis)                :: attribute(integer) of fire(jet).
 
 :- macros 
   mass -> 1;
   maxForce -> 2.
 
-always -fire(J) ->> force(J,Ax)=0.
-
-fire(J) increments vel(Ax) by V // mass if force(J,Ax) = V.
+fire(J) increments vel(Ax) by V // mass if force(J,Ax) = V & V \= 0.
 
 
 caused pos(Ax) = P+((V+V1)//2) if vel(Ax) = V1
@@ -36,13 +34,13 @@ caused pos(Ax) = P+((V+V1)//2) if vel(Ax) = V1
                                          P+((V+V1)//2) >= -maxAdditive &
                                          P+((V+V1)//2) =< maxAdditive.
 
-nonexecutable fire(J) if abs(force(J,Ax)) > maxForce.
+nonexecutable fire(J) if abs(V) > maxForce & force(J,Ax)=V.
 
 %:- show pos(Ax); vel(Ax).
 
 :- query
  label:: 0;
- maxstep:: 0..100;
+ maxstep:: 0..4;
  0: (pos(x) = 0  &  pos(y) =  0  &  pos(z) =  0);
  0: (vel(x) =  0  &  vel(y) =  0  &  vel(z) =  0);
  maxstep: (pos(x) = 8  &  pos(y) = 8  &  pos(z) = 8);

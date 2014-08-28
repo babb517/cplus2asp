@@ -32,12 +32,21 @@
 #include <boost/timer/timer.hpp>
 #endif
 
-#include <as2transition/TransitionFormatter.h>
-#include <as2transition/TransitionPath.h>
+#include "as2transition/TransitionFormatter.h"
+#include "as2transition/TransitionPath.h"
+
+#include "babb/utils/memory.h"
+#include "memwrappers.h"
+#include "bcplus/parser/BCParser.h"
+#include "cplus2asp.bin/Configuration.h"
+#include "cplus2asp.bin/Translator.h"
 
 #include "NetworkClient.h"
 #include "boost/bind.hpp"
 #include "boost/asio/error.hpp"
+
+namespace cplus2asp {
+namespace bcbridge {
 
 // Main Driver class for the bridge
 class Driver {
@@ -54,11 +63,12 @@ private:
 	/**************************************************************************/
 	std::string mHost;					///< Host name to connect to.
 	std::string mPort;					///< Port name to connect to.
-	NetworkClient* mClient;				///< Client connection.
 
 	as2transition::TransitionFormatter mFormatter;		///< as2transition API object
-	as2transition::TransitionPath* mPlan;
 
+	std::stringstream mTransIn;			///< Input for the translator
+	std::stringstream mTransOut;		///< Output from the translator
+	std::stringstream mF2lpOut;			///< Output from F2LP
 	std::stringstream mOclingoOut;		///< Buffer for oClingo output.
 
 #ifdef BOOST_TIMER
@@ -69,10 +79,14 @@ private:
 	size_t mLastStep;					///< The last step that we received input for.
 
 	bool mClosing;						///< Whether it's been requested that we close the connection.
-	bool mEnforceHistory;				///< Whether we are enforcing past time step's actions.
 #ifdef BOOST_TIMER
 	bool mShowTime;						///< Whether we are tracking and showing the tim between each oClingo response.
 #endif
+
+	babb::utils::ref_ptr<as2transition::TransitionPath> mPlan;
+	babb::utils::ref_ptr<NetworkClient> mClient;
+	babb::utils::ref_ptr<bcplus::parser::BCParser> mParser;
+	babb::utils::ref_ptr<cplus2asp_bin::Translator> mTranslator;
 
 public:
 	/**************************************************************************/
@@ -84,24 +98,12 @@ public:
 	 * @param host The host to establish the connection to.
 	 * @param port The port to establish the connection to.
 	 */
-	inline Driver(std::string const& host = DEF_OCLINGO_HOST, std::string const& port = DEF_OCLINGO_PORT)
-			: mHost(host), 
-			mPort(port), 
-			mClient(NULL), 
-			mPlan(NULL),
-			mLastStep(0), 
-			mClosing(false), 
-			mEnforceHistory(true)
-#ifdef BOOST_TIMER
-	, mShowTime(false)
-#endif
-	{ /* Intentionally left blank */ }
+	Driver(std::string const& host = DEF_OCLINGO_HOST, std::string const& port = DEF_OCLINGO_PORT);
 
 	/// Destructor. Closes connections, frees memory.
 	inline ~Driver() {
 		if (mClient) {
 			if (mClient->open()) mClient->close();
-			delete mClient;
 		}
 	}
 	
@@ -136,8 +138,12 @@ public:
 	/// TODO: Validation.
 	inline bool host(std::string const& host) { mHost = host; return true; }
 
-	/// Sets whether we should enforce past histories
-	inline void enforceHistory(bool enforce) { mEnforceHistory = enforce; }
+
+	/// Sets the file that we're reading the symbol table from
+	/// @param symtab The new symbol table file
+	/// @return True if the file was read successfully, false otherwise.
+	bool symtab(std::string const& symtab);
+
 
 #ifdef BOOST_TIMER
 	/// Sets whether we should display the time it took oClingo to respond.
@@ -169,4 +175,4 @@ private:
 
 };
 
-
+}}

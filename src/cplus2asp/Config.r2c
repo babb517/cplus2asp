@@ -321,12 +321,14 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 	// a) The current tool,
 	// b) The tools immediately preceeding the tool which we aren't running.
 
-	for (Toolchain i = tool; i >= _TC_BEGIN_; i = (Toolchain)((int)i - 1)) {
-		// Only include files which haven't been included by a previous tool.
-		if (i != tool && run(i)) break;
-
-		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
-			count++;
+	if (tool != TC_REACTIVE_BRIDGE) {
+		for (Toolchain i = tool; i >= _TC_BEGIN_; i = (Toolchain)((int)i - 1)) {
+			// Only include files which haven't been included by a previous tool.
+			if (i != tool && run(i)) break;
+	
+			for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
+				count++;
+			}
 		}
 	}
 
@@ -335,9 +337,9 @@ size_t Config::cumulativeInputCount(Toolchain tool) const {
 	case _TC_END_:
 	case TC_REACTIVE_BRIDGE:
 		// Reactive bridge is different.
-		if (run(TC_TRANSLATOR)) {
-			count++;
-		}
+//		if (run(TC_TRANSLATOR)) {
+//			count++;
+//		}
 		break;
 
 	case TC_POSTPROC:
@@ -401,10 +403,11 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 	std::string tmpstr;
 
 	tmpstream << opts(tool);
+	tmpstream >> tmpstr;
 
-	while (tmpstream) {
-		tmpstream >> tmpstr;
+	while (tmpstream.good()) {
 		arglist.push_back(tmpstr);
+		tmpstream >> tmpstr;
 	}
 
 	// Add step specific instructions
@@ -588,14 +591,17 @@ void Config::compileArgs(Toolchain tool, std::list<std::string>& arglist, RunCon
 #else
 		// The reactive client doesn't need to know much.
 		// Just the ports to use and where to find the symbol table
-		compileInputArgs(tool, arglist);
+//		compileInputArgs(tool, arglist);
+
+		arglist.push_back("--symbol-table=" + strOpt(STR_SYMTAB_FILE));
 
 		arglist.push_back("--port=" + utils::to_string(intConfigOpt(OPT_INT_PORT)));
 
-		if (intConfigOpt(OPT_EXT_PORT) != UNDEFINED)
-			arglist.push_back("--client-port=" + utils::to_string(intConfigOpt(OPT_EXT_PORT)));
+//		if (intConfigOpt(OPT_EXT_PORT) != UNDEFINED)
+//			arglist.push_back("--client-port=" + utils::to_string(intConfigOpt(OPT_EXT_PORT)));
 		if (strOpt(STR_NONE_ALIAS) != "") 
 			arglist.push_back("--none=" + strOpt(STR_NONE_ALIAS));
+
 #endif
 		break;
 
@@ -752,11 +758,6 @@ void Config::compileInputArgs(Toolchain tool, std::list<std::string>& args) cons
 	switch (tool) {
 	case _TC_END_:
 	case TC_REACTIVE_BRIDGE:
-		// Reactive bridge is different.
-		// TODO Finalize this
-		if (run(TC_TRANSLATOR)) {
-//			out << " " << intTransSymTabFile();
-		}
 		break;
 
 	case TC_POSTPROC:
@@ -793,12 +794,14 @@ void Config::compileInputArgs(Toolchain tool, std::list<std::string>& args) cons
 
 	}
 
-	for (int i = (int)tool; i >= (int)_TC_BEGIN_; i--) {
-		// Only include files which haven't been included by a previous tool.
-		if (i != (int)tool && run((Toolchain)i)) break;
+	if (tool != TC_REACTIVE_BRIDGE) {
+		for (int i = (int)tool; i >= (int)_TC_BEGIN_; i--) {
+			// Only include files which haven't been included by a previous tool.
+			if (i != (int)tool && run((Toolchain)i)) break;
 
-		for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
-			args.push_back(*it);
+			for (InputList::const_iterator it = beginInput((Toolchain)i); it != endInput((Toolchain)i); it++) {
+				args.push_back(*it);
+			}
 		}
 	}
 }

@@ -39,11 +39,11 @@ Configuration::~Configuration() {
 }
 
 void Configuration::clearOutputFile() {
-	_output_file = NULL;
-	if (_ostream && _ostream != &std::cout) {
+	if (_output_file && _ostream && _ostream != &std::cout) {
 		((fs::ofstream*)_ostream)->close();
 		delete _ostream;
 	}
+	_output_file = NULL;
 	_ostream = &std::cout;
 
 }
@@ -69,6 +69,11 @@ bool Configuration::outputFile(ReferencedPath const* file) {
 	}
 }
 
+bool Configuration::outputStream(std::ostream& out) {
+	clearOutputFile();
+	_ostream = &out;
+	return true;
+}
 
 bool Configuration::good() {
 	return true;
@@ -227,7 +232,10 @@ re2c_finish:
 
 
 ReferencedString const* Configuration::ts(TS::type ts_class) const {
-	if (_output_lang == Output::STATIC) {
+
+
+	switch (_output_lang) {
+	case Output::STATIC:
 		switch (ts_class) {
 		case TS::STATIC:	return s_ts_static_static;
 		case TS::DYNAMIC:	return s_ts_dynamic_static;
@@ -236,8 +244,12 @@ ReferencedString const* Configuration::ts(TS::type ts_class) const {
 		case TS::ZERO:
 		default:			return s_ts_zero;
 		};
+		break;
 
-	} else {
+	case Output::INCREMENTAL:
+	case Output::INCREMENTAL_NO_DECL:
+	default:
+
 		switch (ts_class) {
 		case TS::STATIC:	return s_ts_static_incr;
 		case TS::DYNAMIC:	return s_ts_dynamic_incr;
@@ -247,7 +259,7 @@ ReferencedString const* Configuration::ts(TS::type ts_class) const {
 		default:			return s_ts_zero;
 		};
 
-	}
+	};
 
 }
 

@@ -1,5 +1,7 @@
 #include "Translator.h"
 
+#include <string>
+
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -1050,16 +1052,48 @@ bool Translator::translate(bcplus::statements::Statement const* stmt) {
 		{
 
 			u::ref_ptr<const st::ObservedLaw> l = (st::ObservedLaw const*)stmt;
-			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL, config()->ts(Configuration::TS::ACTION));
+			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL,
+				new ReferencedString(boost::lexical_cast<std::string>(l->at()->val())));
 
 
-			std::stringstream tmpout;
-			translate(l->at(), c, tmpout);
-			std::string step = tmpout.str();
+//			std::stringstream tmpout;
+//			translate(l->at(), c, tmpout);
+//			std::string step = tmpout.str();
+//			assertIPart(IPart::EXTERNAL, &step);
 
-			assertIPart(IPart::EXTERNAL, &step);
-			c = c->mkTime(new ReferencedString(step));
-			translate(l->head(),c, config()->out());
+			if (l->head()->c()->symbol()->constType() & ~ bcplus::symbols::ConstantSymbol::Type::M_EXTERNAL) {
+				config()->error("Observational laws cannot contain non-external constants.", &l->head()->beginLoc());
+				ret = false;
+			} else {
+				translate(l->head(),c, tmpout);
+				HANDLE_PRESTMTS
+				config()->out() << tmpout.str();
+				HANDLE_CLAUSES(config()->out(), true, true);
+			}
+		}
+		break;
+     case st::Statement::Type::LAW_TEMPORAL_CONSTRAINT:
+		{
+
+			u::ref_ptr<const st::TemporalConstraintLaw> l = (st::TemporalConstraintLaw const*)stmt;
+			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL,
+				new ReferencedString(boost::lexical_cast<std::string>(l->at()->val())));
+
+
+//			std::stringstream tmpout;
+//			translate(l->at(), c, tmpout);
+//			std::string step = tmpout.str();
+//			assertIPart(IPart::EXTERNAL, &step);
+						
+
+			ret = bindAndTranslate(l->head(), c, tmpout) && ret;
+				
+			HANDLE_PRESTMTS
+			config()->out() << "<- ";
+			config()->out() << "not (" << tmpout.str();
+			HANDLE_CLAUSES(config()->out(), false, false);
+			config()->out() << ")." << std::endl;
+			tmpout.str("");
 		}
 		break;
 
@@ -1514,6 +1548,18 @@ bool Translator::translateConstDeclaration(sy::ConstantSymbol const* sym, Contex
 			u::ref_ptr<Context> ic = c->mkPos(Context::Position::AGGR, IPart::CUMULATIVE, false);
 			ic = ic->mkTime(config()->ts((action ? Configuration::TS::ACTION : Configuration::TS::STATIC)));
 
+
+			tmpout << "#external ";
+
+
+
+			ret = translate_eq(sym, *newVar(sym->sort(), ic), ic, tmpout) && ret;
+			HANDLE_CLAUSES_5(tmpout, false, true, false, " : ");
+			if (ret) {
+				nextStmt(c, tmpout.str(), IPart::CUMULATIVE);
+			}
+			tmpout.str("");
+
 			tmpout << "{";
 			ret = translate_eq(sym, "o_unknown", ic, tmpout) && ret;
 			tmpout << "}";
@@ -1527,6 +1573,13 @@ bool Translator::translateConstDeclaration(sy::ConstantSymbol const* sym, Contex
 
 				ic = c->mkPos(Context::Position::AGGR, IPart::BASE, false);
 				ic = ic->mkTime(config()->ts(Configuration::TS::ZERO));
+			
+				tmpout << "#external ";
+				ret = translate_eq(sym, *newVar(sym->sort(), ic), ic, tmpout) && ret;
+				HANDLE_CLAUSES_5(tmpout, false, true, false, " : ");
+				if (ret) {
+					nextStmt(c, tmpout.str(), IPart::BASE);
+				}
 
 				tmpout << "{";
 				ret = translate_eq(sym, "o_unknown", ic, tmpout) && ret;
@@ -1612,18 +1665,18 @@ bool Translator::translateConstDeclaration(sy::ConstantSymbol const* sym, Contex
 				args->push_back(*newVar(sort, c));
 			}
 
-//			tmpout << "{contrib_" << *sym->base() << "(";
-//			HANDLE_SORT_ARGS(sym, c, tmpout, false, true, args);
-//			tmpout << "ACTION, 0, " << *config()->ts(Configuration::TS::ACTION) << ")}";
-//			tmpout << " <- additiveconst_action(";
-//			translate((sy::ConstantSymbol const*)sym, c, tmpout, true, args);
-//			tmpout << ", ACTION)";
+			tmpout << "{contrib_" << *sym->base() << "(";
+			HANDLE_SORT_ARGS_6(sym, c, tmpout, false, true, args);
+			tmpout << "ACTION, 0, " << *config()->ts(Configuration::TS::ACTION) << ")}";
+			tmpout << " <- additiveconst_action(";
+			translate((sy::ConstantSymbol const*)sym, c, tmpout, true, args);
+			tmpout << ", ACTION)";
 
-//			HANDLE_CLAUSES_6(tmpout, false, true, false, " & ", true);
-//			nextStmt(c, tmpout.str(), IPart::CUMULATIVE);
-//			tmpout.str("");
+			HANDLE_CLAUSES_6(tmpout, false, true, false, " & ", true);
+			nextStmt(c, tmpout.str(), IPart::CUMULATIVE);
+			tmpout.str("");
 			
-			tmpout << "<- not {contrib_" << *sym->base() << "(";
+			tmpout << "<- not 1{contrib_" << *sym->base() << "(";
 			HANDLE_SORT_ARGS_6(sym, c, tmpout, false, true, args);
 			tmpout << "ACTION, VAR, " << *config()->ts(Configuration::TS::ACTION) << ") : ";
 			translate(symtab()->bsort(sy::SymbolTable::BuiltinSort::ADDITIVE), tmpout);
@@ -2753,7 +2806,7 @@ std::string Translator::newConst(std::string const& descr) {
 void Translator::assertIPart(IPart::type ipart, std::string const* step) {
 	static size_t oldstephash = 0;
 
-	if (config()->outputLanguage() == Configuration::Output::STATIC) return;
+	if (config()->outputLanguage() != Configuration::Output::INCREMENTAL) return;
 	if ((oldstephash == (size_t)step) && (_ipart == ipart || ipart == IPart::NONE)) return;
 	oldstephash = (size_t)step;
 
