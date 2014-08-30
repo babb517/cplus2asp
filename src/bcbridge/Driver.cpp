@@ -413,7 +413,7 @@ void Driver::send(std::string const& msg, size_t step, bool stop) {
 		tmp << "#endstep.\n";
 	}
 
-	std::cout << "Sending: '" << tmp.str() << "'." << std::endl;
+//	std::cout << "Sending: '" << tmp.str() << "'." << std::endl;
 
 	mClient->write(tmp.str(), true);
 #ifdef BOOST_TIMER
@@ -444,7 +444,7 @@ void Driver::displayTransition(std::istream& in, std::ostream& out) {
 		}
 #endif
 
-		out << "Please input the next module: " << std::endl;
+		out << "% Please input the next module: " << std::endl;
 		out.flush();
 	}
 
