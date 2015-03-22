@@ -256,6 +256,10 @@ int Driver::run() {
 				} while (result.first != pa::BCParser::Status::END_INPUT);
 
 
+#ifdef DEBUG
+				std::cout << "Translator output: \n" << mTransOut.str() << std::endl;
+#endif
+
 		
 
 				// process it through F2LP
@@ -283,6 +287,7 @@ E
 
 	
 					mF2lpOut.str("");
+					mF2lpOut.clear();
 	
 					// receive data back as input
 					copy(std::istreambuf_iterator<char>(c.get_stdout()), std::istreambuf_iterator<char>(),
@@ -296,6 +301,10 @@ E
 					if (s.exited() && s.exit_status()) ret = false;
 
 				}
+
+#ifdef DEBUG
+				std::cout << "F2LP output: \n" << mF2lpOut.str() << std::endl;
+#endif
 
 				// sanitize F2LP output for use with oClingo
 				std::stringstream tmp;
@@ -413,7 +422,9 @@ void Driver::send(std::string const& msg, size_t step, bool stop) {
 		tmp << "#endstep.\n";
 	}
 
-//	std::cout << "Sending: '" << tmp.str() << "'." << std::endl;
+#ifdef DEBUG
+	std::cout << "Sending: '" << tmp.str() << "'." << std::endl;
+#endif
 
 	mClient->write(tmp.str(), true);
 #ifdef BOOST_TIMER

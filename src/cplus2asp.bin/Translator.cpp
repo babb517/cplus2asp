@@ -1052,7 +1052,7 @@ bool Translator::translate(bcplus::statements::Statement const* stmt) {
 		{
 
 			u::ref_ptr<const st::ObservedLaw> l = (st::ObservedLaw const*)stmt;
-			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL,
+			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL, false,
 				new ReferencedString(boost::lexical_cast<std::string>(l->at()->val())));
 
 
@@ -1076,7 +1076,7 @@ bool Translator::translate(bcplus::statements::Statement const* stmt) {
 		{
 
 			u::ref_ptr<const st::TemporalConstraintLaw> l = (st::TemporalConstraintLaw const*)stmt;
-			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL,
+			u::ref_ptr<Context> c = new Context(config(), Context::Position::HEAD, IPart::EXTERNAL, preStmts, extraClauses, NULL, false,
 				new ReferencedString(boost::lexical_cast<std::string>(l->at()->val())));
 
 

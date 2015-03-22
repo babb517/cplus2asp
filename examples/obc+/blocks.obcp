@@ -64,7 +64,7 @@ nonexecutable move(B,BR) if ~rained(BR).
 
 % It's raining blocks
 ext_rain(BR,L) causes loc(BR)=L.
-ext_rain(BR,L) causes rained(B).
+ext_rain(BR,L) causes rained(BR).
 
 % Addition: If a block hasn't rained, its location is undefined.
 impossible ~rained(BR) & loc(BR)=L where L \= none.
