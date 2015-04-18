@@ -496,7 +496,7 @@ int main(int argc, char** argv)
 			// They haven't specified a mode. Default to REACTIVE.
 			utils::pragma("One or more external constants have been detected. Defaulting to the '%s' mode.", true, ARG_MODE_REACTIVE);
 			config.mode(Config::MODE_REACTIVE);
-		} else {
+		} else if (!config.mode() == Config::MODE_REACTIVE) {
 			utils::warning("One or more external constants have been detected while operating in a non-reactive mode.", true);
 		}
 	}
