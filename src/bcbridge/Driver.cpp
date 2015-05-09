@@ -72,9 +72,9 @@ Driver::Driver(std::string const& host, std::string const& port)
 			: mHost(host), 
 			mPort(port), 
 			mLastStep(0), 
-			mClosing(false),
+			mClosing(false)
 #ifdef BOOST_TIMER
-			mShowTime(false)
+			, mShowTime(false)
 #endif
 	{ 
 
